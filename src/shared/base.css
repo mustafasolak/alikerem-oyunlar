@@ -1,0 +1,103 @@
+/* Site geneli: sıfırlama + tasarım değişkenleri. Her sayfa bunu içe aktarır. */
+
+:root {
+  --bg: #14110f;
+  --bg-soft: #1e1a16;
+  --surface: #262019;
+  --surface-hi: #322a21;
+  --line: #3d342a;
+  --text: #f6efe4;
+  --text-dim: #a99e8f;
+  --accent: #edc22e;
+  --accent-soft: #f2d76b;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(1100px 620px at 12% -10%, #3a2f22 0%, transparent 60%),
+    radial-gradient(900px 520px at 100% 0%, #2b2331 0%, transparent 55%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 0;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+.wrap {
+  width: min(100% - 2rem, 1040px);
+  margin-inline: auto;
+}
+
+/* Ana sayfaya dönüş / genel aksiyon butonu */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  background: var(--surface-hi);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-weight: 600;
+  transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+
+.btn:hover {
+  background: #3d342a;
+  border-color: #4d4235;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn--accent {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #2a2013;
+}
+
+.btn--accent:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}

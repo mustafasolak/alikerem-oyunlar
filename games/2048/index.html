@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Tarayıcıda oynanan 2048 bulmaca oyunu." />
+    <title>2048 — Ali Kerem Oyunları</title>
+  </head>
+  <body>
+    <div class="game-shell">
+      <header class="game-top">
+        <a class="btn" href="../../index.html">← Ana sayfa</a>
+        <div class="scores">
+          <div class="score-box" id="score-box">
+            <span>SKOR</span>
+            <strong id="score">0</strong>
+            <div class="score-gain" id="score-gain"></div>
+          </div>
+          <div class="score-box">
+            <span>EN İYİ</span>
+            <strong id="best">0</strong>
+          </div>
+        </div>
+      </header>
+
+      <div class="game-intro">
+        <div>
+          <h1>2048</h1>
+          <p>Aynı sayıları birleştir, <strong>2048</strong> karesine ulaş.</p>
+        </div>
+        <button class="btn btn--accent" id="restart" type="button">Yeni oyun</button>
+      </div>
+
+      <div class="game-stage" id="game-stage">
+        <div class="game-canvas" id="game"></div>
+        <div class="overlay" id="overlay" hidden>
+          <div class="overlay-card">
+            <h2 id="overlay-title"></h2>
+            <p id="overlay-text"></p>
+            <div class="overlay-actions">
+              <button class="btn btn--accent" id="overlay-primary" type="button"></button>
+              <button class="btn" id="overlay-secondary" type="button" hidden></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="hint">
+        <kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> veya <kbd>WASD</kbd> ile oyna · mobilde parmağını kaydır
+      </p>
+    </div>
+
+    <script type="module" src="../../src/games/game2048/main.ts"></script>
+  </body>
+</html>
