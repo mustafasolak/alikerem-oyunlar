@@ -21,8 +21,8 @@ import {
 } from '../config/constants.ts'
 import { Board2048, type Direction, type Tile } from '../systems/Board2048.ts'
 import { GameStorage } from '../systems/GameStorage.ts'
-import { Hud } from '../systems/Hud.ts'
-import { SwipeInput } from '../systems/SwipeInput.ts'
+import { GameHud } from '../../../shared/GameHud.ts'
+import { SwipeInput } from '../../../shared/SwipeInput.ts'
 
 const KEY_BINDINGS: Record<string, Direction> = {
   'keydown-LEFT': 'left',
@@ -39,7 +39,7 @@ export class GameScene extends Phaser.Scene {
   private readonly board = new Board2048()
   private readonly views = new Map<number, Phaser.GameObjects.Container>()
 
-  private hud!: Hud
+  private hud!: GameHud
   private tileLayer!: Phaser.GameObjects.Container
   private swipe?: SwipeInput
   private best = 0
@@ -55,7 +55,7 @@ export class GameScene extends Phaser.Scene {
     this.tileLayer = this.add.container(0, 0)
 
     this.best = GameStorage.loadBest()
-    this.hud = new Hud({ onRestart: () => this.startNewGame() })
+    this.hud = new GameHud({ onRestart: () => this.startNewGame() })
     this.hud.setBest(this.best)
 
     const saved = GameStorage.loadGame()

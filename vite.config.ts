@@ -12,6 +12,7 @@ export default defineConfig({
       input: {
         home: fromRoot('index.html'),
         game2048: fromRoot('games/2048/index.html'),
+        yilan: fromRoot('games/yilan/index.html'),
       },
     },
   },

@@ -23,22 +23,32 @@ index.html               # ana sayfa (oyun galerisi)
 games/<oyun>/index.html  # her oyunun kendi sayfası
 vite.config.ts           # çok sayfalı build girdileri
 src/
-  shared/
+  shared/                # bütün oyunların ortak kullandığı parçalar
     base.css             # site geneli sıfırlama + tasarım değişkenleri
+    game-page.css        # ortak oyun sayfası düzeni (üst bar, skor, katman)
     games.ts             # oyun kataloğu (ana sayfa kartları buradan üretilir)
+    GameHud.ts           # skor / en iyi / yeni oyun / sonuç katmanı (DOM)
+    SwipeInput.ts        # dokunmatik kaydırma → yön
+    safeStorage.ts       # localStorage sarmalayıcı (gizli sekmede çökmez)
   home/                  # ana sayfa kodu ve stili
   games/<oyun>/
     main.ts              # Phaser config, oyun başlatma
-    <oyun>.css           # o oyunun sayfa stili
+    <oyun>.css           # sadece o oyunun rengi (--game-a / --game-b)
     scenes/              # her sahne ayrı dosya
-    systems/             # oyun mantığı, kayıt, girdi, HUD
+    systems/             # oyun mantığı ve kayıt
     config/constants.ts  # sabitler: ölçü, süre, renk, kurallar
 public/assets/           # görsel ve ses dosyaları
 ```
 
+Yeni oyun yazarken HUD, kaydırma ve depolama için `src/shared/` içindekileri kullan;
+oyuna özel kodu tekrar yazma. Bütün oyun sayfaları aynı DOM id'lerini paylaşır
+(`#score`, `#best`, `#restart`, `#overlay`, `#game`, `#game-stage`).
+
 ## Yeni oyun ekleme adımları
-1. `games/<oyun>/index.html` oluştur; script etiketi `../../src/games/<oyun>/main.ts` göstersin.
+1. `games/<oyun>/index.html` oluştur — mevcut bir oyun sayfasını kopyala, id'ler aynı kalsın;
+   script etiketi `../../src/games/<oyun>/main.ts` göstersin.
 2. `src/games/<oyun>/` altına main.ts + config/scenes/systems iskeletini kur.
+   `<oyun>.css` yalnızca `@import '../../shared/game-page.css'` ve başlık renklerini içersin.
 3. `vite.config.ts` içindeki `rollupOptions.input`'a girdiyi ekle.
 4. `src/shared/games.ts` içine katalog kaydını ekle (`status: 'ready'`).
 
@@ -66,7 +76,9 @@ public/assets/           # görsel ve ses dosyaları
 ### Site
 - [x] Ana sayfa + oyun kataloğu
 - [x] Çok sayfalı build (her oyun kendi sayfası)
-- [ ] Yayın (GitHub Pages)
+- [x] Yayın: https://mustafasolak.github.io/alikerem-oyunlar/ (main'e push → otomatik)
+- [x] Ortak HUD / kaydırma / depolama modülleri
+- [ ] Ana sayfa kartlarında en iyi skorlar
 
 ### 2048
 - [x] Oynanabilir çekirdek döngü (kaydırma + birleştirme)
@@ -79,6 +91,14 @@ public/assets/           # görsel ve ses dosyaları
 - [ ] Ses efektleri
 - [ ] Geri alma (undo)
 
+### Yılan
+- [x] Oynanabilir çekirdek döngü (delta tabanlı adım, yön kuyruğu)
+- [x] Kazanma/kaybetme koşulu (duvar, kuyruk, tahtayı doldurma)
+- [x] Skor, en iyi skor ve HUD
+- [x] Duraklatma (Boşluk / Esc / P)
+- [x] Mobil dokunmatik kontrol (kaydırma)
+- [x] Görsel cila (yem nabzı, yeme halkası, ölümde sarsıntı, gövde gradyanı)
+- [ ] Ses efektleri
+
 ### Sıradaki oyunlar
-- [ ] Yılan
 - [ ] Hafıza kartları

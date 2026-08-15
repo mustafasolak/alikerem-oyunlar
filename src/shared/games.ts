@@ -34,11 +34,11 @@ export const GAMES: GameEntry[] = [
   {
     id: 'yilan',
     title: 'Yılan',
-    tagline: 'Klasik yılan oyunu. Yem topla, kuyruğuna çarpma.',
+    tagline: 'Yem topla, uzadıkça hızlan. Duvara ve kuyruğuna çarpma.',
     emoji: '🐍',
     href: 'games/yilan/index.html',
     tags: ['Arcade', 'Refleks'],
-    status: 'soon',
+    status: 'ready',
   },
   {
     id: 'hafiza',

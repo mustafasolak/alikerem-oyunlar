@@ -1,6 +1,9 @@
-/** Sayfa üstündeki DOM arayüzü: skorlar, yeni oyun butonu ve sonuç katmanı. */
+/**
+ * Sayfa üstündeki ortak DOM arayüzü: skorlar, yeni oyun butonu ve sonuç katmanı.
+ * Her oyun sayfası aynı id'leri kullanır (#score, #best, #restart, #overlay ...).
+ */
 
-export interface HudCallbacks {
+export interface GameHudCallbacks {
   onRestart: () => void
 }
 
@@ -19,7 +22,7 @@ function required<T extends HTMLElement>(selector: string): T {
   return element
 }
 
-export class Hud {
+export class GameHud {
   private readonly scoreEl = required<HTMLElement>('#score')
   private readonly bestEl = required<HTMLElement>('#best')
   private readonly scoreBox = required<HTMLElement>('#score-box')
@@ -34,7 +37,7 @@ export class Hud {
   private primaryAction: () => void = () => {}
   private secondaryAction: () => void = () => {}
 
-  constructor(callbacks: HudCallbacks) {
+  constructor(callbacks: GameHudCallbacks) {
     this.restartBtn.addEventListener('click', () => callbacks.onRestart())
     // Katman butonlarının davranışı her showOverlay çağrısında yeniden bağlanır.
     this.primaryBtn.addEventListener('click', () => this.primaryAction())

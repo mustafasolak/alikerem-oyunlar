@@ -1,0 +1,204 @@
+/*
+ * Ortak oyun sayfası düzeni: üst bar, skorlar, tuval çevresi ve sonuç katmanı.
+ * Her oyun bunu içe aktarır; kendi rengini --game-a / --game-b ile verir.
+ */
+
+:root {
+  /* Oyun başlığının gradyan renkleri; oyun kendi CSS dosyasında ezer. */
+  --game-a: var(--accent);
+  --game-b: #f2b179;
+}
+
+.game-shell {
+  width: min(100% - 1.5rem, 560px);
+  margin-inline: auto;
+  padding: 1.5rem 0 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.game-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.scores {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.score-box {
+  position: relative;
+  min-width: 92px;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  text-align: center;
+}
+
+.score-box span {
+  display: block;
+  color: var(--text-dim);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.score-box strong {
+  display: block;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-box.is-bumped {
+  animation: score-bump 0.22s ease;
+}
+
+@keyframes score-bump {
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.score-gain {
+  position: absolute;
+  inset-inline: 0;
+  top: 0.3rem;
+  color: var(--accent);
+  font-weight: 800;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.score-gain.is-active {
+  animation: score-gain 0.7s ease-out;
+}
+
+@keyframes score-gain {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-34px);
+  }
+}
+
+.game-intro {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.game-intro h1 {
+  font-size: clamp(2.2rem, 9vw, 3.2rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  background: linear-gradient(140deg, var(--game-a) 0%, var(--game-b) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.game-intro p {
+  color: var(--text-dim);
+  font-size: 0.92rem;
+}
+
+/* Tuval ve sonuç katmanı aynı kutuda durur */
+.game-stage {
+  position: relative;
+  aspect-ratio: 1;
+  /* Parmak kaydırması sayfayı kaydırmasın */
+  touch-action: none;
+}
+
+.game-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.game-canvas canvas {
+  display: block;
+  border-radius: var(--radius);
+}
+
+.hint {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.hint kbd {
+  padding: 0.05rem 0.4rem;
+  border-radius: 6px;
+  background: var(--surface-hi);
+  border: 1px solid var(--line);
+  font-family: var(--font);
+  font-size: 0.8rem;
+}
+
+/* --- Kazandın / oyun bitti katmanı --- */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  border-radius: var(--radius);
+  background: rgb(20 17 15 / 0.78);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 2;
+}
+
+.overlay.is-open {
+  opacity: 1;
+}
+
+.overlay[hidden] {
+  display: none;
+}
+
+.overlay-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+  text-align: center;
+  padding: 1.6rem 1.4rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 0.45);
+}
+
+.overlay-card h2 {
+  font-size: 1.6rem;
+}
+
+.overlay-card p {
+  color: var(--text-dim);
+}
+
+.overlay-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.3rem;
+}
+
+.overlay-actions button[hidden] {
+  display: none;
+}

@@ -1,18 +1,29 @@
-/** Dokunmatik/fare kaydırmasını yön komutuna çevirir. Phaser'dan bağımsız. */
+/**
+ * Dokunmatik/fare kaydırmasını yön komutuna çevirir. Phaser'dan bağımsız.
+ * Bütün oyunlar bunu kullanır.
+ */
 
-import { SWIPE_MIN_DISTANCE } from '../config/constants.ts'
-import type { Direction } from './Board2048.ts'
+export type SwipeDirection = 'up' | 'down' | 'left' | 'right'
+
+/** Bir kaydırmanın sayılması için gereken en küçük parmak mesafesi (px). */
+const MIN_DISTANCE = 24
 
 export class SwipeInput {
   private readonly target: HTMLElement
-  private readonly onSwipe: (direction: Direction) => void
+  private readonly onSwipe: (direction: SwipeDirection) => void
+  private readonly minDistance: number
   private startX = 0
   private startY = 0
   private tracking = false
 
-  constructor(target: HTMLElement, onSwipe: (direction: Direction) => void) {
+  constructor(
+    target: HTMLElement,
+    onSwipe: (direction: SwipeDirection) => void,
+    minDistance: number = MIN_DISTANCE,
+  ) {
     this.target = target
     this.onSwipe = onSwipe
+    this.minDistance = minDistance
     this.target.addEventListener('pointerdown', this.handleDown)
     this.target.addEventListener('pointerup', this.handleUp)
     this.target.addEventListener('pointercancel', this.handleCancel)
@@ -43,7 +54,7 @@ export class SwipeInput {
     const absX = Math.abs(dx)
     const absY = Math.abs(dy)
 
-    if (Math.max(absX, absY) < SWIPE_MIN_DISTANCE) return
+    if (Math.max(absX, absY) < this.minDistance) return
 
     if (absX > absY) {
       this.onSwipe(dx > 0 ? 'right' : 'left')

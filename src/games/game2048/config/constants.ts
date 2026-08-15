@@ -28,8 +28,6 @@ export const MERGE_POP_SCALE = 1.18
 export const TURN_DURATION = MOVE_DURATION + Math.max(SPAWN_DURATION, MERGE_POP_DURATION)
 
 // --- Girdi ---
-/** Bir kaydırmanın sayılması için gereken en küçük parmak mesafesi (px). */
-export const SWIPE_MIN_DISTANCE = 24
 /** Parmak kaydırmasının dinlendiği DOM elemanı. */
 export const SWIPE_TARGET_ID = 'game-stage'
 /** Phaser tuvalinin yerleştirileceği DOM elemanı. */
