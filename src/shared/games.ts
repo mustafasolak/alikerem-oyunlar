@@ -176,6 +176,15 @@ export const GAMES: GameEntry[] = [
     status: 'ready',
   },
   {
+    id: 'hafiza',
+    title: 'Hafıza Kartları',
+    tagline: 'Kartları çevir, eşleri bul, en az hamleyle bitir.',
+    emoji: '🃏',
+    href: 'games/hafiza/index.html',
+    tags: ['Hafıza', 'Sakin'],
+    status: 'ready',
+  },
+  {
     id: 'eslestirme',
     title: 'Eşleştirme Oyunu',
     tagline: 'Hayvan-yavrusu, ülke-başkent gibi ikilileri eşleştir.',
