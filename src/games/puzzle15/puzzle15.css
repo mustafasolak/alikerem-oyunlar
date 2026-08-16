@@ -1,0 +1,9 @@
+/* 15’li Kaydırmalı Puzzle: sayfa rengi ve tuval oranı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #a78bfa;
+  --game-b: #6d28d9;
+  --game-aspect: 510 / 510;
+}

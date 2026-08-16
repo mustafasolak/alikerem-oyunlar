@@ -1,0 +1,9 @@
+/* Kelime Avı: sayfa rengi ve tuval oranı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #2dd4bf;
+  --game-b: #0f766e;
+  --game-aspect: 510 / 510;
+}

@@ -1,0 +1,9 @@
+/* Mayın Tarlası: sayfa rengi ve tuval oranı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #f87171;
+  --game-b: #b91c1c;
+  --game-aspect: 510 / 510;
+}

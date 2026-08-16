@@ -31,11 +31,16 @@ src/
     Leaderboard.ts       # oyun başına isimli ilk 5 skor (bu cihazda)
     ScoreRecorder.ts     # tablo + HUD köprüsü; tur bitince takma ad sorar
     SwipeInput.ts        # dokunmatik kaydırma → yön
+    KeyPad.ts            # DOM tuş takımı (harf klavyesi / rakam takımı)
+    Sayac.ts             # geçen süre sayacı
+    dom.ts               # durum rozeti, buton grubu gibi küçük DOM işleri
+    rastgele.ts          # karıştırma / seçme (üreteç dışarıdan verilebilir)
+    kelimeler.ts         # Türkçe kelime + ipucu sözlüğü (kelime oyunları)
     safeStorage.ts       # localStorage sarmalayıcı (gizli sekmede çökmez)
   home/                  # ana sayfa kodu ve stili
   games/<oyun>/
     main.ts              # Phaser config, oyun başlatma
-    <oyun>.css           # sadece o oyunun rengi (--game-a / --game-b)
+    <oyun>.css           # sadece o oyunun rengi ve tuval oranı (--game-a/b, --game-aspect)
     scenes/              # her sahne ayrı dosya
     systems/             # oyun mantığı ve kayıt
     config/constants.ts  # sabitler: ölçü, süre, renk, kurallar
@@ -89,6 +94,16 @@ Skorlar sunucuda değil, tarayıcının localStorage'ında tutulur: tablo yalnı
 - [x] Ana sayfa kartlarında en iyi skorlar
 - [ ] Herkese açık ortak skor tablosu (sunucu/servis gerektirir)
 
+### Tetris, Mayın Tarlası, Sudoku, 15'li Puzzle, Kelime Bulmaca, Kelime Avı, Adam Asmaca
+- [x] Hepsi oynanabilir: çekirdek döngü, kazanma/kaybetme, skor, HUD, skor tablosu
+- [x] Mantık katmanları saf TypeScript (TetrisGame, Minesweeper, SudokuGame, SlidingPuzzle,
+      Crossword, WordSearch, HangmanGame) — Phaser'a bağımlı değil
+- [x] Mobil: kaydırma (Tetris, 15'li), dokunma (Mayın, Sudoku, Kelime Avı, Bulmaca),
+      DOM tuş takımı (Sudoku, Bulmaca, Asmaca), Tetris'te ekran tuşları
+- [ ] Ses efektleri
+- [ ] Sudoku'da kalem notları
+- [ ] Mayın Tarlası'nda akor (sayıya çift tıkla çevresini aç)
+
 ### 2048
 - [x] Oynanabilir çekirdek döngü (kaydırma + birleştirme)
 - [x] Kazanma/kaybetme koşulu (2048'e ulaşma, hamle kalmaması)
@@ -113,3 +128,8 @@ Skorlar sunucuda değil, tarayıcının localStorage'ında tutulur: tablo yalnı
 
 ### Sıradaki oyunlar
 - [ ] Hafıza kartları
+
+## Skor tasarımı
+Skor tablosu "yüksek olan iyidir" varsayar. Süreye dayalı oyunlarda (Sudoku, Mayın Tarlası,
+15'li Puzzle) skor `taban puan + süre bonusu - ceza` biçiminde hesaplanır; böylece hızlı
+bitiren yüksek puan alır ve bütün oyunlar aynı tabloda tutarlı kalır.

@@ -1,0 +1,9 @@
+/* Sudoku: sayfa rengi ve tuval oranı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #60a5fa;
+  --game-b: #1d4ed8;
+  --game-aspect: 510 / 510;
+}
