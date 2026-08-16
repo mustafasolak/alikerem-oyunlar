@@ -62,7 +62,7 @@ export const GAMES: GameEntry[] = [
     id: 'sudoku',
     title: 'Sudoku',
     tagline: 'Her satır, sütun ve kutuda 1-9 bir kez geçsin.',
-    emoji: '🔢',
+    emoji: '🧮',
     href: 'games/sudoku/index.html',
     tags: ['Mantık', 'Üç zorluk'],
     status: 'ready',
