@@ -124,6 +124,15 @@ yönlendirmelerle korunuyor; kırılmasınlar diye silinmemeli.
 - Bağımlılık ekleme; gerekiyorsa önce sor.
 - Mevcut mimariyi yeniden yazma, üzerine ekle.
 
+## Sunucu tarafı (api/)
+- Uçlar `api/*.ts`; yardımcılar `api/_*.ts` (alt çizgili dosyalar uç sayılmaz).
+- **Göreli içe aktarımlar `.js` uzantısıyla yazılır** (`./_ortak.js`), kaynak `.ts` olsa bile.
+  Vercel uçları ESM'e derliyor; `.ts` uzantılı belirteç çalışma anında bulunamıyor.
+- Bütün SQL `api/_sorgular.ts` içinde. İşleyiciler sorgu yazmaz.
+- Şema `betikler/sema.sql`; değişince `npm run veritabani-test` gerçek Postgres'te doğrular.
+- Yerelde denemek: `npm run yerel` (bellek-içi Postgres, gerçek işleyiciler).
+- Sunucu **asla zorunlu değil**: `/api/saglik` olumsuzsa site cihaz moduna düşer.
+
 ## Yol haritası
 
 ### Site
