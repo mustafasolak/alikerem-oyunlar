@@ -107,6 +107,44 @@ export class Minesweeper {
     return { degisti: acilanlar.length > 0, acilanlar, patladi: false }
   }
 
+  /**
+   * Akor: açık bir sayıya basınca, çevresindeki bayrak sayısı o sayıya eşitse
+   * kalan komşuları birden açar. Bayrak yanlış konduysa mayına basılır —
+   * kolaylık değil, hızlandırıcıdır.
+   */
+  akor(index: number): AcmaSonucu {
+    if (this.bitti) return BOS_SONUC
+    const hucre = this.hucreler[index]
+    if (!hucre || !hucre.acik || hucre.komsu === 0) return BOS_SONUC
+
+    const komsular = this.komsuIndexler(index)
+    const bayrakli = komsular.filter((k) => this.hucreler[k].bayrak).length
+    if (bayrakli !== hucre.komsu) return BOS_SONUC
+
+    const acilanlar: number[] = []
+    let patladi = false
+    for (const k of komsular) {
+      const komsu = this.hucreler[k]
+      if (komsu.acik || komsu.bayrak) continue
+      const sonuc = this.ac(k)
+      acilanlar.push(...sonuc.acilanlar)
+      if (sonuc.patladi) {
+        patladi = true
+        break
+      }
+    }
+    return { degisti: acilanlar.length > 0, acilanlar, patladi }
+  }
+
+  /** Akor bu hücrede iş görür mü? (arayüz ipucu göstermek için) */
+  akorHazir(index: number): boolean {
+    const hucre = this.hucreler[index]
+    if (!hucre?.acik || hucre.komsu === 0) return false
+    const komsular = this.komsuIndexler(index)
+    if (komsular.filter((k) => this.hucreler[k].bayrak).length !== hucre.komsu) return false
+    return komsular.some((k) => !this.hucreler[k].acik && !this.hucreler[k].bayrak)
+  }
+
   /** Bayrağı takar/çıkarır. */
   bayrakDegistir(index: number): boolean {
     if (this.bitti) return false

@@ -18,13 +18,14 @@ import {
   PATLAMA_SARSINTI,
   PATLAMA_SARSINTI_MS,
   SAYI_RENKLERI,
+  AKOR_CIFT_TIK_MS,
   UZUN_BASMA_MS,
   VARSAYILAN_ZORLUK,
   ZORLUKLAR,
   skorHesapla,
   type Zorluk,
 } from '../config/constants.ts'
-import { Minesweeper } from '../systems/Minesweeper.ts'
+import { Minesweeper, type AcmaSonucu } from '../systems/Minesweeper.ts'
 
 interface HucreGorunumu {
   zemin: Phaser.GameObjects.Rectangle
@@ -42,6 +43,8 @@ export class GameScene extends Phaser.Scene {
   private gorunumler: HucreGorunumu[] = []
   private hucreBoyu = 0
 
+  /** Aynı hücreye art arda dokunma: akor tespiti. */
+  private sonDokunus = { index: -1, zaman: 0 }
   /** Uzun basma bayrak koyduysa bırakınca açma yapmayalım. */
   private uzunBasmaTimer?: Phaser.Time.TimerEvent
   private uzunBasmaYapildi = false
@@ -153,6 +156,16 @@ export class GameScene extends Phaser.Scene {
 
     const index = this.indexBul(pointer)
     if (index < 0 || index !== this.basilanIndex) return
+
+    // Açık bir sayıya kısa sürede ikinci dokunuş: akor
+    const simdi = this.time.now
+    const cift = index === this.sonDokunus.index && simdi - this.sonDokunus.zaman < AKOR_CIFT_TIK_MS
+    this.sonDokunus = { index, zaman: simdi }
+
+    if (cift && this.oyun.hucreler[index].acik) {
+      this.akor(index)
+      return
+    }
     this.ac(index)
   }
 
@@ -162,7 +175,10 @@ export class GameScene extends Phaser.Scene {
     this.sayac.basla()
     const sonuc = this.oyun.ac(index)
     if (!sonuc.degisti) return
+    this.acilislariCiz(sonuc)
+  }
 
+  private acilislariCiz(sonuc: AcmaSonucu): void {
     if (!sonuc.patladi) sesler.tik()
     this.render()
     for (const [sira, acilan] of sonuc.acilanlar.entries()) {
@@ -179,6 +195,18 @@ export class GameScene extends Phaser.Scene {
 
     if (sonuc.patladi) this.kaybetti()
     else if (this.oyun.durum === 'kazandi') this.kazandi()
+  }
+
+  /** Akor sonucunu açma ile aynı biçimde canlandırır. */
+  private akor(index: number): void {
+    const sonuc = this.oyun.akor(index)
+    if (!sonuc.degisti) {
+      // Bayrak sayısı tutmuyorsa kısa bir uyarı: hücre titresin
+      const view = this.gorunumler[index]
+      this.tweens.add({ targets: view.zemin, scale: 0.92, duration: 90, yoyo: true, ease: 'Quad.easeOut' })
+      return
+    }
+    this.acilislariCiz(sonuc)
   }
 
   private bayrakKoy(index: number): void {
@@ -228,6 +256,7 @@ export class GameScene extends Phaser.Scene {
   private startNewGame(): void {
     this.hud.hideOverlay()
     this.tweens.killAll()
+    this.sonDokunus = { index: -1, zaman: 0 }
     this.kur()
   }
 

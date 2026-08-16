@@ -1283,7 +1283,7 @@ export const KATALOG: KatalogKaydi[] = [
     "ad": "Mayın Tarlası",
     "ozet": "Sayıları oku, mayınları bayrakla, tarlayı temizle.",
     "aciklama": "Sayıları oku, mayınlara basmadan tarlayı temizle.",
-    "ipucu": "Tıkla → aç · sağ tık (mobilde uzun bas) → bayrak · ilk tıklaman asla mayına gelmez",
+    "ipucu": "Tıkla → aç · sağ tık (mobilde uzun bas) → bayrak · <b>bir sayıya çift tıkla</b> → çevresi açılsın (bayraklar sayıya eşitse) · ilk tıklaman asla mayına gelmez",
     "emoji": "💣",
     "kategori": "mantik",
     "etiketler": [
@@ -1297,7 +1297,7 @@ export const KATALOG: KatalogKaydi[] = [
     "tuval": {
       "genislik": 510,
       "yukseklik": 510,
-      "disPay": 285
+      "disPay": 314
     },
     "arayuz": {
       "rozetler": [

@@ -6,6 +6,7 @@
  *
  * Çalıştır: npm run oyun-test
  */
+import { Minesweeper } from '../src/games/mayin/systems/Minesweeper.ts'
 import { SudokuGame } from '../src/games/sudoku/systems/SudokuGame.ts'
 
 let gecti = 0
@@ -101,6 +102,66 @@ function tohumlu(tohum) {
       oyun.ipuclari.every((d, i) => d === 0 || d === oyun.cozum[i]))
     kontrol(`${zorluk}: boş hücre var`, oyun.kalanBos > 0)
   }
+}
+
+// --- Mayın Tarlası: akor ---
+{
+  // Sayının çevresine doğru bayraklar konunca akor kalanları açar
+  const oyun = new Minesweeper(9, 9, 10, tohumlu(21))
+  oyun.ac(40) // ortadan başla; ilk açılış mayınsız
+  kontrol('oyun başladı', oyun.durum === 'oynaniyor')
+
+  // Komşusunda mayın olan açık bir sayı bul
+  const sayiIndex = oyun.hucreler.findIndex((h) => h.acik && h.komsu > 0)
+  kontrol('açık sayı hücresi var', sayiIndex >= 0)
+
+  const komsular = oyun.komsuIndexler(sayiIndex)
+  const mayinlar = komsular.filter((k) => oyun.hucreler[k].mayin)
+
+  esit('bayraksızken akor çalışmaz', oyun.akor(sayiIndex).degisti, false)
+  esit('bayraksızken hazır değil', oyun.akorHazir(sayiIndex), false)
+
+  for (const m of mayinlar) oyun.bayrakDegistir(m)
+  const kapaliKomsu = komsular.filter((k) => !oyun.hucreler[k].acik && !oyun.hucreler[k].bayrak)
+
+  if (kapaliKomsu.length > 0) {
+    esit('doğru bayrakla akor hazır', oyun.akorHazir(sayiIndex), true)
+    const sonuc = oyun.akor(sayiIndex)
+    esit('akor açtı', sonuc.degisti, true)
+    esit('akor patlamadı', sonuc.patladi, false)
+    kontrol('kapalı komşular açıldı', kapaliKomsu.every((k) => oyun.hucreler[k].acik))
+    esit('akor bittikten sonra tekrar iş yapmaz', oyun.akor(sayiIndex).degisti, false)
+  }
+}
+
+{
+  // Yanlış bayrak: akor mayına bastırır
+  const oyun = new Minesweeper(9, 9, 10, tohumlu(5))
+  oyun.ac(40)
+  const sayiIndex = oyun.hucreler.findIndex((h) => h.acik && h.komsu > 0)
+  const komsular = oyun.komsuIndexler(sayiIndex)
+  const hucre = oyun.hucreler[sayiIndex]
+
+  // Sayı kadar bayrağı YANLIŞ hücrelere koy (mayınsız kapalı komşulara)
+  const yanlisAdaylar = komsular.filter((k) => !oyun.hucreler[k].mayin && !oyun.hucreler[k].acik)
+  const mayinliKomsu = komsular.filter((k) => oyun.hucreler[k].mayin)
+  if (yanlisAdaylar.length >= hucre.komsu && mayinliKomsu.length > 0) {
+    for (let i = 0; i < hucre.komsu; i++) oyun.bayrakDegistir(yanlisAdaylar[i])
+    const sonuc = oyun.akor(sayiIndex)
+    esit('yanlış bayrakla akor patlar', sonuc.patladi, true)
+    esit('oyun kaybedildi', oyun.durum, 'kaybetti')
+  }
+}
+
+{
+  // Akor kapalı hücrede ve boş (0 komşulu) hücrede çalışmaz
+  const oyun = new Minesweeper(9, 9, 10, tohumlu(33))
+  const kapali = oyun.hucreler.findIndex((h) => !h.acik)
+  esit('kapalı hücrede akor yok', oyun.akor(kapali).degisti, false)
+  oyun.ac(40)
+  const sifir = oyun.hucreler.findIndex((h) => h.acik && h.komsu === 0)
+  if (sifir >= 0) esit('sıfır komşuluda akor yok', oyun.akor(sifir).degisti, false)
+  esit('tahta dışında akor yok', oyun.akor(9999).degisti, false)
 }
 
 if (hatalar.length) {

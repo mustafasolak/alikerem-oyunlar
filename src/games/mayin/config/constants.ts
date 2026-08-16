@@ -31,6 +31,9 @@ export const SURE_BONUS_LIMITI = 300
 export const SURE_BONUS_KATSAYI = 2
 
 /** Dokunmatikte bayrak için basılı tutma süresi (ms). */
+/** İki dokunuş bu süre içinde gelirse akor sayılır. */
+export const AKOR_CIFT_TIK_MS = 400
+
 export const UZUN_BASMA_MS = 420
 
 export const ACILMA_SURESI = 90
