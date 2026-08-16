@@ -1,7 +1,7 @@
 /** GET /api/tablo?oyun=<id>&donem=<etiket>&adet=10 — skor tablosu. */
-import { OYUN_ID_KALIBI, donemCoz, hata, uidOku, type Istek, type Yanit } from './_ortak.ts'
-import { tabloOku } from './_sorgular.ts'
-import { sql, veritabaniVar } from './_veritabani.ts'
+import { OYUN_ID_KALIBI, donemCoz, hata, uidOku, type Istek, type Yanit } from './_ortak.js'
+import { tabloOku } from './_sorgular.js'
+import { sql, veritabaniVar } from './_veritabani.js'
 
 const EN_COK = 25
 

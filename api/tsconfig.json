@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    /* Vercel bu klasörü ESM'e derler: çıktı üretilebilmeli ve
+       göreli içe aktarımlar .js belirteciyle yazılmalı. */
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"]
+  },
+  "include": ["**/*.ts"]
+}

@@ -1,7 +1,7 @@
 /** POST /api/kimlik — anonim oyuncu kimliği verir (çerezde). */
-import { gizliVar, hata, uidOku, uidUret, type Istek, type Yanit } from './_ortak.ts'
-import { oyuncuAc } from './_sorgular.ts'
-import { sql, veritabaniVar } from './_veritabani.ts'
+import { gizliVar, hata, uidOku, uidUret, type Istek, type Yanit } from './_ortak.js'
+import { oyuncuAc } from './_sorgular.js'
+import { sql, veritabaniVar } from './_veritabani.js'
 
 export default async function handler(istek: Istek, yanit: Yanit): Promise<void> {
   if (!gizliVar) return hata(yanit, 503, 'OYUN_GIZLI_ANAHTAR tanımlı değil')

@@ -10,7 +10,7 @@
     "katalog": "node --experimental-strip-types betikler/katalog-uret.mjs",
     "prebuild": "npm run katalog",
     "predev": "npm run katalog",
-    "kontrol": "npm run katalog && npm run sozlesme && npm run veritabani-test && tsc --noEmit && tsc -p tsconfig.api.json",
+    "kontrol": "npm run katalog && npm run sozlesme && npm run veritabani-test && tsc --noEmit && tsc -p api --noEmit",
     "sozlesme": "node --experimental-strip-types betikler/sozlesme.mjs",
     "yeni-oyun": "node betikler/yeni-oyun.mjs",
     "veritabani-test": "node --experimental-strip-types betikler/veritabani-test.mjs",

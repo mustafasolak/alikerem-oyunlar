@@ -20,10 +20,15 @@ const KOK = fileURLToPath(new URL('..', import.meta.url))
 const DIST = join(KOK, 'dist')
 const KOPRU = pathToFileURL(join(KOK, 'betikler/pglite-koprusu.mjs')).href
 
-// api/_veritabani.ts yerine PGlite köprüsü yüklensin
 registerHooks({
   resolve(belirtec, baglam, sonraki) {
-    if (belirtec.endsWith('_veritabani.ts')) return { url: KOPRU, shortCircuit: true }
+    // `api/_veritabani` yerine PGlite köprüsü yüklensin
+    if (/_veritabani\.(ts|js)$/.test(belirtec)) return { url: KOPRU, shortCircuit: true }
+    // api/ içindeki dosyalar ESM kuralına göre `./x.js` yazıyor (Vercel öyle
+    // derliyor); yerelde kaynak `.ts` olduğu için geri çeviriyoruz.
+    if (belirtec.startsWith('./') && belirtec.endsWith('.js') && baglam.parentURL?.includes('/api/')) {
+      return sonraki(belirtec.replace(/\.js$/, '.ts'), baglam)
+    }
     return sonraki(belirtec, baglam)
   },
 })

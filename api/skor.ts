@@ -14,9 +14,9 @@ import {
   uidOku,
   type Istek,
   type Yanit,
-} from './_ortak.ts'
-import { PENCERE_SINIRI, gonderimSay, oyunAyari, skorYaz } from './_sorgular.ts'
-import { sql, veritabaniVar } from './_veritabani.ts'
+} from './_ortak.js'
+import { PENCERE_SINIRI, gonderimSay, oyunAyari, skorYaz } from './_sorgular.js'
+import { sql, veritabaniVar } from './_veritabani.js'
 
 /** Süre bilgisi verilmişse en az bu kadar sürmüş olmalı. */
 const EN_KISA_TUR_SN = 2
