@@ -2,6 +2,7 @@ import * as Phaser from 'phaser'
 
 import { GameHud } from '../../../shared/GameHud.ts'
 import { ScoreRecorder } from '../../../shared/ScoreRecorder.ts'
+import { sesler } from '../../../shared/Sesler.ts'
 import { SwipeInput } from '../../../shared/SwipeInput.ts'
 import {
   BOARD_PADDING,
@@ -166,6 +167,7 @@ export class GameScene extends Phaser.Scene {
     const result = this.snake.step()
 
     if (result.ate) {
+      sesler.yem()
       this.hud.setScore(this.snake.score)
       this.hud.showGain(result.gained)
       if (result.ateAt) this.popAt(result.ateAt)
@@ -178,6 +180,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private finish(title: string, primaryLabel: string): void {
+    if (this.snake.status === 'won') sesler.zafer()
+    else sesler.carpma()
     this.cameras.main.shake(DEATH_SHAKE_MS, DEATH_SHAKE_INTENSITY)
     const score = this.snake.score
     const summary = `Uzunluk: ${this.snake.length} · Skor: ${score}`

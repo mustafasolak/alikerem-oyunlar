@@ -1,8 +1,12 @@
-/* Yılan'a özel: başlık rengi yılanın yeşilinden */
+/* Yılan: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
 
 @import '../../shared/game-page.css';
 
 :root {
   --game-a: #bef264;
   --game-b: #4d7c0f;
+  /* genişlik / yükseklik */
+  --game-aspect: 1;
+  /* Tuvalin dışında kalan arayüzün kabaca kapladığı dikey alan */
+  --chrome: 215px;
 }

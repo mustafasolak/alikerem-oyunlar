@@ -1,9 +1,12 @@
-/* Mayın Tarlası: sayfa rengi ve tuval oranı */
+/* Mayın Tarlası: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
 
 @import '../../shared/game-page.css';
 
 :root {
   --game-a: #f87171;
   --game-b: #b91c1c;
-  --game-aspect: 510 / 510;
+  /* genişlik / yükseklik */
+  --game-aspect: 1;
+  /* Tuvalin dışında kalan arayüzün kabaca kapladığı dikey alan */
+  --chrome: 285px;
 }

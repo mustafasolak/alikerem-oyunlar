@@ -3,6 +3,7 @@ import * as Phaser from 'phaser'
 import { GameHud } from '../../../shared/GameHud.ts'
 import { KeyPad } from '../../../shared/KeyPad.ts'
 import { ScoreRecorder } from '../../../shared/ScoreRecorder.ts'
+import { sesler } from '../../../shared/Sesler.ts'
 import { setChip } from '../../../shared/dom.ts'
 import { TURKCE_ALFABE } from '../../../shared/kelimeler.ts'
 import {
@@ -103,6 +104,8 @@ export class GameScene extends Phaser.Scene {
     const sonuc = this.oyun.tahmin(harf)
     if (!sonuc.gecerli) return
 
+    if (sonuc.dogru) sesler.dogru()
+    else sesler.yanlis()
     this.keypad?.setState(harf, sonuc.dogru ? 'correct' : 'wrong')
     setChip('lives', this.oyun.kalanCan)
     this.render()
@@ -113,6 +116,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private kazandi(): void {
+    sesler.zafer()
     const score = skorHesapla(this.oyun.kalanCan, this.oyun.kelime.length)
     this.hud.setScore(score)
     this.keypad?.setEnabled(false)
@@ -134,6 +138,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private kaybetti(): void {
+    sesler.carpma()
     this.keypad?.setEnabled(false)
     this.render()
     this.time.delayedCall(420, () => {

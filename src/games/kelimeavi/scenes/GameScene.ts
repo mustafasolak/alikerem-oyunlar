@@ -3,6 +3,7 @@ import * as Phaser from 'phaser'
 import { GameHud } from '../../../shared/GameHud.ts'
 import { Sayac } from '../../../shared/Sayac.ts'
 import { ScoreRecorder } from '../../../shared/ScoreRecorder.ts'
+import { sesler } from '../../../shared/Sesler.ts'
 import { element, setChip } from '../../../shared/dom.ts'
 import {
   BOARD_PADDING,
@@ -120,6 +121,7 @@ export class GameScene extends Phaser.Scene {
 
     if (!yerlesim) return
 
+    sesler.dogru()
     for (const [sira, hucre] of yerlesim.hucreler.entries()) {
       const view = this.gorunumler[hucre.satir][hucre.sutun]
       this.tweens.add({
@@ -154,6 +156,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private tamamlandi(): void {
+    sesler.zafer()
     this.bitti = true
     this.sayac.durdur()
     const score = skorHesapla(this.oyun.bulunanlar.size, this.sayac.saniye, true)

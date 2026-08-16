@@ -3,6 +3,7 @@ import * as Phaser from 'phaser'
 import { GameHud } from '../../../shared/GameHud.ts'
 import { Sayac } from '../../../shared/Sayac.ts'
 import { ScoreRecorder } from '../../../shared/ScoreRecorder.ts'
+import { sesler } from '../../../shared/Sesler.ts'
 import { SwipeInput } from '../../../shared/SwipeInput.ts'
 import { setChip } from '../../../shared/dom.ts'
 import {
@@ -129,6 +130,7 @@ export class GameScene extends Phaser.Scene {
     if (!hamle()) return
 
     this.busy = true
+    sesler.kaydir()
     this.render(true)
     setChip('moves', this.puzzle.hamle)
 
@@ -139,6 +141,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private kazandi(): void {
+    sesler.zafer()
     this.bitti = true
     this.sayac.durdur()
     const score = skorHesapla(this.puzzle.hamle, this.sayac.saniye)

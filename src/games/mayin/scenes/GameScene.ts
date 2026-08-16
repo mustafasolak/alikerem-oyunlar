@@ -3,6 +3,7 @@ import * as Phaser from 'phaser'
 import { GameHud } from '../../../shared/GameHud.ts'
 import { Sayac } from '../../../shared/Sayac.ts'
 import { ScoreRecorder } from '../../../shared/ScoreRecorder.ts'
+import { sesler } from '../../../shared/Sesler.ts'
 import { butonGrubu, setChip } from '../../../shared/dom.ts'
 import {
   ACILMA_SURESI,
@@ -162,6 +163,7 @@ export class GameScene extends Phaser.Scene {
     const sonuc = this.oyun.ac(index)
     if (!sonuc.degisti) return
 
+    if (!sonuc.patladi) sesler.tik()
     this.render()
     for (const [sira, acilan] of sonuc.acilanlar.entries()) {
       const view = this.gorunumler[acilan]
@@ -181,12 +183,14 @@ export class GameScene extends Phaser.Scene {
 
   private bayrakKoy(index: number): void {
     if (!this.oyun.bayrakDegistir(index)) return
+    sesler.tik()
     this.sayac.basla()
     this.render()
     setChip('flags', this.oyun.kalanMayin)
   }
 
   private kaybetti(): void {
+    sesler.patlama()
     this.sayac.durdur()
     this.cameras.main.shake(PATLAMA_SARSINTI_MS, PATLAMA_SARSINTI)
     this.time.delayedCall(PATLAMA_SARSINTI_MS + 120, () => {
@@ -200,6 +204,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private kazandi(): void {
+    sesler.zafer()
     this.sayac.durdur()
     const score = skorHesapla(this.zorluk, this.sayac.saniye)
     this.hud.setScore(score)

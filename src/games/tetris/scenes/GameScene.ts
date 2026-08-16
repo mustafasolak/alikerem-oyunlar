@@ -2,6 +2,7 @@ import * as Phaser from 'phaser'
 
 import { GameHud } from '../../../shared/GameHud.ts'
 import { ScoreRecorder } from '../../../shared/ScoreRecorder.ts'
+import { sesler } from '../../../shared/Sesler.ts'
 import { SwipeInput } from '../../../shared/SwipeInput.ts'
 import { setChip } from '../../../shared/dom.ts'
 import {
@@ -164,9 +165,9 @@ export class GameScene extends Phaser.Scene {
   private komut(hangi: string): void {
     if (this.oyun.durum !== 'oynaniyor' || this.kilitleniyor) return
 
-    if (hangi === 'left') this.oyun.kaydir(-1)
-    else if (hangi === 'right') this.oyun.kaydir(1)
-    else if (hangi === 'rotate') this.oyun.cevirmeyiDene()
+    if (hangi === 'left') { if (this.oyun.kaydir(-1)) sesler.tik() }
+    else if (hangi === 'right') { if (this.oyun.kaydir(1)) sesler.tik() }
+    else if (hangi === 'rotate') { if (this.oyun.cevirmeyiDene()) sesler.tik() }
     else if (hangi === 'soft') this.oyun.indir(true)
     else if (hangi === 'drop') {
       this.kilitSonucu(this.oyun.sertDusur())
@@ -190,6 +191,7 @@ export class GameScene extends Phaser.Scene {
     setChip('lines', this.oyun.satirSayisi)
 
     if (sonuc.temizlenen.length > 0) {
+      sesler.satir(sonuc.temizlenen.length)
       this.kilitleniyor = true
       this.hud.showGain((sonuc.temizlenen.length === 4 ? 800 : sonuc.temizlenen.length * 100) * this.oyun.seviye)
       this.cameras.main.flash(SATIR_TEMIZLEME_MS, 40, 70, 90)
@@ -202,6 +204,7 @@ export class GameScene extends Phaser.Scene {
       return
     }
 
+    sesler.otur()
     this.render()
     if (sonuc.bitti) this.oyunBitti()
   }
@@ -229,6 +232,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private oyunBitti(): void {
+    sesler.carpma()
     const score = this.oyun.skor
     const ozet = `Seviye ${this.oyun.seviye} · ${this.oyun.satirSayisi} satır · Skor: ${score}`
     this.cameras.main.shake(220, 0.012)

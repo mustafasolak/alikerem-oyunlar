@@ -1,9 +1,12 @@
-/* Sudoku: sayfa rengi ve tuval oranı */
+/* Sudoku: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
 
 @import '../../shared/game-page.css';
 
 :root {
   --game-a: #60a5fa;
   --game-b: #1d4ed8;
-  --game-aspect: 510 / 510;
+  /* genişlik / yükseklik */
+  --game-aspect: 1;
+  /* Tuvalin dışında kalan arayüzün kabaca kapladığı dikey alan */
+  --chrome: 335px;
 }

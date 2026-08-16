@@ -32,6 +32,7 @@ src/
     ScoreRecorder.ts     # tablo + HUD köprüsü; tur bitince takma ad sorar
     SwipeInput.ts        # dokunmatik kaydırma → yön
     KeyPad.ts            # DOM tuş takımı (harf klavyesi / rakam takımı)
+    Sesler.ts            # WebAudio ile anlık üretilen ses efektleri (dosya yok)
     Sayac.ts             # geçen süre sayacı
     dom.ts               # durum rozeti, buton grubu gibi küçük DOM işleri
     rastgele.ts          # karıştırma / seçme (üreteç dışarıdan verilebilir)
@@ -68,6 +69,11 @@ Skorlar sunucuda değil, tarayıcının localStorage'ında tutulur: tablo yalnı
 - Oyun mantığı Phaser'a mümkün olduğunca az bağlı olsun (test edilebilirlik için).
   Örnek: `Board2048` saf TypeScript, sahne yalnızca onu çizer.
 - Hareket ve fizik `delta` zamanına göre hesaplansın, kare sayısına göre değil.
+- Mobil önce: oyun sayfası kendi oranını `--game-aspect` (sayı), tuval dışındaki arayüzün
+  kapladığı dikey alanı `--chrome` ile verir. Tahta genişliği
+  `min(100%, (100dvh - chrome) * aspect)` ile hesaplanır; böylece alçak ekranda küçülür,
+  sayfa taşmaz. Yeni oyun eklerken bu iki değeri ayarla.
+- Ses eklerken `sesler` tekilini kullan; iOS bağlamı ilk dokunuşta açılır, dosya yüklenmez.
 - Kullanıcıdan gelen metin (takma ad) DOM'a `textContent` ile yazılsın; `innerHTML` kullanılıyorsa kaçırılsın.
 - Katmanda ad sorulurken sahne `input.keyboard.enabled = false` yapsın, yoksa WASD/boşluk oyuna gider.
 - Yeni asset eklerken `public/assets/` altına koy ve preload'da anahtarını tanımla.
@@ -100,7 +106,8 @@ Skorlar sunucuda değil, tarayıcının localStorage'ında tutulur: tablo yalnı
       Crossword, WordSearch, HangmanGame) — Phaser'a bağımlı değil
 - [x] Mobil: kaydırma (Tetris, 15'li), dokunma (Mayın, Sudoku, Kelime Avı, Bulmaca),
       DOM tuş takımı (Sudoku, Bulmaca, Asmaca), Tetris'te ekran tuşları
-- [ ] Ses efektleri
+- [x] Ses efektleri (WebAudio, bağımlılıksız) ve ses aç/kapat düğmesi
+- [x] Telefon uyumu: yatay taşma yok, tahta ilk ekrana sığıyor
 - [ ] Sudoku'da kalem notları
 - [ ] Mayın Tarlası'nda akor (sayıya çift tıkla çevresini aç)
 
@@ -113,7 +120,7 @@ Skorlar sunucuda değil, tarayıcının localStorage'ında tutulur: tablo yalnı
 - [x] Görsel cila (kayma, birleşme zıplaması, doğuş animasyonu)
 - [x] Oyunu kaydetme (sayfa yenilenince kaldığı yerden)
 - [x] Skor tablosuna takma ad
-- [ ] Ses efektleri
+- [x] Ses efektleri
 - [ ] Geri alma (undo)
 
 ### Yılan
@@ -124,7 +131,7 @@ Skorlar sunucuda değil, tarayıcının localStorage'ında tutulur: tablo yalnı
 - [x] Mobil dokunmatik kontrol (kaydırma)
 - [x] Görsel cila (yem nabzı, yeme halkası, ölümde sarsıntı, gövde gradyanı)
 - [x] Skor tablosuna takma ad
-- [ ] Ses efektleri
+- [x] Ses efektleri
 
 ### Sıradaki oyunlar
 - [ ] Hafıza kartları

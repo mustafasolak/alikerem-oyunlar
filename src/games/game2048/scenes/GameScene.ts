@@ -23,6 +23,7 @@ import { Board2048, type Direction, type Tile } from '../systems/Board2048.ts'
 import { GameStorage } from '../systems/GameStorage.ts'
 import { GameHud } from '../../../shared/GameHud.ts'
 import { ScoreRecorder } from '../../../shared/ScoreRecorder.ts'
+import { sesler } from '../../../shared/Sesler.ts'
 import { SwipeInput } from '../../../shared/SwipeInput.ts'
 
 const KEY_BINDINGS: Record<string, Direction> = {
@@ -122,6 +123,8 @@ export class GameScene extends Phaser.Scene {
     if (!result.moved) return
 
     this.busy = true
+    sesler.kaydir()
+    if (result.gained > 0) sesler.birlesme(result.gained)
     this.animateMove()
     this.syncScore()
     this.hud.showGain(result.gained)
@@ -286,6 +289,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private showWin(): void {
+    sesler.zafer()
     this.hud.showOverlay({
       title: 'Kazandın! 🎉',
       text: `2048 karesine ulaştın. Skor: ${this.board.score}`,
@@ -302,6 +306,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private showGameOver(): void {
+    sesler.carpma()
     GameStorage.clearGame()
     const score = this.board.score
     this.recorder.finish(score, {

@@ -12,22 +12,43 @@
 .game-shell {
   width: min(100% - 1.5rem, 560px);
   margin-inline: auto;
-  padding: 1.5rem 0 3rem;
+  padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bottom));
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: 0.9rem;
+  /* Oynarken tahtayı sürüklemek yazı seçmesin */
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .game-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.game-top .left {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Ses aç/kapat */
+.btn--icon {
+  padding: 0.55rem 0.7rem;
+  font-size: 1rem;
+  line-height: 1;
 }
 
 .scores {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.5rem;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .score-box {
@@ -113,11 +134,18 @@
   font-size: 0.92rem;
 }
 
-/* Tuval ve sonuç katmanı aynı kutuda durur.
-   Oyun kendi en-boy oranını --game-aspect ile verir (varsayılan kare). */
+/*
+ * Tuval ve sonuç katmanı aynı kutuda durur.
+ * Oyun kendi oranını --game-aspect (sayı: genişlik/yükseklik), tuval dışındaki
+ * arayüzün kapladığı yeri de --chrome ile verir. Böylece tahta, ekran alçak
+ * olduğunda küçülür ve telefonda sayfa taşmaz.
+ */
 .game-stage {
   position: relative;
   aspect-ratio: var(--game-aspect, 1);
+  margin-inline: auto;
+  width: min(100%, calc((100vh - var(--chrome, 240px)) * var(--game-aspect, 1)));
+  width: min(100%, calc((100dvh - var(--chrome, 240px)) * var(--game-aspect, 1)));
   /* Parmak kaydırması sayfayı kaydırmasın */
   touch-action: none;
 }
@@ -504,4 +532,161 @@
 
 .keypad-key.is-used {
   opacity: 0.4;
+}
+
+/* =========================================================
+   Telefon düzeni
+   Amaç: tahta + kontroller ilk ekranda görünsün, yatay taşma olmasın.
+   ========================================================= */
+
+@media (max-width: 560px) {
+  .game-shell {
+    width: min(100% - 0.9rem, 560px);
+    gap: 0.7rem;
+    padding-top: 0.9rem;
+  }
+
+  .game-top {
+    gap: 0.5rem;
+  }
+
+  .game-top .btn {
+    padding: 0.45rem 0.75rem;
+    font-size: 0.88rem;
+  }
+
+  .score-box {
+    min-width: 72px;
+    padding: 0.3rem 0.55rem;
+  }
+
+  .score-box span {
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+  }
+
+  .score-box strong {
+    font-size: 1.1rem;
+  }
+
+  .score-box small {
+    font-size: 0.62rem;
+  }
+
+  .game-intro {
+    gap: 0.6rem;
+    align-items: center;
+  }
+
+  .game-intro h1 {
+    font-size: clamp(1.5rem, 7.5vw, 2.1rem);
+  }
+
+  /* Açıklama cümlesi telefonda yer kaplıyor; başlık zaten anlatıyor */
+  .game-intro p {
+    display: none;
+  }
+
+  .game-intro .btn {
+    padding: 0.45rem 0.85rem;
+    font-size: 0.88rem;
+  }
+
+  .status-chip {
+    padding: 0.22rem 0.6rem;
+    font-size: 0.78rem;
+  }
+
+  .toolbar .btn {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.82rem;
+  }
+
+  .hint {
+    font-size: 0.74rem;
+    line-height: 1.45;
+  }
+
+  .hint kbd {
+    font-size: 0.7rem;
+    padding: 0.02rem 0.3rem;
+  }
+
+  .keypad {
+    gap: 0.28rem;
+  }
+
+  .keypad-key {
+    padding: 0.5rem 0.1rem;
+    font-size: 0.92rem;
+    border-radius: 8px;
+  }
+
+  .panel,
+  .scoreboard {
+    padding: 0.7rem 0.8rem 0.8rem;
+  }
+
+  .panel .columns {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .clue-list {
+    font-size: 0.82rem;
+  }
+
+  .word-list li {
+    font-size: 0.78rem;
+    padding: 0.15rem 0.5rem;
+  }
+
+  .overlay-card {
+    padding: 1.2rem 1rem;
+    width: min(100%, 320px);
+  }
+
+  .overlay-card h2 {
+    font-size: 1.3rem;
+  }
+
+  .overlay-card p {
+    font-size: 0.88rem;
+  }
+
+  .overlay-form {
+    width: 100%;
+  }
+}
+
+/* Çok dar telefonlar (iPhone SE vb.) */
+@media (max-width: 380px) {
+  .score-box {
+    min-width: 64px;
+  }
+
+  .keypad-key {
+    padding: 0.42rem 0.05rem;
+    font-size: 0.85rem;
+  }
+
+  .game-top .btn span.uzun {
+    display: none;
+  }
+}
+
+/* Yatay tutulan telefon: ekran alçak, tahtayı daha da küçült */
+@media (max-height: 520px) and (orientation: landscape) {
+  .game-intro h1 {
+    font-size: 1.3rem;
+  }
+
+  .game-shell {
+    gap: 0.5rem;
+  }
+
+  .scoreboard,
+  .panel {
+    display: none;
+  }
 }

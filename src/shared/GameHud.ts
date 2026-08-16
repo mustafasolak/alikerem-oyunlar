@@ -4,6 +4,7 @@
  */
 
 import { MAX_NAME_LENGTH, type ScoreEntry } from './Leaderboard.ts'
+import { sesler } from './Sesler.ts'
 
 export interface GameHudCallbacks {
   onRestart: () => void
@@ -39,6 +40,7 @@ export class GameHud {
   private readonly scoreBox = required<HTMLElement>('#score-box')
   private readonly gainEl = required<HTMLElement>('#score-gain')
   private readonly restartBtn = required<HTMLButtonElement>('#restart')
+  private readonly soundBtn = document.querySelector<HTMLButtonElement>('#sound')
 
   private readonly board = required<HTMLElement>('#scoreboard')
   private readonly boardList = required<HTMLOListElement>('#scoreboard-list')
@@ -58,6 +60,7 @@ export class GameHud {
 
   constructor(callbacks: GameHudCallbacks) {
     this.nameInput.maxLength = MAX_NAME_LENGTH
+    this.kurSesButonu()
     this.restartBtn.addEventListener('click', () => callbacks.onRestart())
     // Katman butonlarının davranışı her showOverlay çağrısında yeniden bağlanır.
     this.primaryBtn.addEventListener('click', () => this.primaryAction())
@@ -66,6 +69,23 @@ export class GameHud {
       event.preventDefault()
       this.submitAction(this.nameInput.value)
     })
+  }
+
+  /** Ses aç/kapat düğmesi; tercih localStorage'da saklanır. */
+  private kurSesButonu(): void {
+    const button = this.soundBtn
+    if (!button) return
+
+    const goster = (): void => {
+      button.textContent = sesler.kapali ? '🔇' : '🔊'
+      button.setAttribute('aria-pressed', String(!sesler.kapali))
+    }
+    goster()
+    button.addEventListener('click', () => {
+      sesler.degistir()
+      goster()
+    })
+    sesler.ilkDokunustaUyandir()
   }
 
   setScore(score: number): void {

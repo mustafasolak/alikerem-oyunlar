@@ -1,8 +1,12 @@
-/* 2048'e özel: başlık rengi klasik kare paletinden */
+/* 2048: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
 
 @import '../../shared/game-page.css';
 
 :root {
   --game-a: #edc22e;
   --game-b: #f2b179;
+  /* genişlik / yükseklik */
+  --game-aspect: 1;
+  /* Tuvalin dışında kalan arayüzün kabaca kapladığı dikey alan */
+  --chrome: 215px;
 }

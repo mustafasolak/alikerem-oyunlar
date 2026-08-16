@@ -4,6 +4,7 @@ import { GameHud } from '../../../shared/GameHud.ts'
 import { KeyPad } from '../../../shared/KeyPad.ts'
 import { Sayac } from '../../../shared/Sayac.ts'
 import { ScoreRecorder } from '../../../shared/ScoreRecorder.ts'
+import { sesler } from '../../../shared/Sesler.ts'
 import { element, setChip } from '../../../shared/dom.ts'
 import { TURKCE_ALFABE } from '../../../shared/kelimeler.ts'
 import {
@@ -188,9 +189,13 @@ export class GameScene extends Phaser.Scene {
   private harfGir(harf: string | null): void {
     if (this.bitti || !this.secili || this.yaziyor) return
     this.sayac.basla()
+    const oncekiCozulen = this.oyun.cozulenSayisi
     this.oyun.harfYaz(this.secili.satir, this.secili.sutun, harf)
     if (harf) this.ilerle(1)
     else this.ilerle(-1)
+
+    if (this.oyun.cozulenSayisi > oncekiCozulen) sesler.dogru()
+    else if (harf) sesler.tik()
 
     this.render()
     this.tazeleSkor()
@@ -232,6 +237,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private tamamlandi(): void {
+    sesler.zafer()
     this.bitti = true
     this.sayac.durdur()
     this.keypad?.setEnabled(false)

@@ -1,9 +1,12 @@
-/* Kelime Bulmaca: sayfa rengi ve tuval oranı */
+/* Kelime Bulmaca: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
 
 @import '../../shared/game-page.css';
 
 :root {
   --game-a: #f472b6;
   --game-b: #be185d;
-  --game-aspect: 510 / 510;
+  /* genişlik / yükseklik */
+  --game-aspect: 1;
+  /* Tuvalin dışında kalan arayüzün kabaca kapladığı dikey alan */
+  --chrome: 400px;
 }

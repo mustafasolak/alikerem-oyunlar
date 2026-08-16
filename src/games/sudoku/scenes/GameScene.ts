@@ -4,6 +4,7 @@ import { GameHud } from '../../../shared/GameHud.ts'
 import { KeyPad } from '../../../shared/KeyPad.ts'
 import { Sayac } from '../../../shared/Sayac.ts'
 import { ScoreRecorder } from '../../../shared/ScoreRecorder.ts'
+import { sesler } from '../../../shared/Sesler.ts'
 import { butonGrubu, setChip } from '../../../shared/dom.ts'
 import {
   BOARD_PADDING,
@@ -150,8 +151,11 @@ export class GameScene extends Phaser.Scene {
     if (!this.oyun.yaz(this.secili, deger)) return
 
     if (this.oyun.hata > oncekiHata) {
+      sesler.yanlis()
       this.cameras.main.shake(HATA_SARSINTI_MS, HATA_SARSINTI)
       setChip('mistakes', this.oyun.hata)
+    } else if (deger !== 0) {
+      sesler.tik()
     }
 
     this.render()
@@ -173,6 +177,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private tamamlandi(): void {
+    sesler.zafer()
     this.bitti = true
     this.sayac.durdur()
     this.keypad?.setEnabled(false)
