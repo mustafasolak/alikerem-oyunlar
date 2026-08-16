@@ -20,6 +20,9 @@ import {
   IZGARA_INCE,
   IZGARA_KALIN,
   KUTU,
+  NOT_FONT,
+  NOT_FONT_FAMILY,
+  NOT_SATIR_ARALIGI,
   RAKAM_FONT,
   TAMAMLAMA_POP_MS,
   VARSAYILAN_ZORLUK,
@@ -32,9 +35,12 @@ import { SudokuGame } from '../systems/SudokuGame.ts'
 interface HucreGorunumu {
   zemin: Phaser.GameObjects.Rectangle
   yazi: Phaser.GameObjects.Text
+  /** Kalem notları: hücre içinde 3 satırlık küçük rakam ızgarası. */
+  not: Phaser.GameObjects.Text
 }
 
 const SIL = 'sil'
+const NOT = 'not'
 
 export class GameScene extends Phaser.Scene {
   private readonly sayac = new Sayac()
@@ -47,6 +53,8 @@ export class GameScene extends Phaser.Scene {
   private secili = -1
   private bitti = false
   private yaziyor = false
+  /** Kalem modu: rakam tuşu değer yerine not yazar. */
+  private notModu = false
 
   constructor() {
     super('Sudoku')
@@ -89,7 +97,16 @@ export class GameScene extends Phaser.Scene {
           color: COLORS.IPUCU_YAZI,
         })
         .setOrigin(0.5)
-      this.gorunumler.push({ zemin, yazi })
+      const not = this.add
+        .text(x, y, '', {
+          fontFamily: NOT_FONT_FAMILY,
+          fontSize: `${NOT_FONT}px`,
+          color: COLORS.NOT_YAZI,
+          align: 'center',
+        })
+        .setOrigin(0.5)
+        .setLineSpacing(NOT_SATIR_ARALIGI)
+      this.gorunumler.push({ zemin, yazi, not })
     }
   }
 
@@ -110,10 +127,19 @@ export class GameScene extends Phaser.Scene {
     if (!container) return
     this.keypad = new KeyPad({
       container,
-      keys: [...Array.from({ length: BOYUT }, (_, i) => String(i + 1)), { label: 'Sil', value: SIL, wide: true }],
-      columns: 11,
-      onPress: (value) => (value === SIL ? this.yaz(0) : this.yaz(Number(value))),
+      keys: [
+        ...Array.from({ length: BOYUT }, (_, i) => String(i + 1)),
+        { label: 'Sil', value: SIL, span: 4 },
+        { label: '✏️ Kalem notu', value: NOT, span: 5 },
+      ],
+      columns: BOYUT,
+      onPress: (value) => {
+        if (value === NOT) this.notModunuDegistir()
+        else if (value === SIL) this.sil()
+        else this.yaz(Number(value))
+      },
     })
+    this.keypad.setPressed(NOT, this.notModu)
   }
 
   private bindKeyboard(): void {
@@ -122,7 +148,8 @@ export class GameScene extends Phaser.Scene {
     keyboard.on('keydown', (event: KeyboardEvent) => {
       if (this.yaziyor || event.metaKey || event.ctrlKey || event.altKey) return
       if (event.key >= '1' && event.key <= '9') this.yaz(Number(event.key))
-      else if (event.key === 'Backspace' || event.key === 'Delete' || event.key === '0') this.yaz(0)
+      else if (event.key === 'Backspace' || event.key === 'Delete' || event.key === '0') this.sil()
+      else if (event.key === 'n' || event.key === 'N') this.notModunuDegistir()
     })
   }
 
@@ -144,9 +171,42 @@ export class GameScene extends Phaser.Scene {
     this.render()
   }
 
+  private notModunuDegistir(): void {
+    if (this.bitti || this.yaziyor) return
+    this.notModu = !this.notModu
+    this.keypad?.setPressed(NOT, this.notModu)
+    sesler.tik()
+  }
+
+  /**
+   * Sil tuşu: hücrede rakam varsa onu, yoksa notları temizler.
+   * Böylece tek tuş iki işi de görür.
+   */
+  private sil(): void {
+    if (this.bitti || this.secili < 0 || this.yaziyor) return
+    if (this.oyun.tahta[this.secili] !== 0) {
+      this.yaz(0)
+      return
+    }
+    if (this.oyun.notlariTemizle(this.secili)) {
+      sesler.tik()
+      this.render()
+    }
+  }
+
   private yaz(deger: number): void {
     if (this.bitti || this.secili < 0 || this.yaziyor) return
     this.sayac.basla()
+
+    // Kalem modunda rakam tuşu not koyar/kaldırır; hata sayılmaz.
+    if (this.notModu && deger !== 0) {
+      if (this.oyun.notDegistir(this.secili, deger)) {
+        sesler.tik()
+        this.render()
+      }
+      return
+    }
+
     const oncekiHata = this.oyun.hata
     if (!this.oyun.yaz(this.secili, deger)) return
 
@@ -169,6 +229,8 @@ export class GameScene extends Phaser.Scene {
     this.sayac.sifirla()
     this.secili = -1
     this.bitti = false
+    this.notModu = false
+    this.keypad?.setPressed(NOT, false)
     this.hud.setScore(0)
     this.keypad?.setEnabled(true)
     setChip('mistakes', 0)
@@ -236,7 +298,24 @@ export class GameScene extends Phaser.Scene {
       if (this.oyun.hataliMi(index)) view.yazi.setColor(COLORS.HATA_YAZI)
       else if (this.oyun.ipucuMu(index)) view.yazi.setColor(COLORS.IPUCU_YAZI)
       else view.yazi.setColor(COLORS.GIRILEN_YAZI)
+
+      view.not.setText(deger === 0 ? this.notYazisi(index) : '')
     }
+  }
+
+  /** Notları 3×3 ızgara gibi dizer; olmayan rakamın yeri boş kalır. */
+  private notYazisi(index: number): string {
+    if (this.oyun.notlar[index].size === 0) return ''
+    const satirlar: string[] = []
+    for (let satir = 0; satir < KUTU; satir++) {
+      const hucreler: string[] = []
+      for (let sutun = 0; sutun < KUTU; sutun++) {
+        const deger = satir * KUTU + sutun + 1
+        hucreler.push(this.oyun.notVar(index, deger) ? String(deger) : ' ')
+      }
+      satirlar.push(hucreler.join(' '))
+    }
+    return satirlar.join('\n')
   }
 
   private tazeleSure(): void {

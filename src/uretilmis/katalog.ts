@@ -1881,7 +1881,7 @@ export const KATALOG: KatalogKaydi[] = [
     "ad": "Sudoku",
     "ozet": "Her satır, sütun ve kutuda 1-9 bir kez geçsin.",
     "aciklama": "Her satır, sütun ve 3×3 kutuda 1-9 birer kez geçsin.",
-    "ipucu": "Kareye dokun, sonra rakam seç · <kbd>1</kbd>-<kbd>9</kbd> yazabilir, <kbd>Sil</kbd> ile silebilirsin",
+    "ipucu": "Kareye dokun, sonra rakam seç · <kbd>1</kbd>-<kbd>9</kbd> yaz, <kbd>Sil</kbd> ile sil · <kbd>N</kbd> ya da <b>Kalem notu</b> ile emin olmadığın rakamları küçük yaz",
     "emoji": "🧮",
     "kategori": "mantik",
     "etiketler": [
@@ -1895,7 +1895,7 @@ export const KATALOG: KatalogKaydi[] = [
     "tuval": {
       "genislik": 510,
       "yukseklik": 510,
-      "disPay": 335
+      "disPay": 392
     },
     "arayuz": {
       "rozetler": [

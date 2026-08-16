@@ -37,6 +37,12 @@ export const GAME_PARENT_ID = 'game'
 export const FONT_FAMILY = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
 export const RAKAM_FONT = 30
 
+/** Kalem notları: hücre içinde 3×3 küçük rakam ızgarası. */
+export const NOT_FONT = 14
+/** Rakamların sütunları hizalı dursun diye eş aralıklı yazı tipi. */
+export const NOT_FONT_FAMILY = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+export const NOT_SATIR_ARALIGI = 2
+
 export const COLORS = {
   BOARD: 0x152238,
   HUCRE: 0x1b2b45,
@@ -47,6 +53,7 @@ export const COLORS = {
   IPUCU_YAZI: '#cbd9ef',
   GIRILEN_YAZI: '#60a5fa',
   HATA_YAZI: '#f87171',
+  NOT_YAZI: '#93b4e0',
 } as const
 
 export const IZGARA_INCE = 1

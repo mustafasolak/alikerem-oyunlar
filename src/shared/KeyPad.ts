@@ -13,6 +13,8 @@ export interface KeyPadKey {
   value?: string
   /** İki birim genişlikte dursun (Sil, Boşluk gibi). */
   wide?: boolean
+  /** Kaç ızgara sütunu kaplasın? Verilirse `wide` yerine bu geçerli. */
+  span?: number
 }
 
 export interface KeyPadOptions {
@@ -23,10 +25,20 @@ export interface KeyPadOptions {
   columns?: number
 }
 
-const normalize = (key: string | KeyPadKey): Required<Omit<KeyPadKey, 'wide'>> & { wide: boolean } =>
+interface NormalKey {
+  label: string
+  value: string
+  span: number
+}
+
+const normalize = (key: string | KeyPadKey): NormalKey =>
   typeof key === 'string'
-    ? { label: key, value: key, wide: false }
-    : { label: key.label, value: key.value ?? key.label, wide: Boolean(key.wide) }
+    ? { label: key, value: key, span: 1 }
+    : {
+        label: key.label,
+        value: key.value ?? key.label,
+        span: key.span ?? (key.wide ? 2 : 1),
+      }
 
 export class KeyPad {
   private readonly container: HTMLElement
@@ -45,7 +57,7 @@ export class KeyPad {
       const button = document.createElement('button')
       button.type = 'button'
       button.className = 'keypad-key'
-      if (key.wide) button.classList.add('is-wide')
+      if (key.span > 1) button.style.gridColumn = `span ${key.span}`
       button.textContent = key.label
       button.dataset.value = key.value
       button.addEventListener('click', () => {
@@ -65,6 +77,14 @@ export class KeyPad {
     else if (state === 'wrong') button.classList.add('is-wrong')
     else if (state === 'used') button.classList.add('is-used')
     button.disabled = state !== 'idle'
+  }
+
+  /** Aç/kapa tuşları için basılı görünüm (Sudoku'daki kalem modu gibi). */
+  setPressed(value: string, pressed: boolean): void {
+    const button = this.buttons.get(value)
+    if (!button) return
+    button.classList.toggle('is-pressed', pressed)
+    button.setAttribute('aria-pressed', String(pressed))
   }
 
   setEnabled(enabled: boolean): void {

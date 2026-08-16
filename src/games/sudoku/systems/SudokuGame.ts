@@ -95,6 +95,8 @@ export class SudokuGame {
   ipuclari: number[] = []
   /** Oyuncunun girdikleri (0 = boş). İpucu hücreleri burada da doludur. */
   tahta: number[] = []
+  /** Hücre başına kalem notları (1-9). Boş hücrelerde anlamlı. */
+  notlar: Set<number>[] = []
   hata = 0
 
   private readonly random: Uretec
@@ -152,6 +154,32 @@ export class SudokuGame {
 
     this.ipuclari = ipuclari
     this.tahta = ipuclari.slice()
+    this.notlar = Array.from({ length: TOPLAM }, () => new Set<number>())
+  }
+
+  /** Bu hücreye not yazılabilir mi? (boş ve ipucu olmayan) */
+  notYazilabilir(index: number): boolean {
+    return index >= 0 && index < TOPLAM && !this.ipucuMu(index) && this.tahta[index] === 0
+  }
+
+  notVar(index: number, deger: number): boolean {
+    return this.notlar[index]?.has(deger) ?? false
+  }
+
+  /** Notu ekler ya da kaldırır. Dolu ve ipucu hücrelerde çalışmaz. */
+  notDegistir(index: number, deger: number): boolean {
+    if (!this.notYazilabilir(index) || deger < 1 || deger > BOYUT) return false
+    const kume = this.notlar[index]
+    if (kume.has(deger)) kume.delete(deger)
+    else kume.add(deger)
+    return true
+  }
+
+  notlariTemizle(index: number): boolean {
+    const kume = this.notlar[index]
+    if (!kume || kume.size === 0) return false
+    kume.clear()
+    return true
   }
 
   /** Hücreye rakam yazar (0 siler). İpucu hücreleri değiştirilemez. */
@@ -161,7 +189,15 @@ export class SudokuGame {
     if (this.tahta[index] === deger) return false
 
     this.tahta[index] = deger
-    if (deger !== 0 && deger !== this.cozum[index]) this.hata++
+    if (deger !== 0) {
+      // Rakam yazılınca o hücrenin notları anlamsız kalır; ayrıca aynı satır,
+      // sütun ve kutudaki hücrelerden bu rakamın notu düşer (elle silmek zahmetli).
+      this.notlar[index].clear()
+      for (let i = 0; i < TOPLAM; i++) {
+        if (i !== index && this.iliskiliMi(index, i)) this.notlar[i].delete(deger)
+      }
+      if (deger !== this.cozum[index]) this.hata++
+    }
     return true
   }
 
