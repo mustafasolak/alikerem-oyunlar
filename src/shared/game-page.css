@@ -690,3 +690,73 @@
     display: none;
   }
 }
+
+/* --- Skor tablosu sekmeleri --- */
+
+.tablo-ust {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.55rem;
+}
+
+.tablo-ust h2 {
+  margin: 0;
+}
+
+.tablo-sekme,
+.tablo-donem {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.tablo-sekme button,
+.tablo-donem button {
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  background: var(--surface-hi);
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.tablo-sekme button[aria-pressed='true'],
+.tablo-donem button[aria-pressed='true'] {
+  background: var(--game-a);
+  border-color: var(--game-a);
+  color: #16130f;
+}
+
+.tablo-sekme button[hidden],
+.tablo-donem[hidden] {
+  display: none;
+}
+
+.tablo-donem {
+  margin-bottom: 0.5rem;
+}
+
+.tablo-not {
+  margin-bottom: 0.4rem;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+}
+
+.tablo-not[hidden] {
+  display: none;
+}
+
+/* Sunucuda doğrulanmış skorlar rozetli */
+.scoreboard .dogrulandi {
+  margin-left: 0.3rem;
+  color: #4ade80;
+  font-size: 0.8rem;
+}
+
+.scoreboard li.is-ben {
+  outline: 1px solid var(--game-a);
+  outline-offset: -1px;
+}

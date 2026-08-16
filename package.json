@@ -10,15 +10,20 @@
     "katalog": "node --experimental-strip-types betikler/katalog-uret.mjs",
     "prebuild": "npm run katalog",
     "predev": "npm run katalog",
-    "kontrol": "npm run katalog && npm run sozlesme && tsc --noEmit",
+    "kontrol": "npm run katalog && npm run sozlesme && npm run veritabani-test && tsc --noEmit && tsc -p tsconfig.api.json",
     "sozlesme": "node --experimental-strip-types betikler/sozlesme.mjs",
-    "yeni-oyun": "node betikler/yeni-oyun.mjs"
+    "yeni-oyun": "node betikler/yeni-oyun.mjs",
+    "veritabani-test": "node --experimental-strip-types betikler/veritabani-test.mjs",
+    "yerel": "npm run build && node --experimental-strip-types betikler/yerel-sunucu.mjs"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.5",
+    "@types/node": "^26.2.0",
     "typescript": "~6.0.2",
     "vite": "^8.2.0"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "phaser": "^4.2.1"
   },
   "engines": {

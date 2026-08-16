@@ -111,7 +111,20 @@ export function kabukHtml(oyun: KatalogKaydi): string {
       <p class="hint">${oyun.ipucu}</p>
 
       <section class="scoreboard" id="scoreboard" hidden>
-        <h2>Skor tablosu — bu cihaz</h2>
+        <div class="tablo-ust">
+          <h2>Skor tablosu</h2>
+          <div class="tablo-sekme" id="tablo-sekme">
+            <button type="button" data-kapsam="cihaz" aria-pressed="true">Bu cihaz</button>
+            <button type="button" data-kapsam="global" aria-pressed="false" hidden>Global</button>
+          </div>
+        </div>
+        <div class="tablo-donem" id="tablo-donem" hidden>
+          <button type="button" data-donem="gunluk" aria-pressed="false">Bugün</button>
+          <button type="button" data-donem="haftalik" aria-pressed="false">Bu hafta</button>
+          <button type="button" data-donem="aylik" aria-pressed="false">Bu ay</button>
+          <button type="button" data-donem="tum" aria-pressed="true">Tüm zamanlar</button>
+        </div>
+        <p class="tablo-not" id="tablo-not" hidden></p>
         <ol id="scoreboard-list"></ol>
       </section>
     </div>

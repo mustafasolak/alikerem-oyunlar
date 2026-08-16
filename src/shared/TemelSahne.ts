@@ -113,6 +113,7 @@ export abstract class TemelSahne extends Phaser.Scene {
       this.recorder.finish(ayar.skor, {
         title: ayar.baslik,
         text: `${ayar.ozet} — skor tablosuna girdin!`,
+        sure: this.sayac.saniye,
         onDone: () =>
           this.hud.showOverlay({
             title: ayar.baslik,

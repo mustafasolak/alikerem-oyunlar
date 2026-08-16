@@ -4,6 +4,7 @@
  */
 
 import { MAX_NAME_LENGTH, type ScoreEntry } from './Leaderboard.ts'
+import type { Donem, TabloKaydi } from './Sunucu.ts'
 import { sesler } from './Sesler.ts'
 
 export interface GameHudCallbacks {
@@ -44,6 +45,9 @@ export class GameHud {
 
   private readonly board = required<HTMLElement>('#scoreboard')
   private readonly boardList = required<HTMLOListElement>('#scoreboard-list')
+  private readonly sekmeler = document.querySelector<HTMLElement>('#tablo-sekme')
+  private readonly donemler = document.querySelector<HTMLElement>('#tablo-donem')
+  private readonly tabloNotu = document.querySelector<HTMLElement>('#tablo-not')
 
   private readonly overlay = required<HTMLElement>('#overlay')
   private readonly overlayTitle = required<HTMLElement>('#overlay-title')
@@ -109,6 +113,82 @@ export class GameHud {
     this.scoreBox.classList.remove('is-bumped')
     void this.scoreBox.offsetWidth
     this.scoreBox.classList.add('is-bumped')
+  }
+
+  /**
+   * Global sekmesini açar ve sekme tıklamalarını bağlar.
+   * Sunucu kapalıysa hiç çağrılmaz; tablo yalnız cihaz kayıtlarını gösterir.
+   */
+  tabloSekmeleriniAc(secildi: (kapsam: 'cihaz' | 'global', donem: Donem) => void): void {
+    if (!this.sekmeler) return
+    const globalDugme = this.sekmeler.querySelector<HTMLButtonElement>('button[data-kapsam="global"]')
+    if (globalDugme) globalDugme.hidden = false
+
+    let kapsam: 'cihaz' | 'global' = 'cihaz'
+    let donem: Donem = 'tum'
+
+    const isaretle = (kap: HTMLElement | null, ad: string, deger: string): void => {
+      for (const b of kap?.querySelectorAll<HTMLButtonElement>(`button[data-${ad}]`) ?? []) {
+        b.setAttribute('aria-pressed', String(b.dataset[ad] === deger))
+      }
+    }
+
+    this.sekmeler.addEventListener('click', (olay) => {
+      const dugme = (olay.target as HTMLElement).closest<HTMLButtonElement>('button[data-kapsam]')
+      if (!dugme?.dataset.kapsam) return
+      kapsam = dugme.dataset.kapsam as 'cihaz' | 'global'
+      isaretle(this.sekmeler, 'kapsam', kapsam)
+      if (this.donemler) this.donemler.hidden = kapsam !== 'global'
+      secildi(kapsam, donem)
+    })
+
+    this.donemler?.addEventListener('click', (olay) => {
+      const dugme = (olay.target as HTMLElement).closest<HTMLButtonElement>('button[data-donem]')
+      if (!dugme?.dataset.donem) return
+      donem = dugme.dataset.donem as Donem
+      isaretle(this.donemler, 'donem', donem)
+      secildi(kapsam, donem)
+    })
+  }
+
+  /** Tablonun üstünde kısa bilgi ("Yükleniyor…", "Henüz kayıt yok"). */
+  tabloNotuYaz(mesaj: string | null): void {
+    if (!this.tabloNotu) return
+    this.tabloNotu.textContent = mesaj ?? ''
+    this.tabloNotu.hidden = !mesaj
+  }
+
+  /** Sunucudan gelen global tabloyu çizer. */
+  globalTabloCiz(kayitlar: TabloKaydi[]): void {
+    this.boardList.replaceChildren()
+    this.board.hidden = false
+    for (const kayit of kayitlar) {
+      const item = document.createElement('li')
+      if (kayit.ben) item.classList.add('is-ben')
+
+      const rank = document.createElement('span')
+      rank.className = 'rank'
+      rank.textContent = String(kayit.sira)
+
+      const name = document.createElement('span')
+      name.className = 'name'
+      name.textContent = kayit.ad
+
+      if (kayit.dogrulandi) {
+        const rozet = document.createElement('span')
+        rozet.className = 'dogrulandi'
+        rozet.textContent = '✓'
+        rozet.title = 'Sunucuda doğrulandı'
+        name.append(rozet)
+      }
+
+      const points = document.createElement('span')
+      points.className = 'points'
+      points.textContent = String(kayit.skor)
+
+      item.append(rank, name, points)
+      this.boardList.append(item)
+    }
   }
 
   /** Skor tablosunu çizer. `highlightAt`, yeni eklenen kaydı vurgular. */
