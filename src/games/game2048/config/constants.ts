@@ -14,6 +14,12 @@ export const TILE_RADIUS = 10
 // --- Oynanış kuralları ---
 export const WINNING_VALUE = 2048
 export const START_TILE_COUNT = 2
+
+/**
+ * Oyun başına geri alma hakkı. Sınırsız olsaydı skor tablosu anlamını
+ * yitirirdi; üç hak yanlış kaydırmayı telafi etmeye yetiyor.
+ */
+export const GERI_ALMA_HAKKI = 3
 export const SPAWN_VALUE_LOW = 2
 export const SPAWN_VALUE_HIGH = 4
 /** Yeni karenin 4 gelme olasılığı. */

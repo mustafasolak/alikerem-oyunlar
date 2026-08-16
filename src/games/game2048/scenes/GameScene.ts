@@ -25,6 +25,7 @@ import { GameHud } from '../../../shared/GameHud.ts'
 import { ScoreRecorder } from '../../../shared/ScoreRecorder.ts'
 import { sesler } from '../../../shared/Sesler.ts'
 import { SwipeInput } from '../../../shared/SwipeInput.ts'
+import { setChip } from '../../../shared/dom.ts'
 
 const KEY_BINDINGS: Record<string, Direction> = {
   'keydown-LEFT': 'left',
@@ -71,6 +72,7 @@ export class GameScene extends Phaser.Scene {
     this.renderAll()
     this.bindKeyboard()
     this.bindSwipe()
+    this.bindGeriAl()
 
     if (this.board.isOver) this.showGameOver()
   }
@@ -96,7 +98,29 @@ export class GameScene extends Phaser.Scene {
     for (const [event, direction] of Object.entries(KEY_BINDINGS)) {
       keyboard.on(event, () => this.tryMove(direction))
     }
+    keyboard.on('keydown-Z', () => this.geriAl())
     keyboard.addCapture(CAPTURED_KEYS)
+  }
+
+  /** Sayfadaki "↩︎ Geri al" düğmesi. */
+  private bindGeriAl(): void {
+    const dugme = document.querySelector<HTMLButtonElement>('#pad button[data-move="geri"]')
+    if (!dugme) return
+    const tikla = (): void => this.geriAl()
+    dugme.addEventListener('click', tikla)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => dugme.removeEventListener('click', tikla))
+  }
+
+  /** Son hamleyi geri alır; hak yoksa düğme zaten kapalıdır. */
+  private geriAl(): void {
+    if (this.busy || !this.board.geriAlinabilir) return
+    if (!this.board.geriAl()) return
+
+    sesler.kaydir()
+    this.hud.hideOverlay()
+    this.renderAll()
+    this.syncScore()
+    this.persist()
   }
 
   /** Ad yazarken oyun tuşları devreye girmesin (WASD isme yazılabilsin). */
@@ -282,6 +306,9 @@ export class GameScene extends Phaser.Scene {
 
   private syncScore(): void {
     this.hud.setScore(this.board.score)
+    setChip('undo-left', this.board.kalanGeriAlma)
+    const dugme = document.querySelector<HTMLButtonElement>('#pad button[data-move="geri"]')
+    if (dugme) dugme.disabled = !this.board.geriAlinabilir
   }
 
   private persist(): void {

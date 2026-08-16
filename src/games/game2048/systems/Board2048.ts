@@ -8,6 +8,7 @@ import {
   SPAWN_FOUR_CHANCE,
   SPAWN_VALUE_HIGH,
   SPAWN_VALUE_LOW,
+  GERI_ALMA_HAKKI,
   START_TILE_COUNT,
   WINNING_VALUE,
 } from '../config/constants.ts'
@@ -42,6 +43,8 @@ export interface SavedBoard {
   grid: number[][]
   score: number
   keepPlaying: boolean
+  /** Kalan geri alma hakkı. Eski kayıtlarda yoktur; tam hak sayılır. */
+  kalanGeriAlma?: number
 }
 
 interface Vector {
@@ -64,8 +67,16 @@ export class Board2048 {
   /** 2048'e ulaştıktan sonra oyuncu devam etmeyi seçtiyse true. */
   keepPlaying = false
 
+  /** Kalan geri alma hakkı. */
+  kalanGeriAlma = GERI_ALMA_HAKKI
+
   private cells: (Tile | null)[][]
   private nextId = 1
+  /**
+   * Hamleden önceki tahta anlık görüntüleri. Derinlik hakla sınırlı:
+   * daha fazlasını tutmanın anlamı yok.
+   */
+  private gecmis: SavedBoard[] = []
   private readonly random: () => number
 
   constructor(size: number = GRID_SIZE, random: () => number = Math.random) {
@@ -103,6 +114,8 @@ export class Board2048 {
     this.score = 0
     this.status = 'playing'
     this.keepPlaying = false
+    this.kalanGeriAlma = GERI_ALMA_HAKKI
+    this.gecmis = []
     for (let i = 0; i < START_TILE_COUNT; i++) {
       this.spawnRandomTile()
     }
@@ -116,10 +129,29 @@ export class Board2048 {
     }
   }
 
+  /** Geri alınabilecek bir hamle var mı? */
+  get geriAlinabilir(): boolean {
+    return this.kalanGeriAlma > 0 && this.gecmis.length > 0
+  }
+
+  /**
+   * Son hamleyi geri alır: tahta, skor ve durum hamleden önceki hâline döner.
+   * Kaybedilmiş oyun da geri alınabilir (kurtarıcı hamle).
+   */
+  geriAl(): boolean {
+    if (!this.geriAlinabilir) return false
+    const onceki = this.gecmis.pop()
+    if (!onceki || !this.restore(onceki, false)) return false
+    this.kalanGeriAlma--
+    return true
+  }
+
   move(direction: Direction): MoveResult {
     const result: MoveResult = { moved: false, gained: 0, justWon: false }
     if (this.status === 'lost' || this.status === 'won') return result
 
+    // Hamleden önceki hâli sakla; hamle bir şey değiştirmezse geri çıkarılır.
+    const oncesi = this.toSave()
     this.clearMoveMarkers()
 
     const vector = VECTORS[direction]
@@ -159,6 +191,10 @@ export class Board2048 {
     }
 
     if (result.moved) {
+      // Yalnız gerçekten değişen hamleler geri alınabilir
+      this.gecmis.push(oncesi)
+      if (this.gecmis.length > GERI_ALMA_HAKKI) this.gecmis.shift()
+
       this.spawnRandomTile()
       if (result.justWon) {
         this.status = 'won'
@@ -192,11 +228,15 @@ export class Board2048 {
       grid: this.cells.map((row) => row.map((tile) => tile?.value ?? 0)),
       score: this.score,
       keepPlaying: this.keepPlaying,
+      kalanGeriAlma: this.kalanGeriAlma,
     }
   }
 
-  /** Kaydedilmiş oyunu yükler; veri bozuksa false döner ve tahta değişmez. */
-  restore(saved: SavedBoard): boolean {
+  /**
+   * Kaydedilmiş oyunu yükler; veri bozuksa false döner ve tahta değişmez.
+   * `gecmisiSil` false ise geri alma yığını korunur (geri alma bunu kullanır).
+   */
+  restore(saved: SavedBoard, gecmisiSil = true): boolean {
     if (!Array.isArray(saved.grid) || saved.grid.length !== this.size) return false
     if (saved.grid.some((row) => !Array.isArray(row) || row.length !== this.size)) return false
     if (!Number.isFinite(saved.score)) return false
@@ -220,6 +260,12 @@ export class Board2048 {
     this.score = saved.score
     this.keepPlaying = Boolean(saved.keepPlaying)
     this.status = this.hasMoves() ? 'playing' : 'lost'
+    if (gecmisiSil) {
+      this.gecmis = []
+      this.kalanGeriAlma = Number.isFinite(saved.kalanGeriAlma)
+        ? Math.max(0, Math.min(GERI_ALMA_HAKKI, Number(saved.kalanGeriAlma)))
+        : GERI_ALMA_HAKKI
+    }
     return true
   }
 

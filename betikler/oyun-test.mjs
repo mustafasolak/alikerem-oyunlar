@@ -6,6 +6,7 @@
  *
  * Çalıştır: npm run oyun-test
  */
+import { Board2048 } from '../src/games/game2048/systems/Board2048.ts'
 import { Minesweeper } from '../src/games/mayin/systems/Minesweeper.ts'
 import { SudokuGame } from '../src/games/sudoku/systems/SudokuGame.ts'
 
@@ -162,6 +163,124 @@ function tohumlu(tohum) {
   const sifir = oyun.hucreler.findIndex((h) => h.acik && h.komsu === 0)
   if (sifir >= 0) esit('sıfır komşuluda akor yok', oyun.akor(sifir).degisti, false)
   esit('tahta dışında akor yok', oyun.akor(9999).degisti, false)
+}
+
+// --- 2048: geri alma ---
+{
+  const b = new Board2048(4, tohumlu(9))
+  esit('başta geri alınacak hamle yok', b.geriAlinabilir, false)
+  esit('geri alma boşa çalışmaz', b.geriAl(), false)
+  esit('başlangıç hakkı 3', b.kalanGeriAlma, 3)
+}
+
+{
+  // Birleşmenin kesin olduğu bir tahta kur: skorun geri döndüğünü görelim
+  const b = new Board2048(4, tohumlu(4))
+  b.restore({
+    grid: [
+      [2, 2, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+    ],
+    score: 100,
+    keepPlaying: false,
+  })
+  esit('kurulan skor', b.score, 100)
+  const sonuc = b.move('left')
+  esit('birleşme oldu', sonuc.moved, true)
+  esit('4 puan kazanıldı', sonuc.gained, 4)
+  esit('skor arttı', b.score, 104)
+
+  esit('geri alındı', b.geriAl(), true)
+  esit('SKOR geri döndü', b.score, 100)
+  esit('hak düştü', b.kalanGeriAlma, 2)
+  const degerler = b.tiles.map((t) => t.value).sort((x, y) => x - y)
+  esit('tahta hamle öncesine döndü', degerler, [2, 2])
+  esit('aynı hamle iki kez geri alınamaz', b.geriAl(), false)
+}
+
+{
+  // Kaybedilmiş oyun geri alınabilmeli (kurtarıcı hamle)
+  const b = new Board2048(4, tohumlu(17))
+  b.restore({
+    grid: [
+      [2, 4, 2, 4],
+      [4, 2, 4, 2],
+      [2, 4, 2, 4],
+      [4, 2, 4, 0],
+    ],
+    score: 500,
+    keepPlaying: false,
+  })
+  esit('henüz kaybedilmedi', b.status, 'playing')
+  // Boşluğu dolduran hamle oyunu bitirir
+  const yonler = ['up', 'down', 'left', 'right']
+  let bitti = false
+  for (const y of yonler) {
+    if (b.move(y).moved) { bitti = b.status === 'lost'; break }
+  }
+  if (bitti) {
+    esit('kaybedilen oyun geri alınabilir', b.geriAl(), true)
+    esit('geri alınca oyun sürüyor', b.status, 'playing')
+  }
+}
+
+{
+  // Değişmeyen hamle geçmişe yazılmamalı
+  const b = new Board2048(4, tohumlu(23))
+  b.restore({
+    grid: [
+      [2, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+    ],
+    score: 0,
+    keepPlaying: false,
+  })
+  esit('sola dayalı kare sola gitmez', b.move('left').moved, false)
+  esit('boş hamle geçmişe yazılmadı', b.geriAlinabilir, false)
+}
+
+{
+  // Hak bitince geri alma durur; geçmiş hakla sınırlı
+  const b = new Board2048(4, tohumlu(31))
+  let yapilan = 0
+  const yonler = ['up', 'right', 'down', 'left']
+  for (let i = 0; i < 20 && yapilan < 8; i++) {
+    if (b.move(yonler[i % 4]).moved) yapilan++
+  }
+  kontrol('yeterince hamle yapıldı', yapilan >= 4, `${yapilan} hamle`)
+  esit('birinci geri alma', b.geriAl(), true)
+  esit('ikinci geri alma', b.geriAl(), true)
+  esit('üçüncü geri alma', b.geriAl(), true)
+  esit('hak bitti', b.kalanGeriAlma, 0)
+  esit('dördüncü geri alma reddedilir', b.geriAl(), false)
+}
+
+{
+  // Kayıt/yükleme hakkı taşır, yeni oyun sıfırlar
+  const b = new Board2048(4, tohumlu(41))
+  const yonler = ['up', 'right', 'down', 'left']
+  for (let i = 0; i < 8; i++) b.move(yonler[i % 4])
+  b.geriAl()
+  const kayit = b.toSave()
+  esit('kayıt hakkı içeriyor', kayit.kalanGeriAlma, b.kalanGeriAlma)
+
+  const c = new Board2048(4, tohumlu(41))
+  c.restore(kayit)
+  esit('yüklenen oyun hakkı korur', c.kalanGeriAlma, kayit.kalanGeriAlma)
+  esit('yüklendikten sonra geçmiş boş', c.geriAlinabilir, false)
+
+  c.reset()
+  esit('yeni oyun hakkı tazeler', c.kalanGeriAlma, 3)
+  esit('yeni oyunda geçmiş boş', c.geriAlinabilir, false)
+
+  // Eski kayıtlar (hak alanı yok) tam hak sayılmalı
+  const d = new Board2048(4, tohumlu(41))
+  d.restore({ grid: kayit.grid, score: kayit.score, keepPlaying: false })
+  esit('eski kayıt tam hak alır', d.kalanGeriAlma, 3)
 }
 
 if (hatalar.length) {

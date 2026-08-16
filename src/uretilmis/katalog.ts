@@ -46,7 +46,7 @@ export const KATALOG: KatalogKaydi[] = [
     "ad": "2048",
     "ozet": "Kareleri kaydır, aynı sayıları birleştir ve 2048 karesine ulaş.",
     "aciklama": "Aynı sayıları birleştir, <strong>2048</strong> karesine ulaş.",
-    "ipucu": "<kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> veya <kbd>WASD</kbd> ile oyna · mobilde parmağını kaydır",
+    "ipucu": "<kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> veya <kbd>WASD</kbd> ile oyna · mobilde parmağını kaydır · <kbd>Z</kbd> ile son hamleyi geri al",
     "emoji": "🔢",
     "kategori": "yerlestirme",
     "etiketler": [
@@ -60,7 +60,22 @@ export const KATALOG: KatalogKaydi[] = [
     "tuval": {
       "genislik": 510,
       "yukseklik": 510,
-      "disPay": 215
+      "disPay": 296
+    },
+    "arayuz": {
+      "rozetler": [
+        {
+          "etiket": "Geri alma",
+          "id": "undo-left",
+          "baslangic": "3"
+        }
+      ],
+      "pad": [
+        {
+          "etiket": "↩︎ Geri al",
+          "deger": "geri"
+        }
+      ]
     }
   },
   {
