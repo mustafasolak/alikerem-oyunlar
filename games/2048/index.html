@@ -20,6 +20,7 @@
           <div class="score-box">
             <span>EN İYİ</span>
             <strong id="best">0</strong>
+            <small id="best-name"></small>
           </div>
         </div>
       </header>
@@ -38,6 +39,14 @@
           <div class="overlay-card">
             <h2 id="overlay-title"></h2>
             <p id="overlay-text"></p>
+            <form class="overlay-form" id="overlay-form" hidden>
+              <label for="overlay-name">Tabloya yazılacak ad</label>
+              <div class="row">
+                <input id="overlay-name" name="nick" type="text" autocomplete="nickname"
+                  placeholder="Adını yaz" enterkeyhint="done" />
+                <button class="btn btn--accent" id="overlay-submit" type="submit">Kaydet</button>
+              </div>
+            </form>
             <div class="overlay-actions">
               <button class="btn btn--accent" id="overlay-primary" type="button"></button>
               <button class="btn" id="overlay-secondary" type="button" hidden></button>
@@ -49,6 +58,11 @@
       <p class="hint">
         <kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> veya <kbd>WASD</kbd> ile oyna · mobilde parmağını kaydır
       </p>
+
+      <section class="scoreboard" id="scoreboard" hidden>
+        <h2>Skor tablosu — bu cihaz</h2>
+        <ol id="scoreboard-list"></ol>
+      </section>
     </div>
 
     <script type="module" src="../../src/games/game2048/main.ts"></script>

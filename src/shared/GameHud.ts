@@ -1,19 +1,29 @@
 /**
- * Sayfa üstündeki ortak DOM arayüzü: skorlar, yeni oyun butonu ve sonuç katmanı.
- * Her oyun sayfası aynı id'leri kullanır (#score, #best, #restart, #overlay ...).
+ * Sayfa üstündeki ortak DOM arayüzü: skorlar, yeni oyun butonu, skor tablosu
+ * ve sonuç katmanı. Her oyun sayfası aynı id'leri kullanır.
  */
+
+import { MAX_NAME_LENGTH, type ScoreEntry } from './Leaderboard.ts'
 
 export interface GameHudCallbacks {
   onRestart: () => void
 }
 
-interface OverlayOptions {
+/** Katmanda takma ad sorulacaksa. */
+export interface OverlayPrompt {
+  defaultName: string
+  submitLabel: string
+  onSubmit: (name: string) => void
+}
+
+export interface OverlayOptions {
   title: string
   text: string
   primaryLabel: string
   onPrimary: () => void
   secondaryLabel?: string
   onSecondary?: () => void
+  prompt?: OverlayPrompt
 }
 
 function required<T extends HTMLElement>(selector: string): T {
@@ -25,31 +35,47 @@ function required<T extends HTMLElement>(selector: string): T {
 export class GameHud {
   private readonly scoreEl = required<HTMLElement>('#score')
   private readonly bestEl = required<HTMLElement>('#best')
+  private readonly bestNameEl = required<HTMLElement>('#best-name')
   private readonly scoreBox = required<HTMLElement>('#score-box')
   private readonly gainEl = required<HTMLElement>('#score-gain')
   private readonly restartBtn = required<HTMLButtonElement>('#restart')
+
+  private readonly board = required<HTMLElement>('#scoreboard')
+  private readonly boardList = required<HTMLOListElement>('#scoreboard-list')
+
   private readonly overlay = required<HTMLElement>('#overlay')
   private readonly overlayTitle = required<HTMLElement>('#overlay-title')
   private readonly overlayText = required<HTMLElement>('#overlay-text')
+  private readonly form = required<HTMLFormElement>('#overlay-form')
+  private readonly nameInput = required<HTMLInputElement>('#overlay-name')
+  private readonly submitBtn = required<HTMLButtonElement>('#overlay-submit')
   private readonly primaryBtn = required<HTMLButtonElement>('#overlay-primary')
   private readonly secondaryBtn = required<HTMLButtonElement>('#overlay-secondary')
 
   private primaryAction: () => void = () => {}
   private secondaryAction: () => void = () => {}
+  private submitAction: (name: string) => void = () => {}
 
   constructor(callbacks: GameHudCallbacks) {
+    this.nameInput.maxLength = MAX_NAME_LENGTH
     this.restartBtn.addEventListener('click', () => callbacks.onRestart())
     // Katman butonlarının davranışı her showOverlay çağrısında yeniden bağlanır.
     this.primaryBtn.addEventListener('click', () => this.primaryAction())
     this.secondaryBtn.addEventListener('click', () => this.secondaryAction())
+    this.form.addEventListener('submit', (event) => {
+      event.preventDefault()
+      this.submitAction(this.nameInput.value)
+    })
   }
 
   setScore(score: number): void {
     this.scoreEl.textContent = String(score)
   }
 
-  setBest(best: number): void {
-    this.bestEl.textContent = String(best)
+  /** En iyi skoru ve varsa sahibinin adını gösterir. */
+  setBest(score: number, name?: string | null): void {
+    this.bestEl.textContent = String(score)
+    this.bestNameEl.textContent = score > 0 && name ? name : ''
   }
 
   /** Kazanılan puanı skor kutusunun üzerinde kısa süre gösterir. */
@@ -63,6 +89,34 @@ export class GameHud {
     this.scoreBox.classList.remove('is-bumped')
     void this.scoreBox.offsetWidth
     this.scoreBox.classList.add('is-bumped')
+  }
+
+  /** Skor tablosunu çizer. `highlightAt`, yeni eklenen kaydı vurgular. */
+  renderScoreboard(entries: ScoreEntry[], highlightAt?: number): void {
+    this.boardList.replaceChildren()
+    this.board.hidden = entries.length === 0
+    if (entries.length === 0) return
+
+    entries.forEach((entry, index) => {
+      const item = document.createElement('li')
+      if (highlightAt !== undefined && entry.at === highlightAt) item.classList.add('is-new')
+
+      const rank = document.createElement('span')
+      rank.className = 'rank'
+      rank.textContent = String(index + 1)
+
+      const name = document.createElement('span')
+      name.className = 'name'
+      // textContent: isim kullanıcıdan geliyor, HTML olarak yorumlanmasın.
+      name.textContent = entry.name
+
+      const points = document.createElement('span')
+      points.className = 'points'
+      points.textContent = String(entry.score)
+
+      item.append(rank, name, points)
+      this.boardList.append(item)
+    })
   }
 
   showOverlay(options: OverlayOptions): void {
@@ -79,12 +133,27 @@ export class GameHud {
       this.secondaryBtn.hidden = true
     }
 
+    if (options.prompt) {
+      this.nameInput.value = options.prompt.defaultName
+      this.submitBtn.textContent = options.prompt.submitLabel
+      this.submitAction = options.prompt.onSubmit
+      this.form.hidden = false
+    } else {
+      this.form.hidden = true
+    }
+
     this.overlay.hidden = false
     this.overlay.classList.add('is-open')
+
+    if (options.prompt) {
+      this.nameInput.focus()
+      this.nameInput.select()
+    }
   }
 
   hideOverlay(): void {
     this.overlay.classList.remove('is-open')
     this.overlay.hidden = true
+    this.form.hidden = true
   }
 }

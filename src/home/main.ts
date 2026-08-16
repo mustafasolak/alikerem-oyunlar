@@ -1,6 +1,7 @@
 import '../shared/base.css'
 import './home.css'
 import { GAMES, SITE_TAGLINE, SITE_TITLE, type GameEntry } from '../shared/games.ts'
+import { bestEntryOf } from '../shared/Leaderboard.ts'
 
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"]/g, (char) => `&${{ '&': 'amp', '<': 'lt', '>': 'gt', '"': 'quot' }[char]};`)
@@ -26,10 +27,15 @@ function renderCard(game: GameEntry): string {
     `
   }
 
+  const best = bestEntryOf(game.id)
+  const record = best
+    ? `<span class="record"><span aria-hidden="true">🏆</span> ${escapeHtml(best.name)} · ${best.score}</span>`
+    : '<span class="record record--empty">Henüz skor yok</span>'
+
   return `
     <a class="card" href="${game.href}">
       ${body}
-      <div class="card-foot"><span>Hazır</span><span class="go">Oyna →</span></div>
+      <div class="card-foot">${record}<span class="go">Oyna →</span></div>
     </a>
   `
 }
@@ -56,7 +62,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     </main>
 
     <footer class="site-footer wrap">
-      Klavye ve dokunmatik desteklenir. İyi eğlenceler!
+      Klavye ve dokunmatik desteklenir. Skorlar yalnızca bu cihazda saklanır. İyi eğlenceler!
     </footer>
   </div>
 `

@@ -202,3 +202,124 @@
 .overlay-actions button[hidden] {
   display: none;
 }
+
+/* --- En iyi skorun sahibi --- */
+
+.score-box small {
+  display: block;
+  margin-top: 0.05rem;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--accent);
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.score-box small:empty {
+  display: none;
+}
+
+/* --- Skor tablosu --- */
+
+.scoreboard {
+  padding: 0.85rem 1rem 1rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.scoreboard[hidden] {
+  display: none;
+}
+
+.scoreboard h2 {
+  margin-bottom: 0.55rem;
+  color: var(--text-dim);
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.scoreboard ol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scoreboard li {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.32rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.scoreboard li.is-new {
+  background: rgb(237 194 46 / 0.14);
+}
+
+.scoreboard .rank {
+  width: 1.3rem;
+  color: var(--text-dim);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.scoreboard .name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scoreboard .points {
+  color: var(--accent);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Katmandaki takma ad formu --- */
+
+.overlay-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: min(260px, 100%);
+  text-align: left;
+}
+
+.overlay-form[hidden] {
+  display: none;
+}
+
+.overlay-form label {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+}
+
+.overlay-form .row {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.overlay-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font: inherit;
+}
+
+.overlay-form input::placeholder {
+  color: var(--text-dim);
+}

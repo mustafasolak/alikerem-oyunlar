@@ -27,7 +27,9 @@ src/
     base.css             # site geneli sıfırlama + tasarım değişkenleri
     game-page.css        # ortak oyun sayfası düzeni (üst bar, skor, katman)
     games.ts             # oyun kataloğu (ana sayfa kartları buradan üretilir)
-    GameHud.ts           # skor / en iyi / yeni oyun / sonuç katmanı (DOM)
+    GameHud.ts           # skor / en iyi / tablo / sonuç katmanı (DOM)
+    Leaderboard.ts       # oyun başına isimli ilk 5 skor (bu cihazda)
+    ScoreRecorder.ts     # tablo + HUD köprüsü; tur bitince takma ad sorar
     SwipeInput.ts        # dokunmatik kaydırma → yön
     safeStorage.ts       # localStorage sarmalayıcı (gizli sekmede çökmez)
   home/                  # ana sayfa kodu ve stili
@@ -42,7 +44,10 @@ public/assets/           # görsel ve ses dosyaları
 
 Yeni oyun yazarken HUD, kaydırma ve depolama için `src/shared/` içindekileri kullan;
 oyuna özel kodu tekrar yazma. Bütün oyun sayfaları aynı DOM id'lerini paylaşır
-(`#score`, `#best`, `#restart`, `#overlay`, `#game`, `#game-stage`).
+(`#score`, `#best`, `#best-name`, `#restart`, `#overlay`, `#overlay-form`, `#overlay-name`,
+`#scoreboard`, `#game`, `#game-stage`).
+
+Skorlar sunucuda değil, tarayıcının localStorage'ında tutulur: tablo yalnızca o cihazda geçerlidir.
 
 ## Yeni oyun ekleme adımları
 1. `games/<oyun>/index.html` oluştur — mevcut bir oyun sayfasını kopyala, id'ler aynı kalsın;
@@ -58,6 +63,8 @@ oyuna özel kodu tekrar yazma. Bütün oyun sayfaları aynı DOM id'lerini payla
 - Oyun mantığı Phaser'a mümkün olduğunca az bağlı olsun (test edilebilirlik için).
   Örnek: `Board2048` saf TypeScript, sahne yalnızca onu çizer.
 - Hareket ve fizik `delta` zamanına göre hesaplansın, kare sayısına göre değil.
+- Kullanıcıdan gelen metin (takma ad) DOM'a `textContent` ile yazılsın; `innerHTML` kullanılıyorsa kaçırılsın.
+- Katmanda ad sorulurken sahne `input.keyboard.enabled = false` yapsın, yoksa WASD/boşluk oyuna gider.
 - Yeni asset eklerken `public/assets/` altına koy ve preload'da anahtarını tanımla.
 - tsconfig katı: `verbatimModuleSyntax` (tip importları `import type`), `erasableSyntaxOnly`
   (enum / namespace / parametre özelliği yok), `noUnusedLocals`, `noUnusedParameters`.
@@ -78,7 +85,9 @@ oyuna özel kodu tekrar yazma. Bütün oyun sayfaları aynı DOM id'lerini payla
 - [x] Çok sayfalı build (her oyun kendi sayfası)
 - [x] Yayın: https://mustafasolak.github.io/alikerem-oyunlar/ (main'e push → otomatik)
 - [x] Ortak HUD / kaydırma / depolama modülleri
-- [ ] Ana sayfa kartlarında en iyi skorlar
+- [x] İsimli skor tablosu (oyun başına ilk 5, cihaz yerel)
+- [x] Ana sayfa kartlarında en iyi skorlar
+- [ ] Herkese açık ortak skor tablosu (sunucu/servis gerektirir)
 
 ### 2048
 - [x] Oynanabilir çekirdek döngü (kaydırma + birleştirme)
@@ -88,6 +97,7 @@ oyuna özel kodu tekrar yazma. Bütün oyun sayfaları aynı DOM id'lerini payla
 - [x] Mobil dokunmatik kontrol (kaydırma)
 - [x] Görsel cila (kayma, birleşme zıplaması, doğuş animasyonu)
 - [x] Oyunu kaydetme (sayfa yenilenince kaldığı yerden)
+- [x] Skor tablosuna takma ad
 - [ ] Ses efektleri
 - [ ] Geri alma (undo)
 
@@ -98,6 +108,7 @@ oyuna özel kodu tekrar yazma. Bütün oyun sayfaları aynı DOM id'lerini payla
 - [x] Duraklatma (Boşluk / Esc / P)
 - [x] Mobil dokunmatik kontrol (kaydırma)
 - [x] Görsel cila (yem nabzı, yeme halkası, ölümde sarsıntı, gövde gradyanı)
+- [x] Skor tablosuna takma ad
 - [ ] Ses efektleri
 
 ### Sıradaki oyunlar

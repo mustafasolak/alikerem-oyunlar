@@ -22,6 +22,7 @@ import {
 import { Board2048, type Direction, type Tile } from '../systems/Board2048.ts'
 import { GameStorage } from '../systems/GameStorage.ts'
 import { GameHud } from '../../../shared/GameHud.ts'
+import { ScoreRecorder } from '../../../shared/ScoreRecorder.ts'
 import { SwipeInput } from '../../../shared/SwipeInput.ts'
 
 const KEY_BINDINGS: Record<string, Direction> = {
@@ -35,14 +36,17 @@ const KEY_BINDINGS: Record<string, Direction> = {
   'keydown-S': 'down',
 }
 
+/** Sayfayı kaydırmasınlar diye tarayıcıdan alınan tuşlar. */
+const CAPTURED_KEYS = ['LEFT', 'RIGHT', 'UP', 'DOWN']
+
 export class GameScene extends Phaser.Scene {
   private readonly board = new Board2048()
   private readonly views = new Map<number, Phaser.GameObjects.Container>()
 
   private hud!: GameHud
+  private recorder!: ScoreRecorder
   private tileLayer!: Phaser.GameObjects.Container
   private swipe?: SwipeInput
-  private best = 0
   /** Animasyon sürerken yeni hamleyi yok say. */
   private busy = false
 
@@ -54,9 +58,8 @@ export class GameScene extends Phaser.Scene {
     this.drawBoard()
     this.tileLayer = this.add.container(0, 0)
 
-    this.best = GameStorage.loadBest()
     this.hud = new GameHud({ onRestart: () => this.startNewGame() })
-    this.hud.setBest(this.best)
+    this.recorder = new ScoreRecorder('2048', this.hud, (typing) => this.setTyping(typing))
 
     const saved = GameStorage.loadGame()
     if (!saved || !this.board.restore(saved)) {
@@ -92,8 +95,16 @@ export class GameScene extends Phaser.Scene {
     for (const [event, direction] of Object.entries(KEY_BINDINGS)) {
       keyboard.on(event, () => this.tryMove(direction))
     }
-    // Ok tuşları sayfayı kaydırmasın.
-    keyboard.addCapture(['LEFT', 'RIGHT', 'UP', 'DOWN'])
+    keyboard.addCapture(CAPTURED_KEYS)
+  }
+
+  /** Ad yazarken oyun tuşları devreye girmesin (WASD isme yazılabilsin). */
+  private setTyping(typing: boolean): void {
+    const keyboard = this.input.keyboard
+    if (!keyboard) return
+    keyboard.enabled = !typing
+    if (typing) keyboard.removeCapture(CAPTURED_KEYS)
+    else keyboard.addCapture(CAPTURED_KEYS)
   }
 
   private bindSwipe(): void {
@@ -200,7 +211,22 @@ export class GameScene extends Phaser.Scene {
     else if (this.board.status === 'lost') this.showGameOver()
   }
 
+  /** Yeni oyun; süren turda kayda değer bir skor varsa önce adı sorulur. */
   private startNewGame(): void {
+    const score = this.board.score
+    if (this.board.status !== 'lost' && this.recorder.qualifies(score)) {
+      this.recorder.finish(score, {
+        title: 'Skorunu kaydet',
+        text: `Bu turda ${score} puan yaptın. Tabloya adını yazmak ister misin?`,
+        skipLabel: 'Adsız geç',
+        onDone: () => this.resetGame(),
+      })
+      return
+    }
+    this.resetGame()
+  }
+
+  private resetGame(): void {
     this.hud.hideOverlay()
     this.busy = false
     this.board.reset()
@@ -253,11 +279,6 @@ export class GameScene extends Phaser.Scene {
 
   private syncScore(): void {
     this.hud.setScore(this.board.score)
-    if (this.board.score > this.best) {
-      this.best = this.board.score
-      this.hud.setBest(this.best)
-      GameStorage.saveBest(this.best)
-    }
   }
 
   private persist(): void {
@@ -282,11 +303,17 @@ export class GameScene extends Phaser.Scene {
 
   private showGameOver(): void {
     GameStorage.clearGame()
-    this.hud.showOverlay({
+    const score = this.board.score
+    this.recorder.finish(score, {
       title: 'Oyun bitti',
-      text: `Hamle kalmadı. Skor: ${this.board.score}`,
-      primaryLabel: 'Tekrar dene',
-      onPrimary: () => this.startNewGame(),
+      text: `Skor: ${score} — skor tablosuna girdin!`,
+      onDone: () =>
+        this.hud.showOverlay({
+          title: 'Oyun bitti',
+          text: `Hamle kalmadı. Skor: ${score}`,
+          primaryLabel: 'Tekrar dene',
+          onPrimary: () => this.startNewGame(),
+        }),
     })
   }
 }

@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser'
 
 import { GameHud } from '../../../shared/GameHud.ts'
+import { ScoreRecorder } from '../../../shared/ScoreRecorder.ts'
 import { SwipeInput } from '../../../shared/SwipeInput.ts'
 import {
   BOARD_PADDING,
@@ -32,7 +33,6 @@ import {
   lerpColor,
 } from '../config/constants.ts'
 import { DIRECTION_VECTORS, SnakeGame, type Cell, type Direction } from '../systems/SnakeGame.ts'
-import { SnakeStorage } from '../systems/SnakeStorage.ts'
 
 const KEY_BINDINGS: Record<string, Direction> = {
   'keydown-LEFT': 'left',
@@ -47,18 +47,21 @@ const KEY_BINDINGS: Record<string, Direction> = {
 
 const PAUSE_EVENTS = ['keydown-SPACE', 'keydown-ESC', 'keydown-P']
 
+/** Sayfayı kaydırmasınlar diye tarayıcıdan alınan tuşlar. */
+const CAPTURED_KEYS = ['LEFT', 'RIGHT', 'UP', 'DOWN', 'SPACE']
+
 export class GameScene extends Phaser.Scene {
   private readonly snake = new SnakeGame()
   private readonly segmentViews: Phaser.GameObjects.Rectangle[] = []
 
   private hud!: GameHud
+  private recorder!: ScoreRecorder
   private segmentLayer!: Phaser.GameObjects.Container
   private foodView!: Phaser.GameObjects.Arc
   private eyes: Phaser.GameObjects.Arc[] = []
   private readyLabel!: Phaser.GameObjects.Text
   private swipe?: SwipeInput
 
-  private best = 0
   /** Son adımdan bu yana biriken süre (ms). */
   private accumulator = 0
 
@@ -91,10 +94,9 @@ export class GameScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
 
-    this.best = SnakeStorage.loadBest()
     this.hud = new GameHud({ onRestart: () => this.startNewGame() })
-    this.hud.setBest(this.best)
     this.hud.setScore(0)
+    this.recorder = new ScoreRecorder('yilan', this.hud, (typing) => this.setTyping(typing))
 
     this.bindKeyboard()
     this.bindSwipe()
@@ -140,8 +142,16 @@ export class GameScene extends Phaser.Scene {
     for (const event of PAUSE_EVENTS) {
       keyboard.on(event, () => this.togglePause())
     }
-    // Ok tuşları ve boşluk sayfayı kaydırmasın.
-    keyboard.addCapture(['LEFT', 'RIGHT', 'UP', 'DOWN', 'SPACE'])
+    keyboard.addCapture(CAPTURED_KEYS)
+  }
+
+  /** Ad yazarken oyun tuşları devreye girmesin (WASD ve boşluk isme yazılabilsin). */
+  private setTyping(typing: boolean): void {
+    const keyboard = this.input.keyboard
+    if (!keyboard) return
+    keyboard.enabled = !typing
+    if (typing) keyboard.removeCapture(CAPTURED_KEYS)
+    else keyboard.addCapture(CAPTURED_KEYS)
   }
 
   private bindSwipe(): void {
@@ -158,7 +168,6 @@ export class GameScene extends Phaser.Scene {
     if (result.ate) {
       this.hud.setScore(this.snake.score)
       this.hud.showGain(result.gained)
-      this.syncBest()
       if (result.ateAt) this.popAt(result.ateAt)
     }
 
@@ -170,13 +179,20 @@ export class GameScene extends Phaser.Scene {
 
   private finish(title: string, primaryLabel: string): void {
     this.cameras.main.shake(DEATH_SHAKE_MS, DEATH_SHAKE_INTENSITY)
-    this.syncBest()
+    const score = this.snake.score
+    const summary = `Uzunluk: ${this.snake.length} · Skor: ${score}`
+
     this.time.delayedCall(OVERLAY_DELAY_MS, () => {
-      this.hud.showOverlay({
+      this.recorder.finish(score, {
         title,
-        text: `Uzunluk: ${this.snake.length} · Skor: ${this.snake.score}`,
-        primaryLabel,
-        onPrimary: () => this.startNewGame(),
+        text: `${summary} — skor tablosuna girdin!`,
+        onDone: () =>
+          this.hud.showOverlay({
+            title,
+            text: summary,
+            primaryLabel,
+            onPrimary: () => this.startNewGame(),
+          }),
       })
     })
   }
@@ -204,20 +220,29 @@ export class GameScene extends Phaser.Scene {
     this.accumulator = 0
   }
 
+  /** Yeni oyun; süren turda kayda değer bir skor varsa önce adı sorulur. */
   private startNewGame(): void {
+    const score = this.snake.score
+    if (!this.snake.isFinished && this.recorder.qualifies(score)) {
+      // Ad yazılırken yılan arka planda ilerleyip duvara çarpmasın.
+      if (this.snake.status === 'playing') this.snake.togglePause()
+      this.recorder.finish(score, {
+        title: 'Skorunu kaydet',
+        text: `Bu turda ${score} puan yaptın. Tabloya adını yazmak ister misin?`,
+        onDone: () => this.resetGame(),
+      })
+      return
+    }
+    this.resetGame()
+  }
+
+  private resetGame(): void {
     this.hud.hideOverlay()
     this.time.removeAllEvents()
     this.snake.reset()
     this.accumulator = 0
     this.hud.setScore(0)
     this.render()
-  }
-
-  private syncBest(): void {
-    if (this.snake.score <= this.best) return
-    this.best = this.snake.score
-    this.hud.setBest(this.best)
-    SnakeStorage.saveBest(this.best)
   }
 
   // --- Görünüm ---

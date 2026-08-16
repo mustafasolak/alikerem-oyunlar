@@ -34,7 +34,7 @@ export const SWIPE_TARGET_ID = 'game-stage'
 export const GAME_PARENT_ID = 'game'
 
 // --- Kayıt ---
-export const STORAGE_BEST_KEY = 'oyunlar.2048.best'
+/** Skor tablosu anahtarı Leaderboard tarafından oyun kimliğinden üretilir. */
 export const STORAGE_GAME_KEY = 'oyunlar.2048.save'
 
 // --- Görsel ---
