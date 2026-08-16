@@ -22,6 +22,7 @@ import {
   tabloOku,
 } from '../api/_sorgular.ts'
 import { adTemizle, donemCoz, donemler } from '../api/_ortak.ts'
+import { sqlKomutlariniAyir } from './sql-bol.mjs'
 
 const KOK = new URL('..', import.meta.url)
 
@@ -53,12 +54,27 @@ const sql = koprü(db)
 esit('şema kurulmadan semaVarMi false', await semaVarMi(sql), false)
 
 const sema = await readFile(fileURLToPath(new URL('betikler/sema.sql', KOK)), 'utf8')
-await db.exec(sema)
+
+// Şema, `npm run sema-kur` ile aynı yoldan kurulur: komutlara ayrılıp tek tek
+// gönderilir. Vercel/Neon birden çok komutu tek istekte kabul etmiyor.
+const komutlar = sqlKomutlariniAyir(sema)
+kontrol('şema komutlara ayrıldı', komutlar.length >= 5, `${komutlar.length} komut`)
+kontrol('hiçbir komutta noktalı virgül kalmadı', komutlar.every((k) => !k.includes(';')))
+kontrol('yorum satırları ayıklandı', komutlar.every((k) => !k.startsWith('--')))
+for (const k of komutlar) await db.query(k)
 esit('şema kurulduktan sonra semaVarMi true', await semaVarMi(sql), true)
 
-// Tekrar çalıştırılabilir olmalı (kullanıcı iki kez yapıştırabilir)
-await db.exec(sema)
+// Tekrar çalıştırılabilir olmalı (kullanıcı betiği iki kez çalıştırabilir)
+for (const k of komutlar) await db.query(k)
 esit('şema iki kez çalıştırılabiliyor', await semaVarMi(sql), true)
+
+// Ayırıcı köşe durumları: tırnak, dolar tırnağı, yorum içindeki noktalı virgül
+esit('tırnak içindeki ; bölmüyor', sqlKomutlariniAyir("select 'a;b'; select 2").length, 2)
+esit('satır yorumundaki ; bölmüyor', sqlKomutlariniAyir('select 1 -- ;yorum\n; select 2').length, 2)
+esit('blok yorumu atlanıyor', sqlKomutlariniAyir('/* ; */ select 1').length, 1)
+esit('dolar tırnağı korunuyor', sqlKomutlariniAyir('do $$ begin perform 1; end $$; select 1').length, 2)
+esit('kimlik tırnağı korunuyor', sqlKomutlariniAyir('select "a;b" from t').length, 1)
+esit('boş metin komut üretmiyor', sqlKomutlariniAyir('   \n -- sadece yorum \n ').length, 0)
 
 // --- Oyun ayarı ---
 const ayar = await oyunAyari(sql, 'tetris')

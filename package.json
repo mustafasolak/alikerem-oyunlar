@@ -14,7 +14,8 @@
     "sozlesme": "node --experimental-strip-types betikler/sozlesme.mjs",
     "yeni-oyun": "node betikler/yeni-oyun.mjs",
     "veritabani-test": "node --experimental-strip-types betikler/veritabani-test.mjs",
-    "yerel": "npm run build && node --experimental-strip-types betikler/yerel-sunucu.mjs"
+    "yerel": "npm run build && node --experimental-strip-types betikler/yerel-sunucu.mjs",
+    "sema-kur": "node betikler/sema-kur.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.5",

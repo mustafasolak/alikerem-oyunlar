@@ -10,8 +10,28 @@ Vercel `DATABASE_URL` / `POSTGRES_URL` değişkenlerini otomatik ekler; elle bir
 
 ## 2. Şemayı kur
 
-Vercel → Storage → veritabanı → **Query** sekmesine `betikler/sema.sql` dosyasının
-içeriğini yapıştırıp çalıştır. Dosya tekrar tekrar çalıştırılabilir (hepsi `if not exists`).
+Vercel panelinde: Storage → veritabanın → **`.env.local`** sekmesindeki `DATABASE_URL`
+değerini kopyala, sonra:
+
+```bash
+npm run sema-kur -- "postgres://buraya-kopyaladigin-adres"
+```
+
+Betik tabloları kurar ve sonunda doğrular. Tekrar tekrar çalıştırılabilir
+(her komut `if not exists`).
+
+> **Neden yapıştırma değil:** `betikler/sema.sql` birden çok komut içeriyor.
+> Vercel'in **Query** penceresi metnin tamamını tek bir hazırlanmış ifade olarak
+> gönderdiği için Postgres reddediyor:
+> *"cannot insert multiple commands into a prepared statement"*.
+> Betik komutları ayırıp sırayla gönderiyor.
+
+Yine de paneli kullanmak istersen, komutları **tek tek** yapıştırman gerekir.
+Numaralı listeyi şöyle alırsın:
+
+```bash
+npm run sema-kur -- --goster
+```
 
 ## 3. Gizli anahtarı gir
 
