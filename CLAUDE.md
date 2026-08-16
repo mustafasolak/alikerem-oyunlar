@@ -87,6 +87,10 @@ yönlendirmelerle korunuyor; kırılmasınlar diye silinmemeli.
 - `npm run kontrol` — katalog + sözleşme testi + tip kontrolü
 - `npm run katalog` — kataloğu yeniden üret
 - `npm run sozlesme` — oyun tanımlarını denetle
+- `npm run oyun-test` — oyunların saf mantığı (Node'da, Phaser'sız)
+- `npm run veritabani-test` — şema + sorgular (PGlite üzerinde gerçek Postgres)
+- `npm run yerel` — API'yi yerelde çalıştır (bellek-içi Postgres)
+- `npm run sema-kur -- "<DATABASE_URL>"` — şemayı kur
 
 ## Kod kuralları
 - Oyun klasöründe HTML ya da CSS bulunmaz; sayfa arayüzü `oyun.ts` içindeki
@@ -141,7 +145,7 @@ yönlendirmelerle korunuyor; kırılmasınlar diye silinmemeli.
 - [x] Ortak HUD / kaydırma / depolama / ses / ızgara modülleri
 - [x] İsimli skor tablosu (oyun başına ilk 5, cihaz yerel)
 - [x] Telefon uyumu: yatay taşma yok, tahta ilk ekrana sığıyor
-- [ ] Herkese açık ortak skor tablosu (sunucu/servis gerektirir)
+- [x] Herkese açık ortak skor tablosu (Vercel + Neon Postgres, günlük/haftalık/aylık)
 
 ### Oyunlar — 51'i de oynanabilir
 Arcade: 2048 · Yılan · Tetris · Match-3 · Şeker Patlatma · Bubble Shooter · Zuma
@@ -156,10 +160,13 @@ Dikkat: Farkları Bul · Gizli Nesne · Resim Tamamlama
 Diğer: Mastermind · Labirent · Matematik Bulmacası · Sayı Piramidi
 
 ### Kalan işler
-- [ ] Sudoku'da kalem notları
-- [ ] Mayın Tarlası'nda akor (sayıya çift tıkla çevresini aç)
-- [ ] 2048'de geri alma
-- [ ] Solitaire ailesinde çoklu kart taşıma ve geri alma
+- [x] Sudoku'da kalem notları
+- [x] Mayın Tarlası'nda akor (sayıya çift tıkla çevresini aç)
+- [x] 2048'de geri alma (oyun başına 3 hak)
+- [x] Solitaire ailesinde çoklu kart taşıma ve geri alma
+- [ ] Mahjong tek katmanlı — gerçek kat yapısı yok
+- [ ] Tangram parçaları hâlâ kare — gerçek tangram parçaları çizilmeli
+- [ ] Sunucu: Seviye 2 doğrulama, telemetri, yönetim paneli, yedek
 
 ## Skor tasarımı
 Skor tablosu "yüksek olan iyidir" varsayar. Süreye/hamleye dayalı oyunlarda skor
