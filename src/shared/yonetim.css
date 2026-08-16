@@ -1,0 +1,263 @@
+/* Yönetim paneli — yalnız #/yonetim parçasıyla iner. */
+
+.yonetim {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem 1rem 4rem;
+}
+
+.yonetim-ust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.yonetim-ust h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.yonetim-araclar {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* --- Giriş --- */
+
+.yonetim-giris {
+  max-width: 380px;
+  margin: 12vh auto 0;
+  padding: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: center;
+}
+
+.yonetim-giris h1 {
+  margin: 0 0 1rem;
+  font-size: 1.3rem;
+}
+
+.yonetim-giris-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.yonetim-giris-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-hi);
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.yonetim-uyari {
+  margin: 0.75rem 0 0;
+  color: #f87171;
+  font-size: 0.85rem;
+}
+
+.yonetim-geri {
+  display: inline-block;
+  margin-top: 1rem;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+/* --- Özet --- */
+
+.yonetim-ozet {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+.yonetim-kutu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.yonetim-kutu span {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.yonetim-kutu strong {
+  font-size: 1.5rem;
+}
+
+/* --- Bölümler --- */
+
+.yonetim-bolum {
+  margin-bottom: 2rem;
+}
+
+.yonetim-bolum h2 {
+  margin: 0 0 0.7rem;
+  font-size: 1.05rem;
+}
+
+.yonetim-bilgi {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+/* --- Grafik --- */
+
+.yonetim-grafik {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.3rem;
+  height: 120px;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.yonetim-sutun {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  height: 100%;
+}
+
+.yonetim-cubuk {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  background: var(--accent, #eab308);
+}
+
+.yonetim-sutun span {
+  color: var(--text-dim);
+  font-size: 0.65rem;
+}
+
+/* --- Oyun tablosu --- */
+
+/* Dar ekranda tablo kendi içinde kaysın; sayfa yatay taşmasın. */
+.yonetim-tablo-sarmal {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.yonetim-tablo {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.yonetim-tablo th,
+.yonetim-tablo td {
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+.yonetim-tablo th {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.yonetim-tablo tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.yonetim-ad {
+  font-weight: 600;
+}
+
+.yonetim-tarih {
+  color: var(--text-dim);
+}
+
+.yonetim-sayi {
+  width: 6.5rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-hi);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.yonetim-tablo tr.is-kaydediliyor {
+  opacity: 0.55;
+}
+
+.yonetim-tablo tr.is-hata {
+  outline: 1px solid #f87171;
+  outline-offset: -1px;
+}
+
+/* --- Skor denetimi --- */
+
+.yonetim-skorlar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.yonetim-skorlar li {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.yonetim-skor-bilgi {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.yonetim-skor-bilgi strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yonetim-skor-bilgi span {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.btn--tehlike {
+  border-color: rgb(248 113 113 / 0.5);
+  color: #f87171;
+}
+
+.btn--tehlike:hover:not(:disabled) {
+  background: rgb(248 113 113 / 0.12);
+}

@@ -73,6 +73,23 @@ class Sunucu {
     return Boolean(yanit?.ok)
   }
 
+  /**
+   * Katalogda gizlenecek oyunlar. Sunucu yoksa boş dizi döner —
+   * yani sunucu kapalıyken bütün oyunlar görünür kalır.
+   */
+  async gizliOyunlar(): Promise<string[]> {
+    if (!(await this.hazir())) return []
+    const yanit = await iste('/api/oyunlar')
+    if (!yanit?.ok) return []
+    const govde = (await yanit.json().catch(() => null)) as { gizli?: string[] } | null
+    return Array.isArray(govde?.gizli) ? govde.gizli : []
+  }
+
+  /** Yönetim ucuna istek. Panelin dışından kullanılmaz. */
+  async yonetim(ayar: RequestInit = {}): Promise<Response | null> {
+    return iste('/api/yonetim', ayar)
+  }
+
   /** Global tablo; sunucu kapalıysa null. */
   async tablo(oyunId: string, donem: Donem = 'tum', adet = 10): Promise<TabloKaydi[] | null> {
     if (!(await this.hazir())) return null

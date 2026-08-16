@@ -8,6 +8,7 @@ import { KATEGORI_ADLARI, type Kategori, type KatalogKaydi } from '../cekirdek/t
 import { favoriDegistir, favoriMi, favoriler, sonOynananlar } from '../cekirdek/tercihler.ts'
 import { SITE_ALT_BASLIK, SITE_BASLIK } from '../cekirdek/site.ts'
 import { bestEntryOf } from '../shared/Leaderboard.ts'
+import { sunucu } from '../shared/Sunucu.ts'
 import { KATALOG } from '../uretilmis/katalog.ts'
 import type { Temizleyici } from '../cekirdek/yonlendirici.ts'
 
@@ -34,6 +35,13 @@ export function katalogSayfasi(): Temizleyici {
 
   document.title = SITE_BASLIK
   const durum: Durum = { arama: '', suzgec: 'hepsi', gosterilen: SAYFA_ADEDI }
+
+  /**
+   * Yönetim panelinden gizlenen oyunlar. Sayfa beklemeden çizilir; liste
+   * gelirse yeniden çizilir. Sunucu kapalıysa hiçbir oyun gizlenmez.
+   */
+  let gizli: string[] = []
+  let kapandi = false
 
   const kategoriler = [...new Set(KATALOG.map((o) => o.kategori))].sort((a, b) =>
     KATEGORI_ADLARI[a].localeCompare(KATEGORI_ADLARI[b], 'tr'),
@@ -97,6 +105,7 @@ export function katalogSayfasi(): Temizleyici {
     const a = anahtar(durum.arama.trim())
     const fav = favoriler()
     return KATALOG.filter((o) => {
+      if (gizli.includes(o.id)) return false
       if (durum.suzgec === 'favori' && !fav.includes(o.id)) return false
       if (durum.suzgec !== 'hepsi' && durum.suzgec !== 'favori' && o.kategori !== durum.suzgec) return false
       if (!a) return true
@@ -192,7 +201,16 @@ export function katalogSayfasi(): Temizleyici {
   })
 
   ciz()
+
+  // Gizli oyun listesi arka planda gelsin; sayfa onu beklemesin
+  void sunucu.gizliOyunlar().then((liste) => {
+    if (kapandi || liste.length === 0) return
+    gizli = liste
+    ciz()
+  })
+
   return () => {
+    kapandi = true
     kok.innerHTML = ''
   }
 }

@@ -23,31 +23,82 @@ const GIZLI = process.env.OYUN_GIZLI_ANAHTAR ?? ''
 export const gizliVar = GIZLI.length >= 16
 
 export const CEREZ_ADI = 'oyuncu'
+export const YONETIM_CEREZI = 'yonetici'
+
+const YONETIM_PAROLASI = process.env.YONETIM_PAROLASI ?? ''
+/** Panel ancak yeterince uzun bir parola tanımlıysa açılır. */
+export const yonetimAcik = YONETIM_PAROLASI.length >= 12 && gizliVarKontrol()
+
+function gizliVarKontrol(): boolean {
+  return (process.env.OYUN_GIZLI_ANAHTAR ?? '').length >= 16
+}
+
+/** Yönetici oturumu bu kadar sürer. */
+const YONETIM_OMRU_SN = 60 * 60 * 12
 const CEREZ_OMRU = 60 * 60 * 24 * 365 * 2
 
 function imzala(uid: string): string {
   return createHmac('sha256', GIZLI).update(uid).digest('base64url')
 }
 
+function cerezOku(istek: Istek, ad: string): string | null {
+  const ham = istek.headers.cookie
+  const cerezler = typeof ham === 'string' ? ham : ''
+  const eslesme = cerezler.match(new RegExp(`(?:^|;\\s*)${ad}=([^;]+)`))
+  return eslesme ? decodeURIComponent(eslesme[1]) : null
+}
+
+function esitMi(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  try {
+    return timingSafeEqual(Buffer.from(a), Buffer.from(b))
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Parola doğruysa yönetici çerezi verir.
+ * Karşılaştırma sabit zamanlı; yanlış parolada çağıran taraf gecikme uygular.
+ */
+export function yonetimGirisi(parola: unknown, yanit: Yanit): boolean {
+  if (!yonetimAcik || typeof parola !== 'string') return false
+  if (!esitMi(parola, YONETIM_PAROLASI)) return false
+
+  const bitis = String(Math.floor(Date.now() / 1000) + YONETIM_OMRU_SN)
+  const deger = encodeURIComponent(`${bitis}.${imzala(`yonetim:${bitis}`)}`)
+  yanit.setHeader(
+    'Set-Cookie',
+    `${YONETIM_CEREZI}=${deger}; Path=/; Max-Age=${YONETIM_OMRU_SN}; HttpOnly; Secure; SameSite=Lax`,
+  )
+  return true
+}
+
+export function yonetimCikisi(yanit: Yanit): void {
+  yanit.setHeader('Set-Cookie', `${YONETIM_CEREZI}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`)
+}
+
+/** İstek yöneticiden mi geliyor? (imza + süre) */
+export function yoneticiMi(istek: Istek): boolean {
+  if (!yonetimAcik) return false
+  const ham = cerezOku(istek, YONETIM_CEREZI)
+  if (!ham) return false
+
+  const [bitis, imza] = ham.split('.')
+  if (!bitis || !imza) return false
+  if (!/^\d+$/.test(bitis) || Number(bitis) < Math.floor(Date.now() / 1000)) return false
+  return esitMi(imza, imzala(`yonetim:${bitis}`))
+}
+
 /** Çerezden doğrulanmış uid; yoksa ya da imza tutmuyorsa null. */
 export function uidOku(istek: Istek): string | null {
   if (!gizliVar) return null
-  const ham = istek.headers.cookie
-  const cerezler = typeof ham === 'string' ? ham : ''
-  const eslesme = cerezler.match(new RegExp(`(?:^|;\\s*)${CEREZ_ADI}=([^;]+)`))
-  if (!eslesme) return null
+  const ham = cerezOku(istek, CEREZ_ADI)
+  if (!ham) return null
 
-  const [uid, imza] = decodeURIComponent(eslesme[1]).split('.')
+  const [uid, imza] = ham.split('.')
   if (!uid || !imza) return null
-
-  const beklenen = imzala(uid)
-  if (imza.length !== beklenen.length) return null
-  try {
-    if (!timingSafeEqual(Buffer.from(imza), Buffer.from(beklenen))) return null
-  } catch {
-    return null
-  }
-  return uid
+  return esitMi(imza, imzala(uid)) ? uid : null
 }
 
 /** Yeni kimlik üretir ve çerezi yanıta yazar. */

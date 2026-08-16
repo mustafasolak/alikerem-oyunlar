@@ -48,6 +48,26 @@ Bu anahtar anonim oyuncu çerezini imzalar. Değiştirilirse eski çerezler geç
 
 Değişkeni ekledikten sonra **Redeploy** gerekir.
 
+## 4. Yönetim paneli (isteğe bağlı)
+
+Panel `https://<site>/#/yonetim` adresinde. Açmak için bir ortam değişkeni daha:
+
+| Ad | Değer |
+|---|---|
+| `YONETIM_PAROLASI` | en az 12 karakter |
+
+Değişken tanımlı değilse uç hiç açılmaz (`503`) — kaza eseri korumasız bir panel
+yayında kalmasın diye. Giriş imzalı, `httpOnly` çerezle 12 saat sürer.
+
+Panelde neler var:
+- **Oyunlar** — gizle/göster, öne çıkarma sırası, oyun başına skor üst sınırı
+- **Son gönderimler** — uygunsuz takma adı ya da şüpheli skoru silme
+  (bir oyuncunun o oyundaki dört dönem kaydı birlikte silinir)
+- **İstatistik** — oyuncu/kayıt sayısı, oyun başına en yüksek skor, son 14 gün
+
+Bir oyunu gizlemek onu katalogdan kaldırır ve skor göndermeyi kapatır; doğrudan
+bağlantıyla hâlâ oynanabilir (eski yer imleri kırılmasın diye).
+
 ## Kontrol
 
 `https://<site>/api/saglik` üç alanı da `true` göstermeli:

@@ -113,6 +113,137 @@ export async function semaVarMi(sql: Sorgulayici): Promise<boolean> {
   }
 }
 
+// --- Yönetim paneli ---
+
+export interface YonetimOyun {
+  id: string
+  gizli: boolean
+  oneCikan: number | null
+  ustSinir: number
+  kayit: number
+  oyuncu: number
+  enYuksek: number
+  sonKayit: string | null
+}
+
+/**
+ * Panel için oyun listesi: ayarlar + `skorlar` tablosundan türetilen sayılar.
+ * Oynanma telemetrisi henüz yok; sayılar skor gönderimlerinden çıkarılıyor.
+ */
+export async function yonetimOyunlari(sql: Sorgulayici): Promise<YonetimOyun[]> {
+  const satirlar = await sql`
+    select
+      o.id,
+      o.gizli,
+      o.one_cikan,
+      o.skor_ust_siniri,
+      coalesce(s.kayit, 0)   as kayit,
+      coalesce(s.oyuncu, 0)  as oyuncu,
+      coalesce(s.en_yuksek, 0) as en_yuksek,
+      s.son_kayit
+    from oyunlar o
+    left join (
+      select oyun_id,
+             count(*)::int              as kayit,
+             count(distinct uid)::int   as oyuncu,
+             max(skor)::int             as en_yuksek,
+             max(zaman)                 as son_kayit
+      from skorlar where donem = 'tum'
+      group by oyun_id
+    ) s on s.oyun_id = o.id
+    order by o.id`
+  return satirlar.map((r) => ({
+    id: String(r.id),
+    gizli: Boolean(r.gizli),
+    oneCikan: r.one_cikan === null ? null : Number(r.one_cikan),
+    ustSinir: Number(r.skor_ust_siniri),
+    kayit: Number(r.kayit),
+    oyuncu: Number(r.oyuncu),
+    enYuksek: Number(r.en_yuksek),
+    sonKayit: r.son_kayit ? new Date(String(r.son_kayit)).toISOString() : null,
+  }))
+}
+
+/** Oyun ayarlarını günceller; satır yoksa açar. */
+export async function oyunAyarla(
+  sql: Sorgulayici,
+  oyunId: string,
+  gizli: boolean,
+  oneCikan: number | null,
+  ustSinir: number,
+): Promise<void> {
+  await sql`
+    insert into oyunlar (id, gizli, one_cikan, skor_ust_siniri)
+    values (${oyunId}, ${gizli}, ${oneCikan}, ${ustSinir})
+    on conflict (id) do update set
+      gizli = excluded.gizli,
+      one_cikan = excluded.one_cikan,
+      skor_ust_siniri = excluded.skor_ust_siniri`
+}
+
+/** Katalogda gizlenecek oyun kimlikleri. */
+export async function gizliOyunlar(sql: Sorgulayici): Promise<string[]> {
+  const satirlar = await sql`select id from oyunlar where gizli = true`
+  return satirlar.map((r) => String(r.id))
+}
+
+export interface DenetimKaydi {
+  oyunId: string
+  uid: string
+  ad: string
+  skor: number
+  donem: string
+  zaman: string
+}
+
+/** Denetim için son gönderimler (bütün dönemler). */
+export async function sonSkorlar(sql: Sorgulayici, adet: number): Promise<DenetimKaydi[]> {
+  const satirlar = await sql`
+    select oyun_id, uid, ad, skor, donem, zaman
+    from skorlar
+    order by zaman desc
+    limit ${adet}`
+  return satirlar.map((r) => ({
+    oyunId: String(r.oyun_id),
+    uid: String(r.uid),
+    ad: String(r.ad),
+    skor: Number(r.skor),
+    donem: String(r.donem),
+    zaman: new Date(String(r.zaman)).toISOString(),
+  }))
+}
+
+/**
+ * Bir oyuncunun bir oyundaki bütün skorlarını siler (dört dönem birden).
+ * Tek dönemi silmek tabloları tutarsız bırakırdı.
+ */
+export async function skorlariSil(sql: Sorgulayici, oyunId: string, uid: string): Promise<number> {
+  const satirlar = await sql`
+    delete from skorlar where oyun_id = ${oyunId} and uid = ${uid} returning 1 as silindi`
+  return satirlar.length
+}
+
+/** Son 14 günün gönderim sayısı (grafik için). */
+export async function gunlukHareket(sql: Sorgulayici): Promise<{ gun: string; adet: number }[]> {
+  const satirlar = await sql`
+    select to_char(zaman at time zone 'Europe/Istanbul', 'YYYY-MM-DD') as gun,
+           count(*)::int as adet
+    from skorlar
+    where donem = 'tum' and zaman > now() - interval '14 days'
+    group by gun order by gun`
+  return satirlar.map((r) => ({ gun: String(r.gun), adet: Number(r.adet) }))
+}
+
+/** Toplamlar. */
+export async function ozet(sql: Sorgulayici): Promise<{ oyuncu: number; kayit: number; oyun: number }> {
+  const [r] = await sql`
+    select
+      (select count(*)::int from oyuncular)                          as oyuncu,
+      (select count(*)::int from skorlar where donem = 'tum')        as kayit,
+      (select count(distinct oyun_id)::int from skorlar)             as oyun`
+  return { oyuncu: Number(r?.oyuncu ?? 0), kayit: Number(r?.kayit ?? 0), oyun: Number(r?.oyun ?? 0) }
+}
+
 /** Kimlik verilirken oyuncu satırını açar. */
 export async function oyuncuAc(sql: Sorgulayici, uid: string): Promise<void> {
   await sql`insert into oyuncular (uid) values (${uid}) on conflict (uid) do nothing`

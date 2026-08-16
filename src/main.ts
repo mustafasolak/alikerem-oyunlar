@@ -13,6 +13,10 @@ new Yonlendirici([
     ciz: async (id) => (await import('./sayfalar/OyunSayfasi.ts')).oyunSayfasi(id),
   },
   {
+    onek: '#/yonetim',
+    ciz: async () => (await import('./sayfalar/YonetimSayfasi.ts')).yonetimSayfasi(),
+  },
+  {
     onek: '',
     ciz: async () => (await import('./sayfalar/KatalogSayfasi.ts')).katalogSayfasi(),
   },

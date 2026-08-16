@@ -136,6 +136,7 @@ yönlendirmelerle korunuyor; kırılmasınlar diye silinmemeli.
 - Şema `betikler/sema.sql`; değişince `npm run veritabani-test` gerçek Postgres'te doğrular.
 - Yerelde denemek: `npm run yerel` (bellek-içi Postgres, gerçek işleyiciler).
 - Sunucu **asla zorunlu değil**: `/api/saglik` olumsuzsa site cihaz moduna düşer.
+- Yönetim paneli `#/yonetim`; `YONETIM_PAROLASI` yoksa uç 503 döner ve panel açılmaz.
 
 ## Yol haritası
 
@@ -166,7 +167,8 @@ Diğer: Mastermind · Labirent · Matematik Bulmacası · Sayı Piramidi
 - [x] Solitaire ailesinde çoklu kart taşıma ve geri alma
 - [ ] Mahjong tek katmanlı — gerçek kat yapısı yok
 - [ ] Tangram parçaları hâlâ kare — gerçek tangram parçaları çizilmeli
-- [ ] Sunucu: Seviye 2 doğrulama, telemetri, yönetim paneli, yedek
+- [x] Yönetim paneli (#/yonetim) — gizleme, öne çıkarma, skor denetimi, istatistik
+- [ ] Sunucu: Seviye 2 doğrulama, telemetri, gecelik yedek
 
 ## Skor tasarımı
 Skor tablosu "yüksek olan iyidir" varsayar. Süreye/hamleye dayalı oyunlarda skor

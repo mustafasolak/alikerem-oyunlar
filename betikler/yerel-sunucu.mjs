@@ -15,6 +15,7 @@ import { extname, join, normalize } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 process.env.OYUN_GIZLI_ANAHTAR ??= 'yerel-deneme-anahtari-32-karakter'
+process.env.YONETIM_PAROLASI ??= 'yerel-yonetim-parolasi'
 
 const KOK = fileURLToPath(new URL('..', import.meta.url))
 const DIST = join(KOK, 'dist')
@@ -41,6 +42,8 @@ const isleyiciler = {
   '/api/kimlik': (await import('../api/kimlik.ts')).default,
   '/api/skor': (await import('../api/skor.ts')).default,
   '/api/tablo': (await import('../api/tablo.ts')).default,
+  '/api/oyunlar': (await import('../api/oyunlar.ts')).default,
+  '/api/yonetim': (await import('../api/yonetim.ts')).default,
 }
 
 const TURLER = {
