@@ -63,14 +63,27 @@ export function uidUret(yanit: Yanit): string {
 
 /**
  * Dönem etiketleri sunucu saatinden üretilir — istemci dönem uyduramaz.
- * ISO hafta numarası kullanılır (yıl sonlarında kaymasın diye).
+ *
+ * Gün sınırı **Türkiye saatine** göre: UTC kullanılsaydı gece yarısından sonraki
+ * üç saat boyunca skorlar "dün"e yazılırdı; çocuk 00:30'da oynayıp skorunu
+ * "Bugün" sekmesinde bulamazdı.
+ *
+ * Hafta numarası ISO'ya göre (yıl sonlarında kaymasın diye).
  */
-export function donemler(simdi = new Date()): string[] {
-  const yil = simdi.getUTCFullYear()
-  const ay = String(simdi.getUTCMonth() + 1).padStart(2, '0')
-  const gun = String(simdi.getUTCDate()).padStart(2, '0')
+const BOLGE = 'Europe/Istanbul'
+const GUN_BICIMI = new Intl.DateTimeFormat('en-CA', {
+  timeZone: BOLGE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
 
-  const persembe = new Date(Date.UTC(yil, simdi.getUTCMonth(), simdi.getUTCDate()))
+export function donemler(simdi = new Date()): string[] {
+  // en-CA biçimi: "2026-08-17"
+  const [yil, ay, gun] = GUN_BICIMI.format(simdi).split('-')
+
+  // ISO hafta hesabı yerel takvim gününden yapılır
+  const persembe = new Date(Date.UTC(Number(yil), Number(ay) - 1, Number(gun)))
   persembe.setUTCDate(persembe.getUTCDate() + 4 - (persembe.getUTCDay() || 7))
   const yilBasi = new Date(Date.UTC(persembe.getUTCFullYear(), 0, 1))
   const hafta = Math.ceil(((persembe.getTime() - yilBasi.getTime()) / 86400000 + 1) / 7)

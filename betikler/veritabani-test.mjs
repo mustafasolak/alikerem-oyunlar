@@ -155,6 +155,12 @@ esit(
   donemler(new Date('2026-08-16T10:00:00Z')),
   ['gunluk-2026-08-16', 'haftalik-2026-W33', 'aylik-2026-08', 'tum'],
 )
+// Gün sınırı Türkiye saatine göre (UTC olsaydı gece yarısından sonra "dün"e yazardı)
+esit('gece 00:00 yeni güne yazar', donemler(new Date('2026-08-16T21:00:00Z'))[0], 'gunluk-2026-08-17')
+esit('gece 23:59 hâlâ aynı gün', donemler(new Date('2026-08-16T20:59:00Z'))[0], 'gunluk-2026-08-16')
+esit('gece 01:05 yeni gün', donemler(new Date('2026-08-16T22:05:00Z'))[0], 'gunluk-2026-08-17')
+esit('ay sınırı Türkiye saatine göre', donemler(new Date('2026-08-31T21:30:00Z'))[2], 'aylik-2026-09')
+
 // ISO hafta: 1 Ocak 2027 bir Cuma → 2026'nın 53. haftası
 esit('yıl sonu ISO haftası', donemler(new Date('2027-01-01T12:00:00Z'))[1], 'haftalik-2026-W53')
 esit('4 Ocak her zaman 1. hafta', donemler(new Date('2027-01-04T12:00:00Z'))[1], 'haftalik-2027-W01')

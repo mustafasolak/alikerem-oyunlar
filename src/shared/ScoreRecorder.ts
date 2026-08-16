@@ -28,6 +28,13 @@ export class ScoreRecorder {
   private readonly oyunId: string
   private kapsam: 'cihaz' | 'global' = 'cihaz'
   private donem: Donem = 'tum'
+  /**
+   * Tur süresi ölçümü. Eski oyunlar (TemelSahne'den önce yazılanlar) `sure`
+   * geçmiyor; sunucudaki "tur çok kısa" kontrolü onlarda boşa düşmesin diye
+   * burada ölçüyoruz. Bu bir ÜST sınırdır (katman açık kalan süreyi de içerir),
+   * yani dürüst oyuncuyu asla yanlışlıkla eleyemez.
+   */
+  private turBaslangici = Date.now()
 
   constructor(gameId: string, hud: GameHud, setTyping: (typing: boolean) => void) {
     this.oyunId = gameId
@@ -81,10 +88,13 @@ export class ScoreRecorder {
    * Her iki durumda da sonunda `onDone` çağrılır.
    */
   finish(score: number, options: FinishOptions): void {
+    const sure = options.sure ?? (Date.now() - this.turBaslangici) / 1000
+    this.turBaslangici = Date.now()
+
     if (!this.board.qualifies(score)) {
       // Cihaz tablosuna girmese de global tabloya gitsin (ad biliniyorsa)
       const ad = loadNick()
-      if (ad && score > 0) void sunucu.skorGonder(this.oyunId, score, ad, options.sure)
+      if (ad && score > 0) void sunucu.skorGonder(this.oyunId, score, ad, sure)
       options.onDone()
       return
     }
@@ -101,7 +111,7 @@ export class ScoreRecorder {
           this.setTyping(false)
           this.refresh(saved.at)
           // Sunucuya gönderim ateşle-unut: başarısızlık oyunu etkilemez
-          void sunucu.skorGonder(this.oyunId, score, saved.name, options.sure)
+          void sunucu.skorGonder(this.oyunId, score, saved.name, sure)
           options.onDone()
         },
       },
