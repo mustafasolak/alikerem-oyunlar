@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser'
 
+import { KATMAN, acikTon } from '../../../shared/Gorsel.ts'
 import { TemelSahne } from '../../../shared/TemelSahne.ts'
 import { sesler } from '../../../shared/Sesler.ts'
 import { butonGrubu, setChip } from '../../../shared/dom.ts'
@@ -12,6 +13,7 @@ import {
   GAME_WIDTH,
   KAZANMA_BASLIGI,
   KOL_KALINLIK_ORAN,
+  UC_SIMGESI,
   VARSAYILAN_ZORLUK,
   ZORLUKLAR,
   skorHesapla,
@@ -21,8 +23,9 @@ import {
 export class GameScene extends TemelSahne {
   private oyun!: BoruAgi
   private zorluk: Zorluk = VARSAYILAN_ZORLUK
-  private katman!: Phaser.GameObjects.Container
-  private cizim!: Phaser.GameObjects.Graphics
+  private hucreKatmani!: Phaser.GameObjects.Container
+  private boruCizim!: Phaser.GameObjects.Graphics
+  private ucKatmani!: Phaser.GameObjects.Container
   private hucreBoyu = 0
   private ofset = 0
 
@@ -32,8 +35,10 @@ export class GameScene extends TemelSahne {
 
   protected kur(): void {
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLORS.BOARD).setRounded(14)
-    this.katman = this.add.container(0, 0)
-    this.cizim = this.add.graphics()
+    this.hucreKatmani = this.add.container(0, 0).setDepth(KATMAN.IZGARA)
+    this.boruCizim = this.add.graphics().setDepth(KATMAN.ICERIK)
+    this.ucKatmani = this.add.container(0, 0).setDepth(KATMAN.EFEKT)
+
     butonGrubu('toolbar', 'level', (v) => {
       this.zorluk = v as Zorluk
       this.yenidenBasla()
@@ -47,10 +52,10 @@ export class GameScene extends TemelSahne {
     this.hucreBoyu = Math.floor((GAME_WIDTH - BOARD_PADDING * 2) / ayar.boyut)
     this.ofset = (GAME_WIDTH - ayar.boyut * this.hucreBoyu) / 2
 
-    this.katman.removeAll(true)
+    this.hucreKatmani.removeAll(true)
     for (let s = 0; s < ayar.boyut; s++) {
       for (let t = 0; t < ayar.boyut; t++) {
-        this.katman.add(
+        this.hucreKatmani.add(
           this.add
             .rectangle(this.x(t), this.y(s), this.hucreBoyu - 3, this.hucreBoyu - 3, COLORS.HUCRE)
             .setRounded(6),
@@ -78,11 +83,18 @@ export class GameScene extends TemelSahne {
     const s = Math.floor((p.worldY - this.ofset) / this.hucreBoyu)
     if (s < 0 || s >= this.oyun.boyut || t < 0 || t >= this.oyun.boyut) return
 
-    if (!this.oyun.cevir(this.oyun.index(s, t))) return
+    const index = this.oyun.index(s, t)
+    if (!this.oyun.cevir(index)) return
     this.sayac.basla()
     sesler.tik()
     setChip('remaining', this.oyun.kalan)
     this.ciz()
+
+    // Çevrilen hücre kısaca büyüsün: hangi kareye bastığın belli olsun
+    const hucre = this.hucreKatmani.getAt(index) as Phaser.GameObjects.Rectangle | undefined
+    if (hucre) {
+      this.tweens.add({ targets: hucre, scale: 1.1, duration: DONME_SURESI / 2, yoyo: true, ease: 'Quad.easeOut' })
+    }
 
     if (this.oyun.bitti) {
       const skor = skorHesapla(this.zorluk, this.oyun.hamle, this.sayac.saniye)
@@ -96,33 +108,71 @@ export class GameScene extends TemelSahne {
   }
 
   private ciz(): void {
-    this.cizim.clear()
+    this.boruCizim.clear()
+    this.ucKatmani.removeAll(true)
+
     const bagli = this.oyun.baglilar()
-    const kalinlik = Math.max(4, this.hucreBoyu * KOL_KALINLIK_ORAN)
+    const kalinlik = Math.max(6, this.hucreBoyu * KOL_KALINLIK_ORAN)
+    const icKalinlik = kalinlik * 0.42
     const yari = this.hucreBoyu / 2
 
     for (let s = 0; s < this.oyun.boyut; s++) {
       for (let t = 0; t < this.oyun.boyut; t++) {
         const index = this.oyun.index(s, t)
-        const k = kollar(this.oyun.hucreler[index])
+        const maske = this.oyun.hucreler[index]
+        const k = kollar(maske)
         const cx = this.x(t)
         const cy = this.y(s)
-        const aktifMi = bagli.has(index)
-        this.cizim.lineStyle(kalinlik, aktifMi ? COLORS.AKTIF : COLORS.PASIF, 1)
+        const aktif = bagli.has(index)
+        const dis = aktif ? COLORS.AKTIF : COLORS.PASIF
+        const ic = acikTon(dis, 0.4)
 
-        if (k.ust) this.cizim.lineBetween(cx, cy, cx, cy - yari)
-        if (k.alt) this.cizim.lineBetween(cx, cy, cx, cy + yari)
-        if (k.sol) this.cizim.lineBetween(cx, cy, cx - yari, cy)
-        if (k.sag) this.cizim.lineBetween(cx, cy, cx + yari, cy)
+        const kol = (dx: number, dy: number): void => {
+          // Dış boru
+          this.boruCizim.lineStyle(kalinlik, dis, 1)
+          this.boruCizim.lineBetween(cx, cy, cx + dx * yari, cy + dy * yari)
+          // İç kanal: borunun içi görünsün
+          this.boruCizim.lineStyle(icKalinlik, ic, aktif ? 0.9 : 0.5)
+          this.boruCizim.lineBetween(cx, cy, cx + dx * yari, cy + dy * yari)
+        }
 
-        // Merkez tıkacı: kolların birleştiği yer boş görünmesin
-        this.cizim.fillStyle(aktifMi ? COLORS.AKTIF : COLORS.PASIF, 1)
-        this.cizim.fillCircle(cx, cy, kalinlik * 0.55)
+        if (k.ust) kol(0, -1)
+        if (k.alt) kol(0, 1)
+        if (k.sol) kol(-1, 0)
+        if (k.sag) kol(1, 0)
+
+        // Ortadaki bilezik
+        this.boruCizim.fillStyle(dis, 1)
+        this.boruCizim.fillCircle(cx, cy, kalinlik * 0.6)
+        this.boruCizim.fillStyle(ic, aktif ? 0.9 : 0.5)
+        this.boruCizim.fillCircle(cx, cy, icKalinlik * 0.7)
+
+        // Tek kollu hücre = uç nokta. Hedef bunları beslemek.
+        const kolSayisi = [k.ust, k.alt, k.sol, k.sag].filter(Boolean).length
+        const kaynakMi = s === this.oyun.kaynak.satir && t === this.oyun.kaynak.sutun
+        if (kolSayisi === 1 && !kaynakMi) {
+          this.ucKatmani.add(
+            this.add
+              .rectangle(cx, cy, this.hucreBoyu * 0.44, this.hucreBoyu * 0.44, aktif ? COLORS.KAYNAK : COLORS.PASIF)
+              .setRounded(6)
+              .setStrokeStyle(2, aktif ? acikTon(COLORS.KAYNAK, 0.5) : COLORS.HUCRE, 0.9),
+          )
+          this.ucKatmani.add(
+            this.add
+              .text(cx, cy, UC_SIMGESI, { fontSize: `${Math.round(this.hucreBoyu * 0.3)}px` })
+              .setOrigin(0.5)
+              .setAlpha(aktif ? 1 : 0.45),
+          )
+        }
       }
     }
 
-    // Kaynağı belirgin göster
-    this.cizim.fillStyle(COLORS.KAYNAK, 1)
-    this.cizim.fillCircle(this.x(this.oyun.kaynak.sutun), this.y(this.oyun.kaynak.satir), this.hucreBoyu * 0.2)
+    // Kaynak: belirgin yuvarlak
+    const kx = this.x(this.oyun.kaynak.sutun)
+    const ky = this.y(this.oyun.kaynak.satir)
+    this.ucKatmani.add(this.add.circle(kx, ky, this.hucreBoyu * 0.3, COLORS.KAYNAK))
+    this.ucKatmani.add(
+      this.add.circle(kx, ky, this.hucreBoyu * 0.17, acikTon(COLORS.KAYNAK, 0.55)),
+    )
   }
 }

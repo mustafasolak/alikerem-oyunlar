@@ -1,9 +1,9 @@
 import * as Phaser from 'phaser'
 
+import { KATMAN, top } from '../../../shared/Gorsel.ts'
 import { TemelSahne } from '../../../shared/TemelSahne.ts'
 import { sesler } from '../../../shared/Sesler.ts'
 import { butonGrubu, setChip } from '../../../shared/dom.ts'
-// Renk ayırma mantığı üç oyunda ortak; motor Top Sıralama'da duruyor.
 import { TopSirala } from '../../topsirala/systems/TopSirala.ts'
 import {
   COLORS,
@@ -15,7 +15,6 @@ import {
   PARCA_YUKSEKLIK,
   SECILI_YUKSEKLIK,
   TASIMA_SURESI,
-  TEMA,
   VARSAYILAN_ZORLUK,
   ZORLUKLAR,
   skorHesapla,
@@ -25,15 +24,21 @@ import {
 export class GameScene extends TemelSahne {
   private oyun!: TopSirala
   private zorluk: Zorluk = VARSAYILAN_ZORLUK
+  private kapKatmani!: Phaser.GameObjects.Container
+  private parcaKatmani!: Phaser.GameObjects.Container
+  private camKatmani!: Phaser.GameObjects.Container
   private kaplar: Phaser.GameObjects.Rectangle[] = []
-  private katman!: Phaser.GameObjects.Container
 
   constructor() {
     super('renksirala')
   }
 
   protected kur(): void {
-    this.katman = this.add.container(0, 0)
+    // Katman sırası açıkça verilir: kap arkada, parçalar ortada, cam parlaması önde.
+    this.kapKatmani = this.add.container(0, 0).setDepth(KATMAN.IZGARA)
+    this.parcaKatmani = this.add.container(0, 0).setDepth(KATMAN.ICERIK)
+    this.camKatmani = this.add.container(0, 0).setDepth(KATMAN.EFEKT)
+
     butonGrubu('toolbar', 'level', (v) => {
       this.zorluk = v as Zorluk
       this.yenidenBasla()
@@ -45,16 +50,35 @@ export class GameScene extends TemelSahne {
     const ayar = ZORLUKLAR[this.zorluk]
     this.oyun = new TopSirala(ayar.renkSayisi, ayar.kapasite, ayar.bosTup)
 
-    for (const k of this.kaplar) k.destroy()
+    this.kapKatmani.removeAll(true)
+    this.camKatmani.removeAll(true)
     this.kaplar = []
 
-    const yukseklik = ayar.kapasite * PARCA_YUKSEKLIK + 14
+    const ic = ayar.kapasite * PARCA_YUKSEKLIK
+    const yukseklik = ic + 18
     for (let i = 0; i < this.oyun.tupSayisi; i++) {
-      this.kaplar.push(
+      const x = this.kapX(i)
+      const merkezY = KAP_ALT - yukseklik / 2
+
+      // Kap gövdesi
+      const kap = this.add
+        .rectangle(x, merkezY, KAP_GENISLIK, yukseklik, COLORS.KAP)
+        .setRounded(10)
+        .setStrokeStyle(KAP_KENAR, COLORS.KAP_KENAR, 0.9)
+      this.kapKatmani.add(kap)
+      this.kaplar.push(kap)
+
+      // Cam parlaması: sol kenarda ince açık şerit
+      this.camKatmani.add(
         this.add
-          .rectangle(this.kapX(i), KAP_ALT - yukseklik / 2, KAP_GENISLIK, yukseklik, COLORS.KAP)
-          .setRounded(TEMA === 'su' ? KAP_GENISLIK / 3 : 8)
-          .setStrokeStyle(KAP_KENAR, COLORS.KAP_KENAR, 0.9),
+          .rectangle(x - KAP_GENISLIK * 0.28, merkezY, KAP_GENISLIK * 0.13, yukseklik * 0.78, 0xffffff, 0.13)
+          .setRounded(KAP_GENISLIK * 0.06),
+      )
+      // Kap ağzı
+      this.camKatmani.add(
+        this.add
+          .rectangle(x, KAP_ALT - yukseklik, KAP_GENISLIK + 6, 7, COLORS.KAP_KENAR, 0.85)
+          .setRounded(3),
       )
     }
 
@@ -65,6 +89,10 @@ export class GameScene extends TemelSahne {
 
   private kapX(i: number): number {
     return (GAME_WIDTH / (this.oyun.tupSayisi + 1)) * (i + 1)
+  }
+
+  private parcaY(sira: number): number {
+    return KAP_ALT - 12 - sira * PARCA_YUKSEKLIK - PARCA_YUKSEKLIK / 2
   }
 
   private dokun(p: Phaser.Input.Pointer): void {
@@ -103,25 +131,33 @@ export class GameScene extends TemelSahne {
   }
 
   private ciz(): void {
-    this.katman.removeAll(true)
-    this.kaplar.forEach((k, i) => {
-      k.setStrokeStyle(KAP_KENAR, this.oyun.secili === i ? COLORS.SECILI_KENAR : COLORS.KAP_KENAR, 1)
+    this.parcaKatmani.removeAll(true)
+
+    // Seçili kabın kenarı vurgulanır
+    this.kaplar.forEach((kap, i) => {
+      const secili = this.oyun.secili === i
+      kap.setStrokeStyle(secili ? KAP_KENAR + 1 : KAP_KENAR, secili ? COLORS.SECILI_KENAR : COLORS.KAP_KENAR, 1)
     })
 
     for (let kap = 0; kap < this.oyun.tupSayisi; kap++) {
-      this.oyun.tupler[kap].forEach((renk, sira) => {
-        const secilmis = this.oyun.secili === kap && sira === this.oyun.tupler[kap].length - 1
+      const yigin = this.oyun.tupler[kap]
+      const tamam = yigin.length === this.oyun.kapasite && yigin.every((r) => r === yigin[0])
+
+      yigin.forEach((renk, sira) => {
+        const secilmis = this.oyun.secili === kap && sira === yigin.length - 1
         const x = this.kapX(kap)
-        const y = secilmis
-          ? KAP_ALT - this.oyun.kapasite * PARCA_YUKSEKLIK - SECILI_YUKSEKLIK
-          : KAP_ALT - 10 - sira * PARCA_YUKSEKLIK - PARCA_YUKSEKLIK / 2
+        const y = secilmis ? KAP_ALT - this.oyun.kapasite * PARCA_YUKSEKLIK - SECILI_YUKSEKLIK : this.parcaY(sira)
         const renkDegeri = PARCA_RENKLERI[renk % PARCA_RENKLERI.length]
-        // Su temasında dikdörtgen katman, renk temasında yuvarlak köşeli blok
-        const parca = this.add
-          .rectangle(x, y, KAP_GENISLIK - 12, PARCA_YUKSEKLIK - 2, renkDegeri)
-          .setRounded(TEMA === 'su' ? 2 : 6)
-        this.katman.add(parca)
+        this.parcaKatmani.add(this.parcaCiz(x, y, renkDegeri, tamam))
       })
     }
+  }
+
+  /** Hacimli top; tüp tamamlandıysa hafif beyaz vurgu alır. */
+  private parcaCiz(x: number, y: number, renk: number, tamam: boolean): Phaser.GameObjects.Container {
+    const yaricap = Math.min(KAP_GENISLIK - 14, PARCA_YUKSEKLIK - 4) / 2
+    const kap = top(this, x, y, yaricap, renk)
+    if (tamam) kap.add(this.add.circle(0, 0, yaricap, 0xffffff, 0.16))
+    return kap
   }
 }

@@ -14,8 +14,8 @@ export const PATLAMA_SURESI = 150
 export const YUVARLAK = true
 
 export const COLORS = {
+  HUCRE_ZEMIN: 0x1b0a16,
   BOARD: 0x2b1119,
-  HUCRE: 0x00000000 >>> 8,
   SECILI: 0xffffff,
 } as const
 

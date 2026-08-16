@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser'
 
+import { parca } from '../../../shared/Gorsel.ts'
 import { TemelSahne } from '../../../shared/TemelSahne.ts'
 import { sesler } from '../../../shared/Sesler.ts'
 import { setChip } from '../../../shared/dom.ts'
@@ -107,19 +108,21 @@ export class GameScene extends TemelSahne {
     for (let s = 0; s < BOYUT; s++) {
       for (let t = 0; t < BOYUT; t++) {
         const deger = this.oyun.tahta[this.oyun.index(s, t)]
-        this.katman.add(
-          this.add
-            .rectangle(this.x(t), this.y(s), HUCRE - 4, HUCRE - 4, deger === -1 ? COLORS.BOS : deger)
-            .setRounded(6),
-        )
+        if (deger === -1) {
+          this.katman.add(this.add.rectangle(this.x(t), this.y(s), HUCRE - 4, HUCRE - 4, COLORS.BOS).setRounded(6))
+        } else {
+          this.katman.add(
+            parca(this, { x: this.x(t), y: this.y(s), genislik: HUCRE - 4, yukseklik: HUCRE - 4, renk: deger, radius: 6 }),
+          )
+        }
       }
     }
 
-    this.oyun.el.forEach((parca, i) => {
-      if (parca.kullanildi) return
+    this.oyun.el.forEach((parcaSekli, i) => {
+      if (parcaSekli.kullanildi) return
       const merkezX = this.elX(i)
-      const enSatir = Math.max(...parca.hucreler.map(([s]) => s)) + 1
-      const enSutun = Math.max(...parca.hucreler.map(([, t]) => t)) + 1
+      const enSatir = Math.max(...parcaSekli.hucreler.map(([s]) => s)) + 1
+      const enSutun = Math.max(...parcaSekli.hucreler.map(([, t]) => t)) + 1
       const bx = merkezX - (enSutun * ELDEKI_HUCRE) / 2
       const by = ELDEKI_Y - (enSatir * ELDEKI_HUCRE) / 2
 
@@ -131,17 +134,16 @@ export class GameScene extends TemelSahne {
             .setRounded(8),
         )
       }
-      for (const [ds, dt] of parca.hucreler) {
+      for (const [ds, dt] of parcaSekli.hucreler) {
         this.katman.add(
-          this.add
-            .rectangle(
-              bx + dt * ELDEKI_HUCRE + ELDEKI_HUCRE / 2,
-              by + ds * ELDEKI_HUCRE + ELDEKI_HUCRE / 2,
-              ELDEKI_HUCRE - 3,
-              ELDEKI_HUCRE - 3,
-              parca.renk,
-            )
-            .setRounded(4),
+          parca(this, {
+            x: bx + dt * ELDEKI_HUCRE + ELDEKI_HUCRE / 2,
+            y: by + ds * ELDEKI_HUCRE + ELDEKI_HUCRE / 2,
+            genislik: ELDEKI_HUCRE - 3,
+            yukseklik: ELDEKI_HUCRE - 3,
+            renk: parcaSekli.renk,
+            radius: 4,
+          }),
         )
       }
     })

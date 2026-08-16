@@ -17,7 +17,9 @@ export const ZORLUKLAR: Record<Zorluk, ZorlukAyari> = {
 
 export const VARSAYILAN_ZORLUK: Zorluk = 'kolay'
 
-export const KOL_KALINLIK_ORAN = 0.22
+/** Uç noktalarda gösterilen simge. */
+export const UC_SIMGESI = '🚰'
+export const KOL_KALINLIK_ORAN = 0.26
 export const DONME_SURESI = 110
 export const HAMLE_CEZASI = 6
 export const SURE_BONUS_LIMITI = 400

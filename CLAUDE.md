@@ -34,6 +34,7 @@ src/
     KeyPad.ts            # DOM tuş takımı (harf klavyesi / rakam takımı)
     TemelSahne.ts        # sahne iskeleti: HUD + skor kaydı + sayaç + bitiş akışı
     KareIzgara.ts        # kare ızgara görünümü ve imleç→hücre eşlemesi
+    Gorsel.ts            # katman sırası (KATMAN), hacimli parça/top, nişan izi, seken yol
   shared/motorlar/       # birden fazla oyunun paylaştığı oyun motorları
     BoruAgi.ts           # Boru Bağlama, Su Borusu, Elektrik Devresi
     LazerAgi.ts          # Laser Reflection, Aynalarla Lazer
@@ -80,6 +81,14 @@ Skorlar sunucuda değil, tarayıcının localStorage'ında tutulur: tablo yalnı
   kapladığı dikey alanı `--chrome` ile verir. Tahta genişliği
   `min(100%, (100dvh - chrome) * aspect)` ile hesaplanır; böylece alçak ekranda küçülür,
   sayfa taşmaz. Yeni oyun eklerken bu iki değeri ayarla.
+- **Katman sırası açıkça verilsin.** Phaser'da sonradan eklenen nesne üste çizilir;
+  içerik konteynerini erken kurup üstüne statik nesne eklemek içeriği görünmez yapar.
+  Bu yüzden her sahnede `KATMAN` sabitleriyle `setDepth` kullan:
+  arka plan → ızgara → içerik → efekt → nişan.
+- Düz renk lekesi yerine `Gorsel.parca()` / `Gorsel.top()` kullan: üstte parlama,
+  altta gölge şeridi olan parçalar ekranda okunur duruyor.
+- Nişan gerektiren oyunlarda (atış, top) `nisanIzi()` ile kesik çizgi ve hedefte
+  hayalet gösterilsin; atılan cisim tweenle uçsun — nereye gideceği görünmeli.
 - Ses eklerken `sesler` tekilini kullan; iOS bağlamı ilk dokunuşta açılır, dosya yüklenmez.
 - Kullanıcıdan gelen metin (takma ad) DOM'a `textContent` ile yazılsın; `innerHTML` kullanılıyorsa kaçırılsın.
 - Katmanda ad sorulurken sahne `input.keyboard.enabled = false` yapsın, yoksa WASD/boşluk oyuna gider.

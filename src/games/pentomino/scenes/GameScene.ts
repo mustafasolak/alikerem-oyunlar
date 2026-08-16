@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser'
 
+import { parca } from '../../../shared/Gorsel.ts'
 import { TemelSahne } from '../../../shared/TemelSahne.ts'
 import { sesler } from '../../../shared/Sesler.ts'
 import { butonGrubu, setChip } from '../../../shared/dom.ts'
@@ -119,11 +120,11 @@ export class GameScene extends TemelSahne {
       }
     }
 
-    this.oyun.parcalar.forEach((parca, i) => {
-      if (parca.yerlesti) return
+    this.oyun.parcalar.forEach((parcaSekli, i) => {
+      if (parcaSekli.yerlesti) return
       const merkezX = this.elX(i)
-      const enS = Math.max(...parca.hucreler.map(([s]) => s)) + 1
-      const enT = Math.max(...parca.hucreler.map(([, t]) => t)) + 1
+      const enS = Math.max(...parcaSekli.hucreler.map(([s]) => s)) + 1
+      const enT = Math.max(...parcaSekli.hucreler.map(([, t]) => t)) + 1
       const bx = merkezX - (enT * EL_HUCRE) / 2
       const by = EL_Y - (enS * EL_HUCRE) / 2
 
@@ -135,17 +136,16 @@ export class GameScene extends TemelSahne {
             .setRounded(8),
         )
       }
-      for (const [ds, dt] of parca.hucreler) {
+      for (const [ds, dt] of parcaSekli.hucreler) {
         this.katman.add(
-          this.add
-            .rectangle(
-              bx + dt * EL_HUCRE + EL_HUCRE / 2,
-              by + ds * EL_HUCRE + EL_HUCRE / 2,
-              EL_HUCRE - 3,
-              EL_HUCRE - 3,
-              parca.renk,
-            )
-            .setRounded(4),
+          parca(this, {
+            x: bx + dt * EL_HUCRE + EL_HUCRE / 2,
+            y: by + ds * EL_HUCRE + EL_HUCRE / 2,
+            genislik: EL_HUCRE - 3,
+            yukseklik: EL_HUCRE - 3,
+            renk: parcaSekli.renk,
+            radius: 4,
+          }),
         )
       }
     })

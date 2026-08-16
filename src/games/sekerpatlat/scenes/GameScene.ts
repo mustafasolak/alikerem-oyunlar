@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser'
 
-import { KareIzgara, izgaraYerlesimi } from '../../../shared/KareIzgara.ts'
+import { KATMAN, parca, top } from '../../../shared/Gorsel.ts'
 import { TemelSahne } from '../../../shared/TemelSahne.ts'
 import { sesler } from '../../../shared/Sesler.ts'
 import { setChip } from '../../../shared/dom.ts'
@@ -22,7 +22,11 @@ import {
 
 export class GameScene extends TemelSahne {
   private oyun!: UcluEslestirme
-  private izgara?: KareIzgara
+  private zeminKatmani!: Phaser.GameObjects.Container
+  private tasKatmani!: Phaser.GameObjects.Container
+  private hucreBoyu = 0
+  private ofsetX = 0
+  private ofsetY = 0
   private secili: Konum | null = null
   private kalanHamle = BASLANGIC_HAMLE
 
@@ -32,6 +36,23 @@ export class GameScene extends TemelSahne {
 
   protected kur(): void {
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLORS.BOARD).setRounded(14)
+
+    this.hucreBoyu = Math.floor((GAME_WIDTH - BOARD_PADDING * 2) / BOYUT)
+    this.ofsetX = (GAME_WIDTH - BOYUT * this.hucreBoyu) / 2
+    this.ofsetY = (GAME_HEIGHT - BOYUT * this.hucreBoyu) / 2
+
+    this.zeminKatmani = this.add.container(0, 0).setDepth(KATMAN.IZGARA)
+    this.tasKatmani = this.add.container(0, 0).setDepth(KATMAN.ICERIK)
+    for (let s = 0; s < BOYUT; s++) {
+      for (let t = 0; t < BOYUT; t++) {
+        this.zeminKatmani.add(
+          this.add
+            .rectangle(this.x(t), this.y(s), this.hucreBoyu - 4, this.hucreBoyu - 4, COLORS.HUCRE_ZEMIN)
+            .setRounded(8),
+        )
+      }
+    }
+
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.dokun(p))
   }
 
@@ -40,29 +61,26 @@ export class GameScene extends TemelSahne {
     this.secili = null
     this.kalanHamle = BASLANGIC_HAMLE
 
-    this.izgara?.katman.destroy()
-    const y = izgaraYerlesimi(GAME_WIDTH, GAME_HEIGHT, BOYUT, BOYUT, BOARD_PADDING)
-    this.izgara = new KareIzgara(this, {
-      sutun: BOYUT,
-      satir: BOYUT,
-      hucreBoyu: y.hucreBoyu,
-      ofsetX: y.ofsetX,
-      ofsetY: y.ofsetY,
-      bosluk: 5,
-      radius: YUVARLAK ? 999 : 8,
-      zeminRenk: TAS_RENKLERI[0],
-    })
-
     setChip('moves', this.kalanHamle)
     setChip('target', HEDEF_PUAN)
     this.skorGoster(0)
     this.ciz()
   }
 
+  private x(t: number): number {
+    return this.ofsetX + t * this.hucreBoyu + this.hucreBoyu / 2
+  }
+
+  private y(s: number): number {
+    return this.ofsetY + s * this.hucreBoyu + this.hucreBoyu / 2
+  }
+
   private dokun(p: Phaser.Input.Pointer): void {
-    if (this.bitti || !this.izgara) return
-    const hucre = this.izgara.hucreBul(p)
-    if (!hucre) return
+    if (this.bitti) return
+    const sutun = Math.floor((p.worldX - this.ofsetX) / this.hucreBoyu)
+    const satir = Math.floor((p.worldY - this.ofsetY) / this.hucreBoyu)
+    if (satir < 0 || satir >= BOYUT || sutun < 0 || sutun >= BOYUT) return
+    const hucre = { satir, sutun }
     this.sayac.basla()
 
     if (!this.secili) {
@@ -118,11 +136,27 @@ export class GameScene extends TemelSahne {
   }
 
   private ciz(): void {
-    this.izgara?.uygula((view, satir, sutun, index) => {
-      view.zemin.setFillStyle(TAS_RENKLERI[this.oyun.tahta[index] % TAS_RENKLERI.length])
-      const secili = this.secili?.satir === satir && this.secili?.sutun === sutun
-      view.zemin.setStrokeStyle(secili ? 4 : 0, COLORS.SECILI)
-      view.zemin.setScale(secili ? 0.86 : 1)
-    })
+    this.tasKatmani.removeAll(true)
+    for (let satir = 0; satir < BOYUT; satir++) {
+      for (let sutun = 0; sutun < BOYUT; sutun++) {
+        const renk = TAS_RENKLERI[this.oyun.tahta[satir * BOYUT + sutun] % TAS_RENKLERI.length]
+        const secili = this.secili?.satir === satir && this.secili?.sutun === sutun
+        const boyut = this.hucreBoyu - 10
+        // Şeker teması yuvarlak, klasik tema köşeli taş
+        const tas = YUVARLAK
+          ? top(this, this.x(sutun), this.y(satir), boyut / 2, renk)
+          : parca(this, { x: this.x(sutun), y: this.y(satir), genislik: boyut, yukseklik: boyut, renk, radius: 9 })
+        if (secili) {
+          tas.setScale(0.85)
+          tas.add(
+            this.add
+              .rectangle(0, 0, boyut + 8, boyut + 8, 0x000000, 0)
+              .setStrokeStyle(4, COLORS.SECILI)
+              .setRounded(YUVARLAK ? (boyut + 8) / 2 : 11),
+          )
+        }
+        this.tasKatmani.add(tas)
+      }
+    }
   }
 }

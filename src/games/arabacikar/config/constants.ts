@@ -15,14 +15,19 @@ export const MIN_SKOR = 80
 export const KAYMA_SURESI = 110
 
 export const COLORS = {
-  BOARD: 0x2b1113,
-  ZEMIN: 0x3d181b,
-  HEDEF_ARAC: 0xef4444,
-  ARAC: 0x64748b,
-  ARAC_ALT: 0x94a3b8,
+  BOARD: 0x241016,
+  ZEMIN: 0x33161d,
+  ZEMIN_ALT: 0x2c131a,
   CIKIS: 0xfacc15,
   SECILI: 0xffffff,
+  CAM: 0xbfdbfe,
+  TEKER: 0x111827,
+  FAR: 0xfef3c7,
 } as const
+
+/** Hedef araç hep kırmızı; diğerleri sırayla bu renklerden. */
+export const HEDEF_RENK = 0xef4444
+export const ARAC_RENKLERI = [0x60a5fa, 0x34d399, 0xfbbf24, 0xa78bfa, 0xf472b6, 0x22d3ee, 0xfb923c]
 
 /**
  * Bölümler. Her araç: [satır, sutun, uzunluk, yatayMi]
