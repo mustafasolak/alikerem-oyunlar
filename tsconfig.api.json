@@ -1,9 +1,14 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "moduleResolution": "bundler",
     "noEmit": true
   },
-  "include": ["api"]
+  "include": [
+    "api",
+    "lib"
+  ]
 }
