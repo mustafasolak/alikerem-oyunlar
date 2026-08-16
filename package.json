@@ -20,5 +20,8 @@
   },
   "dependencies": {
     "phaser": "^4.2.1"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

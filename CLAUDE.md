@@ -11,6 +11,16 @@ Hedef: 60 FPS, masaüstü ve mobil tarayıcıda sorunsuz çalışması.
 - Vite (dev sunucusu + çok sayfalı build)
 - Yayın: statik hosting (itch.io / Netlify / GitHub Pages) — `base: './'` sayesinde alt klasörde de çalışır
 
+## Yayın
+
+İki hedef birden desteklenir:
+- **Vercel** (asıl): `vercel.json` + `base: '/'`. Derlemede `VERCEL=1` tanımlı olduğu
+  için vite.config bunu kendisi seçer. Git'e push → otomatik yayın.
+- **GitHub Pages** (yedek): `base: './'`, `.github/workflows/deploy.yml`.
+
+Eski `games/<id>/index.html` adresleri `public/games/<id>/` altındaki
+yönlendirmelerle korunuyor; kırılmasınlar diye silinmemeli.
+
 ## Komutlar
 - `npm run dev` — geliştirme sunucusu
 - `npm run build` — üretim derlemesi (`dist/`)
@@ -60,6 +70,16 @@ npm run yeni-oyun -- <id> <kategori>
 Klasör açılır, gerisi otomatik: katalog kaydı, sayfa kabuğu, adres, kart.
 **Elle kayıt tutulan hiçbir liste yok.** Kategoriler: arcade · mantik · kelime ·
 kagit · dikkat · yerlestirme.
+
+## Yayın
+
+İki hedef birden desteklenir:
+- **Vercel** (asıl): `vercel.json` + `base: '/'`. Derlemede `VERCEL=1` tanımlı olduğu
+  için vite.config bunu kendisi seçer. Git'e push → otomatik yayın.
+- **GitHub Pages** (yedek): `base: './'`, `.github/workflows/deploy.yml`.
+
+Eski `games/<id>/index.html` adresleri `public/games/<id>/` altındaki
+yönlendirmelerle korunuyor; kırılmasınlar diye silinmemeli.
 
 ## Komutlar
 - `npm run dev` — geliştirme sunucusu (katalog otomatik üretilir)
