@@ -6,7 +6,7 @@
  * "kimlik klasör adıyla uyuşmuyor", "tuval telefona sığmıyor", "rozet id'si
  * tekrar ediyor" gibi sessiz hataları derlemeden önce yakalar.
  */
-import { readdir, stat } from 'node:fs/promises'
+import { readFile, readdir, stat } from 'node:fs/promises'
 import { join, dirname, relative } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -81,6 +81,31 @@ for (const dosya of dosyalar) {
   if (new Set(rozetIdleri).size !== rozetIdleri.length) bildir('rozet id’leri tekrar ediyor')
   for (const r of t.arayuz?.rozetler ?? []) {
     if (!r.id || !r.etiket) bildir('rozet eksik alanlı')
+  }
+}
+
+// Skor kimliği katalog kimliğiyle aynı olmalı.
+// Aksi hâlde skorlar sunucuda başka bir kimlik altına düşer (yönetim paneli ve
+// istatistikler katalogla eşleşmez) ya da büyük harf yüzünden sessizce reddedilir.
+for (const dosya of dosyalar) {
+  const klasor = dirname(dosya)
+  const kimlik = klasor.split('/').pop()
+  let sahne = ''
+  try {
+    sahne = await readFile(join(klasor, 'scenes/GameScene.ts'), 'utf8')
+  } catch {
+    continue
+  }
+  const kayit = sahne.match(/new ScoreRecorder\(\s*'([^']+)'/)
+  const temel = sahne.match(/super\(\s*'([^']+)'\s*\)/)
+  const skorKimligi = kayit?.[1] ?? temel?.[1]
+  if (!skorKimligi) continue
+
+  if (skorKimligi !== kimlik) {
+    hatalar.push(`${kimlik}: skor kimliği '${skorKimligi}', katalog kimliğiyle aynı olmalı`)
+  }
+  if (!/^[a-z0-9]{2,32}$/.test(skorKimligi)) {
+    hatalar.push(`${kimlik}: skor kimliği '${skorKimligi}' sunucu kalıbına uymuyor (küçük harf + rakam)`)
   }
 }
 

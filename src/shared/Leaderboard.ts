@@ -23,6 +23,13 @@ const scoresKey = (gameId: string): string => `oyunlar.${gameId}.skorlar`
 /** İsimli tablodan önce kullanılan sade "en iyi skor" anahtarı. */
 const legacyBestKey = (gameId: string): string => `oyunlar.${gameId}.best`
 
+/**
+ * Skor kimliği sonradan katalog kimliğine çekilen oyunlar.
+ * Cihazdaki eski kayıtlar kaybolmasın diye bir kez taşınır.
+ * (2048'in klasörü `game2048`, skorları bir dönem `2048` altında tutulmuştu.)
+ */
+const ESKI_SKOR_KIMLIGI: Record<string, string> = { game2048: '2048' }
+
 export function loadNick(): string {
   return readString(NICK_KEY) ?? ''
 }
@@ -100,15 +107,34 @@ export class Leaderboard {
   }
 
   private read(): ScoreEntry[] {
-    const raw = readJson<unknown[]>(scoresKey(this.gameId))
-    const parsed = Array.isArray(raw) ? raw.map(toEntry).filter((entry) => entry !== null) : []
-    if (parsed.length > 0) return sortEntries(parsed).slice(0, this.size)
+    const kendi = this.readKey(this.gameId)
+    if (kendi.length > 0) return kendi
+
+    // Kimliği değişmiş oyunlarda eski anahtarı bir kez taşı
+    const eski = ESKI_SKOR_KIMLIGI[this.gameId]
+    if (eski) {
+      const tasinan = this.readKey(eski)
+      if (tasinan.length > 0) {
+        writeJson(scoresKey(this.gameId), tasinan)
+        return tasinan
+      }
+    }
     return this.migrateLegacyBest()
+  }
+
+  private readKey(gameId: string): ScoreEntry[] {
+    const raw = readJson<unknown[]>(scoresKey(gameId))
+    const parsed = Array.isArray(raw) ? raw.map(toEntry).filter((entry) => entry !== null) : []
+    return parsed.length > 0 ? sortEntries(parsed).slice(0, this.size) : []
   }
 
   /** İsimsiz dönemden kalan en iyi skoru kaybetmeyelim; tabloya tek kayıt olarak al. */
   private migrateLegacyBest(): ScoreEntry[] {
-    const legacy = readScore(legacyBestKey(this.gameId))
+    const eski = ESKI_SKOR_KIMLIGI[this.gameId]
+    const legacy = Math.max(
+      readScore(legacyBestKey(this.gameId)),
+      eski ? readScore(legacyBestKey(eski)) : 0,
+    )
     if (legacy <= 0) return []
 
     const seeded: ScoreEntry[] = [{ name: cleanName(loadNick()), score: legacy, at: 0 }]

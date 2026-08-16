@@ -60,7 +60,7 @@ export class GameScene extends Phaser.Scene {
     this.tileLayer = this.add.container(0, 0)
 
     this.hud = new GameHud({ onRestart: () => this.startNewGame() })
-    this.recorder = new ScoreRecorder('2048', this.hud, (typing) => this.setTyping(typing))
+    this.recorder = new ScoreRecorder('game2048', this.hud, (typing) => this.setTyping(typing))
 
     const saved = GameStorage.loadGame()
     if (!saved || !this.board.restore(saved)) {
