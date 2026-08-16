@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Rubik küpü simülasyonu." />
+    <title>Rubik Küpü — Ali Kerem Oyunları</title>
+  </head>
+  <body>
+    <div class="game-shell">
+      <header class="game-top">
+        <div class="left">
+          <a class="btn" href="../../index.html">←&nbsp;<span class="uzun">Ana sayfa</span></a>
+          <button class="btn btn--icon" id="sound" type="button" aria-label="Sesi aç veya kapat" aria-pressed="true">🔊</button>
+        </div>
+        <div class="scores">
+          <div class="score-box" id="score-box">
+            <span>SKOR</span>
+            <strong id="score">0</strong>
+            <div class="score-gain" id="score-gain"></div>
+          </div>
+          <div class="score-box">
+            <span>EN İYİ</span>
+            <strong id="best">0</strong>
+            <small id="best-name"></small>
+          </div>
+        </div>
+      </header>
+
+      <div class="game-intro">
+        <div>
+          <h1>Rubik Küpü</h1>
+          <p>Küpün altı yüzünü de tek renge getir.</p>
+        </div>
+        <button class="btn btn--accent" id="restart" type="button">Yeni oyun</button>
+      </div>
+
+      <div class="toolbar" id="toolbar">
+        <button class="btn" type="button" data-level="kolay" aria-pressed="true">Kolay</button>
+        <button class="btn" type="button" data-level="orta" aria-pressed="false">Orta</button>
+        <button class="btn" type="button" data-level="zor" aria-pressed="false">Zor</button>
+      </div>
+
+      <div class="status-row">
+        <span class="status-chip">Hamle <b id="moves">0</b></span>
+        <span class="status-chip">Doğru yüz <b id="faces">0/6</b></span>
+      </div>
+
+      <div class="game-stage" id="game-stage">
+        <div class="game-canvas" id="game"></div>
+        <div class="overlay" id="overlay" hidden>
+          <div class="overlay-card">
+            <h2 id="overlay-title"></h2>
+            <p id="overlay-text"></p>
+            <form class="overlay-form" id="overlay-form" hidden>
+              <label for="overlay-name">Tabloya yazılacak ad</label>
+              <div class="row">
+                <input id="overlay-name" name="nick" type="text" autocomplete="nickname"
+                  placeholder="Adını yaz" enterkeyhint="done" />
+                <button class="btn btn--accent" id="overlay-submit" type="submit">Kaydet</button>
+              </div>
+            </form>
+            <div class="overlay-actions">
+              <button class="btn btn--accent" id="overlay-primary" type="button"></button>
+              <button class="btn" id="overlay-secondary" type="button" hidden></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar" id="pad">
+        <button class="btn" type="button" data-move="U">U</button>
+        <button class="btn" type="button" data-move="U'">U′</button>
+        <button class="btn" type="button" data-move="D">D</button>
+        <button class="btn" type="button" data-move="D'">D′</button>
+        <button class="btn" type="button" data-move="L">L</button>
+        <button class="btn" type="button" data-move="L'">L′</button>
+        <button class="btn" type="button" data-move="R">R</button>
+        <button class="btn" type="button" data-move="R'">R′</button>
+        <button class="btn" type="button" data-move="F">F</button>
+        <button class="btn" type="button" data-move="F'">F′</button>
+        <button class="btn" type="button" data-move="B">B</button>
+        <button class="btn" type="button" data-move="B'">B′</button>
+      </div>
+
+      <p class="hint">Alttaki tuşlarla yüzleri çevir · her yüz tek renk olmalı</p>
+
+      <section class="scoreboard" id="scoreboard" hidden>
+        <h2>Skor tablosu — bu cihaz</h2>
+        <ol id="scoreboard-list"></ol>
+      </section>
+    </div>
+
+    <script type="module" src="../../src/games/rubik/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,10 @@
+/* Tangram: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #fb923c;
+  --game-b: #9a3412;
+  --game-aspect: 0.7286;
+  --chrome: 250px;
+}

@@ -34,6 +34,11 @@ src/
     KeyPad.ts            # DOM tuş takımı (harf klavyesi / rakam takımı)
     TemelSahne.ts        # sahne iskeleti: HUD + skor kaydı + sayaç + bitiş akışı
     KareIzgara.ts        # kare ızgara görünümü ve imleç→hücre eşlemesi
+  shared/motorlar/       # birden fazla oyunun paylaştığı oyun motorları
+    BoruAgi.ts           # Boru Bağlama, Su Borusu, Elektrik Devresi
+    LazerAgi.ts          # Laser Reflection, Aynalarla Lazer
+    UcluEslestirme.ts    # Match-3, Şeker Patlatma
+    Iskambil.ts          # Solitaire, Spider, FreeCell
     Sesler.ts            # WebAudio ile anlık üretilen ses efektleri (dosya yok)
     Sayac.ts             # geçen süre sayacı
     dom.ts               # durum rozeti, buton grubu gibi küçük DOM işleri
@@ -95,60 +100,31 @@ Skorlar sunucuda değil, tarayıcının localStorage'ında tutulur: tablo yalnı
 
 ### Site
 - [x] Ana sayfa + oyun kataloğu
-- [x] Çok sayfalı build (her oyun kendi sayfası)
-- [x] Yayın: https://mustafasolak.github.io/alikerem-oyunlar/ (main'e push → otomatik)
-- [x] Ortak HUD / kaydırma / depolama modülleri
+- [x] Çok sayfalı build, GitHub Pages'e otomatik yayın
+- [x] Ortak HUD / kaydırma / depolama / ses / ızgara modülleri
 - [x] İsimli skor tablosu (oyun başına ilk 5, cihaz yerel)
-- [x] Ana sayfa kartlarında en iyi skorlar
+- [x] Telefon uyumu: yatay taşma yok, tahta ilk ekrana sığıyor
 - [ ] Herkese açık ortak skor tablosu (sunucu/servis gerektirir)
 
-### Tetris, Mayın Tarlası, Sudoku, 15'li Puzzle, Kelime Bulmaca, Kelime Avı, Adam Asmaca
-- [x] Hepsi oynanabilir: çekirdek döngü, kazanma/kaybetme, skor, HUD, skor tablosu
-- [x] Mantık katmanları saf TypeScript (TetrisGame, Minesweeper, SudokuGame, SlidingPuzzle,
-      Crossword, WordSearch, HangmanGame) — Phaser'a bağımlı değil
-- [x] Mobil: kaydırma (Tetris, 15'li), dokunma (Mayın, Sudoku, Kelime Avı, Bulmaca),
-      DOM tuş takımı (Sudoku, Bulmaca, Asmaca), Tetris'te ekran tuşları
-- [x] Ses efektleri (WebAudio, bağımlılıksız) ve ses aç/kapat düğmesi
-- [x] Telefon uyumu: yatay taşma yok, tahta ilk ekrana sığıyor
+### Oyunlar — 51'i de oynanabilir
+Arcade: 2048 · Yılan · Tetris · Match-3 · Şeker Patlatma · Bubble Shooter · Zuma
+Mantık: Sudoku · Mayın Tarlası · Nonogram · Kakuro · Lights Out · Mantık Kapıları ·
+  Köprü Kurma · Boru Bağlama · Su Borusu · Elektrik Devresi · Laser Reflection · Aynalarla Lazer
+Yerleştirme: 15'li Puzzle · Sokoban · Box Push · Araba Çıkarma · Hanoi · Blok Yerleştirme ·
+  Pentomino · Tangram · Domino · Rubik Küpü
+Kelime: Kelime Bulmaca · Kelime Avı · Adam Asmaca · Wordle · Kelime Gruplama · Şifre Çözme
+Kâğıt/eşleştirme: Solitaire · Spider · FreeCell · Mahjong · Hafıza Kartları · Eşleştirme
+Renk ayırma: Top Sıralama · Renk Sıralama · Su Şişesi
+Dikkat: Farkları Bul · Gizli Nesne · Resim Tamamlama
+Diğer: Mastermind · Labirent · Matematik Bulmacası · Sayı Piramidi
+
+### Kalan işler
 - [ ] Sudoku'da kalem notları
 - [ ] Mayın Tarlası'nda akor (sayıya çift tıkla çevresini aç)
-
-### 2048
-- [x] Oynanabilir çekirdek döngü (kaydırma + birleştirme)
-- [x] Kazanma/kaybetme koşulu (2048'e ulaşma, hamle kalmaması)
-- [x] Skor, en iyi skor ve HUD
-- [x] Menü/yeniden başlatma (Yeni oyun, sonuç katmanı)
-- [x] Mobil dokunmatik kontrol (kaydırma)
-- [x] Görsel cila (kayma, birleşme zıplaması, doğuş animasyonu)
-- [x] Oyunu kaydetme (sayfa yenilenince kaldığı yerden)
-- [x] Skor tablosuna takma ad
-- [x] Ses efektleri
-- [ ] Geri alma (undo)
-
-### Yılan
-- [x] Oynanabilir çekirdek döngü (delta tabanlı adım, yön kuyruğu)
-- [x] Kazanma/kaybetme koşulu (duvar, kuyruk, tahtayı doldurma)
-- [x] Skor, en iyi skor ve HUD
-- [x] Duraklatma (Boşluk / Esc / P)
-- [x] Mobil dokunmatik kontrol (kaydırma)
-- [x] Görsel cila (yem nabzı, yeme halkası, ölümde sarsıntı, gövde gradyanı)
-- [x] Skor tablosuna takma ad
-- [x] Ses efektleri
-
-### Lights Out, Hanoi, Mastermind, Hafıza, Wordle, Labirent, Sokoban, Top Sıralama
-- [x] Hepsi oynanabilir, mobil uyumlu, sesli ve skor tablolu
-- [x] Mantık katmanları saf TypeScript ve testli
-
-### Sıradan bekleyen oyunlar (istenen listeden kalanlar)
-- [ ] Connections tarzı kelime gruplama · Eşleştirme Oyunu · Tangram · Nonogram/Picross
-- [ ] Kakuro · Boru Bağlama · Elektrik Devresi · Köprü Kurma · Su Borusu Yönlendirme
-- [ ] Blok Yerleştirme · Rush Hour · Renk Sıralama · Su Şişesi · Match-3 · Candy Crush
-- [ ] Zuma · Bubble Shooter · Mahjong · Solitaire · Spider · FreeCell
-- [ ] Farkları Bul · Gizli Nesne · Resim Tamamlama · Matematik Bulmacası · Sayı Piramidi
-- [ ] Mantık Kapıları · Şifre Çözme · Box Push · Laser Reflection · Aynalarla lazer
-- [ ] Domino · Pentomino · Rubik küpü
+- [ ] 2048'de geri alma
+- [ ] Solitaire ailesinde çoklu kart taşıma ve geri alma
 
 ## Skor tasarımı
-Skor tablosu "yüksek olan iyidir" varsayar. Süreye dayalı oyunlarda (Sudoku, Mayın Tarlası,
-15'li Puzzle) skor `taban puan + süre bonusu - ceza` biçiminde hesaplanır; böylece hızlı
-bitiren yüksek puan alır ve bütün oyunlar aynı tabloda tutarlı kalır.
+Skor tablosu "yüksek olan iyidir" varsayar. Süreye/hamleye dayalı oyunlarda skor
+`taban puan + süre bonusu - ceza` biçiminde hesaplanır; böylece bütün oyunlar aynı
+tabloda tutarlı kalır.

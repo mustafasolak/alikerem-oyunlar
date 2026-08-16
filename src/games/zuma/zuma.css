@@ -1,0 +1,10 @@
+/* Zuma: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #a3e635;
+  --game-b: #4d7c0f;
+  --game-aspect: 1;
+  --chrome: 250px;
+}
