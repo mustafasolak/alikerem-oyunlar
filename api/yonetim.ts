@@ -19,6 +19,7 @@ import {
   type Yanit,
 } from './_ortak.js'
 import {
+  VARSAYILAN_UST_SINIR,
   gunlukHareket,
   oyunAyarla,
   ozet,
@@ -98,7 +99,15 @@ export default async function handler(istek: Istek, yanit: Yanit): Promise<void>
       gunlukHareket(sql),
       sonSkorlar(sql, SON_SKOR_ADEDI),
     ])
-    yanit.status(200).json({ tamam: true, oyunlar, ozet: toplam, hareket, skorlar })
+    yanit.status(200).json({
+      tamam: true,
+      oyunlar,
+      ozet: toplam,
+      hareket,
+      skorlar,
+      // İstemci, veritabanında satırı olmayan oyunlar için bunu kullanır
+      varsayilanUstSinir: VARSAYILAN_UST_SINIR,
+    })
   } catch (e) {
     console.error('yönetim verisi okunamadı', e)
     hata(yanit, 500, 'Okunamadı')

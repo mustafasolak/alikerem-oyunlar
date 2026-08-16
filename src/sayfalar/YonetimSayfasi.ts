@@ -37,14 +37,45 @@ interface DenetimKaydi {
 
 interface YonetimVerisi {
   oyunlar: YonetimOyun[]
-  ozet: { oyuncu: number; kayit: number; oyun: number }
+  ozet: { oyuncu: number; kimlik: number; kayit: number; oyun: number }
   hareket: { gun: string; adet: number }[]
   skorlar: DenetimKaydi[]
+  varsayilanUstSinir: number
 }
 
 /** Katalogdaki ad; veritabanında olmayan oyunlar için kimlik gösterilir. */
 const OYUN_ADI = new Map(KATALOG.map((o) => [o.id, o.ad]))
 const adiniAl = (id: string): string => OYUN_ADI.get(id) ?? id
+
+/**
+ * Panelde katalogdaki bütün oyunlar görünmeli — henüz oynanmamış bir oyunu da
+ * gizleyebilmek gerekir. Veritabanı yalnız ayarı ya da skoru olan oyunlar için
+ * satır tutuyor; eksikler varsayılanla tamamlanır.
+ *
+ * Sıralama: önce hareketli oyunlar (kayıt sayısına göre), sonra ada göre.
+ */
+function oyunlariBirlestir(veri: YonetimVerisi): YonetimOyun[] {
+  const veritabani = new Map(veri.oyunlar.map((o) => [o.id, o]))
+  const kimlikler = new Set([...OYUN_ADI.keys(), ...veritabani.keys()])
+
+  const hepsi = [...kimlikler].map(
+    (id) =>
+      veritabani.get(id) ?? {
+        id,
+        gizli: false,
+        oneCikan: null,
+        ustSinir: veri.varsayilanUstSinir,
+        kayit: 0,
+        oyuncu: 0,
+        enYuksek: 0,
+        sonKayit: null,
+      },
+  )
+
+  return hepsi.sort(
+    (a, b) => b.kayit - a.kayit || adiniAl(a.id).localeCompare(adiniAl(b.id), 'tr'),
+  )
+}
 
 /**
  * Sunucu yalnız kayıt olan günleri döner. Grafik hep 14 sütun göstersin:
@@ -182,9 +213,10 @@ export async function yonetimSayfasi(): Promise<Temizleyici> {
     // --- Özet ---
     const ozet = el('section', 'yonetim-ozet')
     const kutular: [string, number][] = [
-      ['Oyuncu', veri.ozet.oyuncu],
+      ['Skor gönderen', veri.ozet.oyuncu],
       ['Skor kaydı', veri.ozet.kayit],
       ['Oynanan oyun', veri.ozet.oyun],
+      ['Siteye giren', veri.ozet.kimlik],
     ]
     for (const [etiket, deger] of kutular) {
       const kutu = el('div', 'yonetim-kutu')
@@ -213,12 +245,19 @@ export async function yonetimSayfasi(): Promise<Temizleyici> {
     }
 
     // --- Oyunlar ---
+    const oyunListesi = oyunlariBirlestir(veri)
     const oyunBolum = el('section', 'yonetim-bolum')
-    oyunBolum.append(el('h2', undefined, `Oyunlar (${veri.oyunlar.length})`))
-    if (veri.oyunlar.length === 0) {
-      oyunBolum.append(
-        el('p', 'yonetim-bilgi', 'Henüz kayıt yok. Bir oyun ilk skoru aldığında burada görünür.'),
-      )
+
+    const baslikSatiri = el('div', 'yonetim-bolum-ust')
+    baslikSatiri.append(el('h2', undefined, `Oyunlar (${oyunListesi.length})`))
+    const ara = el('input', 'yonetim-ara')
+    ara.type = 'search'
+    ara.placeholder = 'Oyun ara…'
+    ara.setAttribute('aria-label', 'Oyun ara')
+    baslikSatiri.append(ara)
+    oyunBolum.append(baslikSatiri)
+    if (oyunListesi.length === 0) {
+      oyunBolum.append(el('p', 'yonetim-bilgi', 'Katalog boş.'))
     } else {
       const sarmal = el('div', 'yonetim-tablo-sarmal')
       const tablo = el('table', 'yonetim-tablo')
@@ -230,7 +269,7 @@ export async function yonetimSayfasi(): Promise<Temizleyici> {
       bas.append(basSatir)
       const govde = el('tbody')
 
-      for (const oyun of veri.oyunlar) {
+      for (const oyun of oyunListesi) {
         const satir = el('tr')
         satir.append(el('td', 'yonetim-ad', adiniAl(oyun.id)))
 
@@ -285,6 +324,17 @@ export async function yonetimSayfasi(): Promise<Temizleyici> {
       tablo.append(bas, govde)
       sarmal.append(tablo)
       oyunBolum.append(sarmal)
+
+      // Türkçe duyarsız arama: büyük/küçük ve i/ı farkı takılmasın
+      const anahtar = (metin: string): string =>
+        metin.toLocaleLowerCase('tr').replaceAll('ı', 'i').replaceAll('İ', 'i')
+      ara.addEventListener('input', () => {
+        const q = anahtar(ara.value.trim())
+        for (const satir of govde.children) {
+          const ad = satir.querySelector('.yonetim-ad')?.textContent ?? ''
+          ;(satir as HTMLElement).hidden = q !== '' && !anahtar(ad).includes(q)
+        }
+      })
     }
     kabuk.append(oyunBolum)
 

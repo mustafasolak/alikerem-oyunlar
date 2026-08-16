@@ -14,6 +14,9 @@ type Kayit = Record<string, unknown>
 export const PENCERE_SN = 60
 export const PENCERE_SINIRI = 40
 
+/** Şemadaki `skor_ust_siniri` varsayılanı; panel yeni oyunlar için bunu gösterir. */
+export const VARSAYILAN_UST_SINIR = 200000
+
 export interface OyunAyari {
   gizli: boolean
   ustSinir: number
@@ -234,14 +237,29 @@ export async function gunlukHareket(sql: Sorgulayici): Promise<{ gun: string; ad
   return satirlar.map((r) => ({ gun: String(r.gun), adet: Number(r.adet) }))
 }
 
+export interface Ozet {
+  /** Skor göndermiş farklı oyuncu. */
+  oyuncu: number
+  /** Siteye girip anonim kimlik almış tarayıcı (oynamamış olabilir). */
+  kimlik: number
+  kayit: number
+  oyun: number
+}
+
 /** Toplamlar. */
-export async function ozet(sql: Sorgulayici): Promise<{ oyuncu: number; kayit: number; oyun: number }> {
+export async function ozet(sql: Sorgulayici): Promise<Ozet> {
   const [r] = await sql`
     select
-      (select count(*)::int from oyuncular)                          as oyuncu,
+      (select count(distinct uid)::int from skorlar)                 as oyuncu,
+      (select count(*)::int from oyuncular)                          as kimlik,
       (select count(*)::int from skorlar where donem = 'tum')        as kayit,
       (select count(distinct oyun_id)::int from skorlar)             as oyun`
-  return { oyuncu: Number(r?.oyuncu ?? 0), kayit: Number(r?.kayit ?? 0), oyun: Number(r?.oyun ?? 0) }
+  return {
+    oyuncu: Number(r?.oyuncu ?? 0),
+    kimlik: Number(r?.kimlik ?? 0),
+    kayit: Number(r?.kayit ?? 0),
+    oyun: Number(r?.oyun ?? 0),
+  }
 }
 
 /** Kimlik verilirken oyuncu satırını açar. */

@@ -107,6 +107,30 @@
   margin-bottom: 2rem;
 }
 
+.yonetim-bolum-ust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.7rem;
+}
+
+.yonetim-bolum-ust h2 {
+  margin: 0;
+}
+
+.yonetim-ara {
+  min-width: 0;
+  flex: 0 1 220px;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-hi);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
 .yonetim-bolum h2 {
   margin: 0 0 0.7rem;
   font-size: 1.05rem;
