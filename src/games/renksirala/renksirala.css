@@ -1,0 +1,10 @@
+/* Renk Sıralama: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #f97316;
+  --game-b: #9a3412;
+  --game-aspect: 1.1860;
+  --chrome: 250px;
+}

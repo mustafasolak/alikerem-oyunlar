@@ -1,0 +1,10 @@
+/* Su Şişesi Renk Ayırma: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #38bdf8;
+  --game-b: #075985;
+  --game-aspect: 1.1860;
+  --chrome: 250px;
+}

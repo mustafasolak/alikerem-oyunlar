@@ -1,0 +1,10 @@
+/* Nonogram: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #e879f9;
+  --game-b: #86198f;
+  --game-aspect: 1;
+  --chrome: 290px;
+}
