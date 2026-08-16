@@ -10,6 +10,7 @@ import {
   type Kart,
   type Renk,
 } from '../../../shared/motorlar/Iskambil.ts'
+import { GeriAlmaYigini } from '../../../shared/motorlar/GeriAlma.ts'
 import { type Uretec } from '../../../shared/rastgele.ts'
 import { SUTUN_SAYISI } from '../config/constants.ts'
 
@@ -20,6 +21,15 @@ export interface Konum {
   index: number
 }
 
+/** Geri alma için saklanan tam durum. */
+interface Durum {
+  sutunlar: Kart[][]
+  temeller: Kart[][]
+  deste: Kart[]
+  acik: Kart[]
+  hamle: number
+}
+
 export class Klondike {
   sutunlar: Kart[][] = []
   temeller: Kart[][] = []
@@ -28,10 +38,45 @@ export class Klondike {
   hamle = 0
 
   private readonly random: Uretec
+  private readonly gecmis = new GeriAlmaYigini<Durum>()
 
   constructor(random: Uretec = Math.random) {
     this.random = random
     this.dagit()
+  }
+
+  get geriAlinabilir(): boolean {
+    return this.gecmis.doluMu
+  }
+
+  private durumAl(): Durum {
+    return {
+      sutunlar: this.sutunlar,
+      temeller: this.temeller,
+      deste: this.deste,
+      acik: this.acik,
+      hamle: this.hamle,
+    }
+  }
+
+  /** Hamleden önce çağrılır. */
+  private kaydet(): void {
+    this.gecmis.kaydet(this.durumAl())
+  }
+
+  /**
+   * Son hamleyi geri alır. Geri alma da bir hamle sayılır: skor
+   * `... - hamle * ceza` olduğu için bedavaya gelmemeli.
+   */
+  geriAl(): boolean {
+    const onceki = this.gecmis.al()
+    if (!onceki) return false
+    this.sutunlar = onceki.sutunlar
+    this.temeller = onceki.temeller
+    this.deste = onceki.deste
+    this.acik = onceki.acik
+    this.hamle = onceki.hamle + 1
+    return true
   }
 
   get temeldekiKart(): number {
@@ -58,17 +103,20 @@ export class Klondike {
     this.deste = kartlar.slice(sira)
     this.acik = []
     this.hamle = 0
+    this.gecmis.temizle()
   }
 
   /** Desteden kart çevirir; deste bitmişse açılanları geri koyar. */
   desteyiCevir(): boolean {
     if (this.deste.length === 0) {
       if (this.acik.length === 0) return false
+      this.kaydet()
       this.deste = this.acik.reverse().map((k) => ({ ...k, acik: false }))
       this.acik = []
       this.hamle++
       return true
     }
+    this.kaydet()
     const kart = this.deste.pop()!
     kart.acik = true
     this.acik.push(kart)
@@ -118,6 +166,8 @@ export class Klondike {
   tasi(kaynak: Konum, kartIndex: number, hedef: Konum): boolean {
     const kartlar = this.alinacak(kaynak, kartIndex)
     if (!kartlar || !this.konabilirMi(kartlar, hedef)) return false
+
+    this.kaydet()
 
     // Kaynaktan çıkar
     if (kaynak.tur === 'sutun') this.sutunlar[kaynak.index].splice(kartIndex)

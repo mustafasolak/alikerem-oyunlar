@@ -5,12 +5,12 @@ export default tanim({
   ad: "Solitaire",
   ozet: "Klasik Klondike: dört rengi as’tan şaha diz.",
   aciklama: "Kartları dört köşeye asten şaha sırala.",
-  ipucu: "Karta dokun → seç · hedefe dokun → taşı · desteye dokun → yeni kart",
+  ipucu: "Karta dokun → seç · hedefe dokun → taşı · desteye dokun → yeni kart · <kbd>Z</kbd> ya da <b>Geri al</b>",
   emoji: '🃏',
   kategori: 'kagit',
   etiketler: ['Kâğıt', 'Klasik'],
   renk: ['#4ade80', '#15803d'],
-  tuval: { genislik: 510, yukseklik: 700, disPay: 250 },
+  tuval: { genislik: 510, yukseklik: 700, disPay: 306 },
   arayuz: {
     rozetler: [
       {
@@ -23,7 +23,8 @@ export default tanim({
         id: "moves",
         baslangic: "0"
       }
-    ]
+    ],
+    pad: [{ etiket: '↩︎ Geri al', deger: 'geri' }]
   },
   sahne: () => import('./scenes/GameScene.ts'),
 })

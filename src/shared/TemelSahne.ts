@@ -78,6 +78,25 @@ export abstract class TemelSahne extends Phaser.Scene {
     else keyboard.addCapture(this.yakalananTuslar)
   }
 
+  /**
+   * Sayfadaki "↩︎ Geri al" düğmesini bağlar (arayüz bildiriminde
+   * `pad: [{ deger: 'geri' }]` olan oyunlar için).
+   */
+  protected geriAlDugmesi(geriAl: () => void): void {
+    const dugme = document.querySelector<HTMLButtonElement>('#pad button[data-move="geri"]')
+    if (!dugme) return
+    const tikla = (): void => geriAl()
+    dugme.addEventListener('click', tikla)
+    this.input.keyboard?.on('keydown-Z', () => geriAl())
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => dugme.removeEventListener('click', tikla))
+  }
+
+  /** Geri alınacak hamle kalmadıysa düğmeyi kapatır. */
+  protected geriAlDurumu(acik: boolean): void {
+    const dugme = document.querySelector<HTMLButtonElement>('#pad button[data-move="geri"]')
+    if (dugme) dugme.disabled = !acik
+  }
+
   protected skorGoster(skor: number): void {
     this.hud.setScore(skor)
   }

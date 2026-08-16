@@ -529,7 +529,7 @@ export const KATALOG: KatalogKaydi[] = [
     "ad": "FreeCell",
     "ozet": "Dört boş hücreyi akıllı kullan, bütün kartları sırala.",
     "aciklama": "Boş hücreleri kullanarak kartları sırala.",
-    "ipucu": "Karta dokun → seç · boş hücre ya da sütuna dokun → taşı",
+    "ipucu": "Karta dokun → seç · boş hücre ya da sütuna dokun → taşı · sıralı diziyi tek seferde taşıyabilirsin · <kbd>Z</kbd> ya da <b>Geri al</b>",
     "emoji": "🂡",
     "kategori": "kagit",
     "etiketler": [
@@ -543,7 +543,7 @@ export const KATALOG: KatalogKaydi[] = [
     "tuval": {
       "genislik": 510,
       "yukseklik": 700,
-      "disPay": 250
+      "disPay": 306
     },
     "arayuz": {
       "rozetler": [
@@ -556,6 +556,12 @@ export const KATALOG: KatalogKaydi[] = [
           "etiket": "Hamle",
           "id": "moves",
           "baslangic": "0"
+        }
+      ],
+      "pad": [
+        {
+          "etiket": "↩︎ Geri al",
+          "deger": "geri"
         }
       ]
     }
@@ -1729,7 +1735,7 @@ export const KATALOG: KatalogKaydi[] = [
     "ad": "Solitaire",
     "ozet": "Klasik Klondike: dört rengi as’tan şaha diz.",
     "aciklama": "Kartları dört köşeye asten şaha sırala.",
-    "ipucu": "Karta dokun → seç · hedefe dokun → taşı · desteye dokun → yeni kart",
+    "ipucu": "Karta dokun → seç · hedefe dokun → taşı · desteye dokun → yeni kart · <kbd>Z</kbd> ya da <b>Geri al</b>",
     "emoji": "🃏",
     "kategori": "kagit",
     "etiketler": [
@@ -1743,7 +1749,7 @@ export const KATALOG: KatalogKaydi[] = [
     "tuval": {
       "genislik": 510,
       "yukseklik": 700,
-      "disPay": 250
+      "disPay": 306
     },
     "arayuz": {
       "rozetler": [
@@ -1757,6 +1763,12 @@ export const KATALOG: KatalogKaydi[] = [
           "id": "moves",
           "baslangic": "0"
         }
+      ],
+      "pad": [
+        {
+          "etiket": "↩︎ Geri al",
+          "deger": "geri"
+        }
       ]
     }
   },
@@ -1765,7 +1777,7 @@ export const KATALOG: KatalogKaydi[] = [
     "ad": "Spider Solitaire",
     "ozet": "Şahtan as’a inen dizileri tamamlayıp tahtayı boşalt.",
     "aciklama": "Aynı renkten şahtan asa dizileri tamamla.",
-    "ipucu": "Karta dokun → seç · sütuna dokun → taşı · desteye dokun → yeni sıra",
+    "ipucu": "Karta dokun → seç · sütuna dokun → taşı · desteye dokun → yeni sıra · <kbd>Z</kbd> ya da <b>Geri al</b>",
     "emoji": "🕷️",
     "kategori": "kagit",
     "etiketler": [
@@ -1779,7 +1791,7 @@ export const KATALOG: KatalogKaydi[] = [
     "tuval": {
       "genislik": 510,
       "yukseklik": 700,
-      "disPay": 250
+      "disPay": 306
     },
     "arayuz": {
       "rozetler": [
@@ -1792,6 +1804,12 @@ export const KATALOG: KatalogKaydi[] = [
           "etiket": "Hamle",
           "id": "moves",
           "baslangic": "0"
+        }
+      ],
+      "pad": [
+        {
+          "etiket": "↩︎ Geri al",
+          "deger": "geri"
         }
       ]
     }

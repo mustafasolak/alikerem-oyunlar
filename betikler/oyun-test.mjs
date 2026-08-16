@@ -7,6 +7,9 @@
  * Çalıştır: npm run oyun-test
  */
 import { Board2048 } from '../src/games/game2048/systems/Board2048.ts'
+import { FreeCell } from '../src/games/freecell/systems/FreeCell.ts'
+import { Klondike } from '../src/games/solitaire/systems/Klondike.ts'
+import { Spider } from '../src/games/orumcek/systems/Spider.ts'
 import { Minesweeper } from '../src/games/mayin/systems/Minesweeper.ts'
 import { SudokuGame } from '../src/games/sudoku/systems/SudokuGame.ts'
 
@@ -281,6 +284,136 @@ function tohumlu(tohum) {
   const d = new Board2048(4, tohumlu(41))
   d.restore({ grid: kayit.grid, score: kayit.score, keepPlaying: false })
   esit('eski kayıt tam hak alır', d.kalanGeriAlma, 3)
+}
+
+// --- Kâğıt oyunları: geri alma ---
+{
+  const k = new Klondike(tohumlu(77))
+  esit('başta geri alınacak yok', k.geriAlinabilir, false)
+  esit('boş geri alma false', k.geriAl(), false)
+
+  const desteOnce = k.deste.length
+  esit('deste çevrildi', k.desteyiCevir(), true)
+  esit('hamle sayıldı', k.hamle, 1)
+  esit('artık geri alınabilir', k.geriAlinabilir, true)
+
+  esit('geri alındı', k.geriAl(), true)
+  esit('deste eski hâline döndü', k.deste.length, desteOnce)
+  esit('açılan boşaldı', k.acik.length, 0)
+  // Geri alma bedava değil: hamle olarak sayılır
+  esit('geri alma hamle sayılır', k.hamle, 1)
+  esit('yığın boşaldı', k.geriAlinabilir, false)
+}
+
+{
+  // Yeni dağıtım geçmişi siler
+  const k = new Klondike(tohumlu(88))
+  k.desteyiCevir()
+  k.dagit()
+  esit('yeni dağıtımda geçmiş yok', k.geriAlinabilir, false)
+  esit('yeni dağıtımda hamle sıfır', k.hamle, 0)
+}
+
+{
+  // Örümcek: deste dağıtımı geri alınabilir
+  const o = new Spider(tohumlu(55))
+  const sutunBoylari = o.sutunlar.map((x) => x.length)
+  esit('deste dağıtıldı', o.desteDagit(), true)
+  kontrol('sütunlar uzadı', o.sutunlar.every((x, i) => x.length === sutunBoylari[i] + 1))
+  esit('geri alındı', o.geriAl(), true)
+  esit('sütunlar eski boyda', o.sutunlar.map((x) => x.length), sutunBoylari)
+}
+
+// --- FreeCell: çoklu taşıma (süper hamle) ---
+{
+  const f = new FreeCell(tohumlu(13))
+  esit('başta 4 boş hücre', f.bosHucre, 4)
+  esit('başta boş sütun yok', f.bosSutun, 0)
+  esit('kapasite 5 kart', f.tasimaKapasitesi(), 5)
+
+  // Hücreleri doldurunca kapasite düşer
+  f.hucreler[0] = { deger: 5, renk: 'maca', acik: true }
+  f.hucreler[1] = { deger: 6, renk: 'kupa', acik: true }
+  esit('iki hücre doluyken kapasite 3', f.tasimaKapasitesi(), 3)
+
+  // Boş sütun kapasiteyi ikiye katlar
+  f.sutunlar[0] = []
+  esit('bir boş sütunla kapasite 6', f.tasimaKapasitesi(), 6)
+  esit('hedef boş sütunsa o sütun sayılmaz', f.tasimaKapasitesi(true), 3)
+}
+
+{
+  // Sıralı grup taşınır, sırasız grup taşınmaz
+  const f = new FreeCell(tohumlu(2))
+  f.sutunlar[0] = [
+    { deger: 9, renk: 'maca', acik: true },
+    { deger: 8, renk: 'kupa', acik: true },
+    { deger: 7, renk: 'sinek', acik: true },
+  ]
+  f.sutunlar[1] = [{ deger: 10, renk: 'karo', acik: true }]
+
+  esit('sıralı dizi tanınıyor', f.siraliMi(0, 0), true)
+  esit('alınacak üç kart', f.alinacak({ tur: 'sutun', index: 0 }, 0)?.length, 3)
+
+  esit('üçlü dizi taşındı', f.tasi({ tur: 'sutun', index: 0 }, { tur: 'sutun', index: 1 }, 0), true)
+  esit('hedef sütun dört kart', f.sutunlar[1].length, 4)
+  esit('kaynak boşaldı', f.sutunlar[0].length, 0)
+  esit('tek hamle sayıldı', f.hamle, 1)
+
+  // Geri alma diziyi geri getirir
+  esit('geri alındı', f.geriAl(), true)
+  esit('kaynak geri geldi', f.sutunlar[0].length, 3)
+  esit('hedef eski hâlinde', f.sutunlar[1].length, 1)
+}
+
+{
+  // Sırasız grup seçilemez
+  const f = new FreeCell(tohumlu(6))
+  f.sutunlar[0] = [
+    { deger: 9, renk: 'maca', acik: true },
+    { deger: 3, renk: 'kupa', acik: true },
+  ]
+  esit('sırasız dizi tanınmıyor', f.siraliMi(0, 0), false)
+  esit('sırasız grup alınamaz', f.alinacak({ tur: 'sutun', index: 0 }, 0), null)
+  esit('üst kart tek başına alınır', f.alinacak({ tur: 'sutun', index: 0 }, 1)?.length, 1)
+}
+
+{
+  // Kapasiteyi aşan dizi taşınamaz
+  const f = new FreeCell(tohumlu(19))
+  f.hucreler = [
+    { deger: 2, renk: 'maca', acik: true },
+    { deger: 3, renk: 'kupa', acik: true },
+    { deger: 4, renk: 'karo', acik: true },
+    { deger: 5, renk: 'sinek', acik: true },
+  ]
+  esit('hücreler doluyken kapasite 1', f.tasimaKapasitesi(), 1)
+  f.sutunlar[0] = [
+    { deger: 9, renk: 'maca', acik: true },
+    { deger: 8, renk: 'kupa', acik: true },
+  ]
+  f.sutunlar[1] = [{ deger: 10, renk: 'karo', acik: true }]
+  esit('kapasite aşılınca taşınmaz', f.tasi({ tur: 'sutun', index: 0 }, { tur: 'sutun', index: 1 }, 0), false)
+  esit('tahta değişmedi', f.sutunlar[0].length, 2)
+}
+
+{
+  // Hücreye ve temele yalnız tek kart girer
+  const f = new FreeCell(tohumlu(23))
+  f.sutunlar[0] = [
+    { deger: 9, renk: 'maca', acik: true },
+    { deger: 8, renk: 'kupa', acik: true },
+  ]
+  f.hucreler = [null, null, null, null]
+  esit('hücreye çoklu girmez', f.tasi({ tur: 'sutun', index: 0 }, { tur: 'hucre', index: 0 }, 0), false)
+  esit('hücreye tek kart girer', f.tasi({ tur: 'sutun', index: 0 }, { tur: 'hucre', index: 0 }), true)
+  esit('hücre doldu', f.hucreler[0]?.deger, 8)
+}
+
+{
+  // Kaynak ile hedef aynıysa taşıma olmaz
+  const f = new FreeCell(tohumlu(29))
+  esit('aynı yere taşıma yok', f.tasi({ tur: 'sutun', index: 2 }, { tur: 'sutun', index: 2 }), false)
 }
 
 if (hatalar.length) {

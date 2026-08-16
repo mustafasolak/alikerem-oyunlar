@@ -4,8 +4,17 @@
  */
 
 import { ayniRenkSira, desteYap, type Kart } from '../../../shared/motorlar/Iskambil.ts'
+import { GeriAlmaYigini } from '../../../shared/motorlar/GeriAlma.ts'
 import { type Uretec } from '../../../shared/rastgele.ts'
 import { SUTUN_SAYISI } from '../config/constants.ts'
+
+/** Geri alma için saklanan tam durum. */
+interface Durum {
+  sutunlar: Kart[][]
+  deste: Kart[]
+  tamamlanan: number
+  hamle: number
+}
 
 export class Spider {
   sutunlar: Kart[][] = []
@@ -14,10 +23,35 @@ export class Spider {
   hamle = 0
 
   private readonly random: Uretec
+  private readonly gecmis = new GeriAlmaYigini<Durum>()
 
   constructor(random: Uretec = Math.random) {
     this.random = random
     this.dagit()
+  }
+
+  get geriAlinabilir(): boolean {
+    return this.gecmis.doluMu
+  }
+
+  private kaydet(): void {
+    this.gecmis.kaydet({
+      sutunlar: this.sutunlar,
+      deste: this.deste,
+      tamamlanan: this.tamamlanan,
+      hamle: this.hamle,
+    })
+  }
+
+  /** Son hamleyi geri alır; geri alma da bir hamle sayılır. */
+  geriAl(): boolean {
+    const onceki = this.gecmis.al()
+    if (!onceki) return false
+    this.sutunlar = onceki.sutunlar
+    this.deste = onceki.deste
+    this.tamamlanan = onceki.tamamlanan
+    this.hamle = onceki.hamle + 1
+    return true
   }
 
   get bitti(): boolean {
@@ -41,6 +75,7 @@ export class Spider {
     this.deste = kartlar.slice(sira)
     this.tamamlanan = 0
     this.hamle = 0
+    this.gecmis.temizle()
   }
 
   /** Sütundaki kart indeksinden itibaren inen dizi taşınabilir mi? */
@@ -63,6 +98,7 @@ export class Spider {
       if (!ust.acik || tasinan[0].deger !== ust.deger - 1) return false
     }
 
+    this.kaydet()
     this.sutunlar[kaynak].splice(kartIndex)
     hedefSutun.push(...tasinan)
     const kalan = this.sutunlar[kaynak]
@@ -91,6 +127,7 @@ export class Spider {
   desteDagit(): boolean {
     if (this.deste.length < SUTUN_SAYISI) return false
     if (this.sutunlar.some((s) => s.length === 0)) return false
+    this.kaydet()
     for (let s = 0; s < SUTUN_SAYISI; s++) {
       const kart = this.deste.pop()!
       kart.acik = true

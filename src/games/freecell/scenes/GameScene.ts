@@ -11,6 +11,8 @@ import {
   GAME_WIDTH,
   KART_ARALIK,
   KART_GENISLIK,
+  YAZI_KENAR,
+  YAZI_UST,
   KART_YUKSEKLIK,
   KAYMA,
   SUTUN_SAYISI,
@@ -23,7 +25,7 @@ import { FreeCell, type Konum } from '../systems/FreeCell.ts'
 export class GameScene extends TemelSahne {
   private readonly oyun = new FreeCell()
   private katman!: Phaser.GameObjects.Container
-  private secili: Konum | null = null
+  private secili: { konum: Konum; kartIndex?: number } | null = null
 
   constructor() {
     super('freecell')
@@ -41,6 +43,7 @@ export class GameScene extends TemelSahne {
     setChip('foundation', '0/52')
     setChip('moves', 0)
     this.skorGoster(0)
+    this.geriAlDugmesi(() => this.geriAl())
     this.ciz()
   }
 
@@ -63,30 +66,41 @@ export class GameScene extends TemelSahne {
 
     for (let i = 0; i < SUTUN_SAYISI; i++) {
       if (Math.abs(p.worldX - this.sutunX(i)) > KART_GENISLIK / 2) continue
-      this.hedef({ tur: 'sutun', index: i })
+      this.hedef({ tur: 'sutun', index: i }, this.kartIndexBul(i, p.worldY))
       return
     }
   }
 
-  private hedef(konum: Konum): void {
+  /** Sütunda dokunulan kartın indeksi; kartlar KAYMA kadar üst üste biner. */
+  private kartIndexBul(sutunIndex: number, y: number): number {
+    const sutun = this.oyun.sutunlar[sutunIndex]
+    if (sutun.length === 0) return 0
+    const ham = Math.floor((y - SUTUN_UST) / KAYMA)
+    return Math.min(Math.max(ham, 0), sutun.length - 1)
+  }
+
+  private hedef(konum: Konum, kartIndex?: number): void {
     if (!this.secili) {
-      if (this.oyun.ustKart(konum)) {
-        this.secili = konum
+      // Sıralı olmayan bir grup seçilemez; tek kart her zaman seçilebilir
+      if (this.oyun.alinacak(konum, kartIndex)) {
+        this.secili = { konum, kartIndex }
         sesler.tik()
         this.ciz()
+      } else {
+        sesler.yanlis()
       }
       return
     }
 
     // Aynı yere tekrar dokunmak temele göndermeyi dener
-    if (this.secili.tur === konum.tur && this.secili.index === konum.index) {
+    if (this.secili.konum.tur === konum.tur && this.secili.konum.index === konum.index) {
       if (this.oyun.temeleGonder(konum)) sesler.dogru()
       this.secili = null
       this.sonrasi()
       return
     }
 
-    if (!this.oyun.tasi(this.secili, konum)) {
+    if (!this.oyun.tasi(this.secili.konum, konum, this.secili.kartIndex)) {
       sesler.yanlis()
       this.secili = null
       this.ciz()
@@ -97,7 +111,17 @@ export class GameScene extends TemelSahne {
     this.sonrasi()
   }
 
+  /** Son hamleyi geri alır. Geri alma da bir hamle sayılır. */
+  private geriAl(): void {
+    if (this.bitti || !this.oyun.geriAlinabilir) return
+    if (!this.oyun.geriAl()) return
+    sesler.kaydir()
+    this.secili = null
+    this.sonrasi()
+  }
+
   private sonrasi(): void {
+    this.geriAlDurumu(this.oyun.geriAlinabilir)
     setChip('foundation', `${this.oyun.temeldekiKart}/52`)
     setChip('moves', this.oyun.hamle)
     this.skorGoster(skorHesapla(this.oyun.temeldekiKart, this.oyun.hamle))
@@ -117,31 +141,35 @@ export class GameScene extends TemelSahne {
     if (!kart) return
     this.katman.add(
       this.add
-        .text(x, y + KART_YUKSEKLIK / 2, kartYazisi(kart), {
+        // Gerçek iskambil gibi sol üst köşe: kartlar üst üste binince de okunur
+        .text(x - KART_GENISLIK / 2 + YAZI_KENAR, y + YAZI_UST, kartYazisi(kart), {
           fontFamily: FONT_FAMILY,
           fontSize: '17px',
           fontStyle: 'bold',
           color: kirmiziMi(kart.renk) ? COLORS.KIRMIZI : COLORS.SIYAH,
         })
-        .setOrigin(0.5),
+        .setOrigin(0, 0.5),
     )
   }
 
   private ciz(): void {
     this.katman.removeAll(true)
     for (let i = 0; i < 4; i++) {
-      this.kartCiz(this.sutunX(i), UST_SIRA_Y, this.oyun.hucreler[i], this.secili?.tur === 'hucre' && this.secili.index === i)
+      this.kartCiz(this.sutunX(i), UST_SIRA_Y, this.oyun.hucreler[i], this.secili?.konum.tur === 'hucre' && this.secili.konum.index === i)
       this.kartCiz(this.sutunX(4 + i), UST_SIRA_Y, this.oyun.temeller[i].at(-1) ?? null)
     }
     for (let i = 0; i < SUTUN_SAYISI; i++) {
       const sutun = this.oyun.sutunlar[i]
       if (sutun.length === 0) {
-        this.kartCiz(this.sutunX(i), SUTUN_UST, null, this.secili?.tur === 'sutun' && this.secili.index === i)
+        this.kartCiz(this.sutunX(i), SUTUN_UST, null, this.secili?.konum.tur === 'sutun' && this.secili.konum.index === i)
         continue
       }
+      const seciliBas =
+        this.secili?.konum.tur === 'sutun' && this.secili.konum.index === i
+          ? (this.secili.kartIndex ?? sutun.length - 1)
+          : -1
       sutun.forEach((kart, k) => {
-        const secili = this.secili?.tur === 'sutun' && this.secili.index === i && k === sutun.length - 1
-        this.kartCiz(this.sutunX(i), SUTUN_UST + k * KAYMA, kart, secili)
+        this.kartCiz(this.sutunX(i), SUTUN_UST + k * KAYMA, kart, seciliBas >= 0 && k >= seciliBas)
       })
     }
   }

@@ -13,6 +13,8 @@ import {
   KAPALI_KAYMA,
   KART_ARALIK,
   KART_GENISLIK,
+  YAZI_KENAR,
+  YAZI_UST,
   KART_YUKSEKLIK,
   SUTUN_SAYISI,
   SUTUN_UST,
@@ -42,6 +44,7 @@ export class GameScene extends TemelSahne {
     setChip('foundation', `0/52`)
     setChip('moves', 0)
     this.skorGoster(0)
+    this.geriAlDugmesi(() => this.geriAl())
     this.ciz()
   }
 
@@ -132,7 +135,17 @@ export class GameScene extends TemelSahne {
     this.sonrasi()
   }
 
+  /** Son hamleyi geri alır. Geri alma da bir hamle sayılır. */
+  private geriAl(): void {
+    if (this.bitti || !this.oyun.geriAlinabilir) return
+    if (!this.oyun.geriAl()) return
+    sesler.kaydir()
+    this.secili = null
+    this.sonrasi()
+  }
+
   private sonrasi(): void {
+    this.geriAlDurumu(this.oyun.geriAlinabilir)
     setChip('foundation', `${this.oyun.temeldekiKart}/52`)
     setChip('moves', this.oyun.hamle)
     this.skorGoster(skorHesapla(this.oyun.temeldekiKart, this.oyun.hamle))
@@ -167,13 +180,14 @@ export class GameScene extends TemelSahne {
     if (!kart.acik) return
     this.katman.add(
       this.add
-        .text(x, y + KART_YUKSEKLIK / 2, kartYazisi(kart), {
+        // Gerçek iskambil gibi sol üst köşe: kartlar üst üste binince de okunur
+        .text(x - KART_GENISLIK / 2 + YAZI_KENAR, y + YAZI_UST, kartYazisi(kart), {
           fontFamily: FONT_FAMILY,
           fontSize: '19px',
           fontStyle: 'bold',
           color: kirmiziMi(kart.renk) ? COLORS.KIRMIZI : COLORS.SIYAH,
         })
-        .setOrigin(0.5),
+        .setOrigin(0, 0.5),
     )
   }
 

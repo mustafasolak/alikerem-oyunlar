@@ -7,6 +7,10 @@ export const GAME_PARENT_ID = 'game'
 export const SUTUN_SAYISI = 8
 export const KART_GENISLIK = 56
 export const KART_YUKSEKLIK = 80
+/** Kart yazısının sol üst köşedeki yeri: üst üste binen kartlarda görünen şerit. */
+export const YAZI_KENAR = 7
+export const YAZI_UST = 13
+
 export const KART_ARALIK = 5
 export const UST_SIRA_Y = 20
 export const SUTUN_UST = 130
