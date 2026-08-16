@@ -32,6 +32,8 @@ src/
     ScoreRecorder.ts     # tablo + HUD köprüsü; tur bitince takma ad sorar
     SwipeInput.ts        # dokunmatik kaydırma → yön
     KeyPad.ts            # DOM tuş takımı (harf klavyesi / rakam takımı)
+    TemelSahne.ts        # sahne iskeleti: HUD + skor kaydı + sayaç + bitiş akışı
+    KareIzgara.ts        # kare ızgara görünümü ve imleç→hücre eşlemesi
     Sesler.ts            # WebAudio ile anlık üretilen ses efektleri (dosya yok)
     Sayac.ts             # geçen süre sayacı
     dom.ts               # durum rozeti, buton grubu gibi küçük DOM işleri
@@ -133,8 +135,18 @@ Skorlar sunucuda değil, tarayıcının localStorage'ında tutulur: tablo yalnı
 - [x] Skor tablosuna takma ad
 - [x] Ses efektleri
 
-### Sıradaki oyunlar
-- [ ] Hafıza kartları
+### Lights Out, Hanoi, Mastermind, Hafıza, Wordle, Labirent, Sokoban, Top Sıralama
+- [x] Hepsi oynanabilir, mobil uyumlu, sesli ve skor tablolu
+- [x] Mantık katmanları saf TypeScript ve testli
+
+### Sıradan bekleyen oyunlar (istenen listeden kalanlar)
+- [ ] Connections tarzı kelime gruplama · Eşleştirme Oyunu · Tangram · Nonogram/Picross
+- [ ] Kakuro · Boru Bağlama · Elektrik Devresi · Köprü Kurma · Su Borusu Yönlendirme
+- [ ] Blok Yerleştirme · Rush Hour · Renk Sıralama · Su Şişesi · Match-3 · Candy Crush
+- [ ] Zuma · Bubble Shooter · Mahjong · Solitaire · Spider · FreeCell
+- [ ] Farkları Bul · Gizli Nesne · Resim Tamamlama · Matematik Bulmacası · Sayı Piramidi
+- [ ] Mantık Kapıları · Şifre Çözme · Box Push · Laser Reflection · Aynalarla lazer
+- [ ] Domino · Pentomino · Rubik küpü
 
 ## Skor tasarımı
 Skor tablosu "yüksek olan iyidir" varsayar. Süreye dayalı oyunlarda (Sudoku, Mayın Tarlası,

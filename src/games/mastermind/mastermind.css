@@ -1,0 +1,10 @@
+/* Mastermind: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #f472b6;
+  --game-b: #9d174d;
+  --game-aspect: 0.8214;
+  --chrome: 250px;
+}

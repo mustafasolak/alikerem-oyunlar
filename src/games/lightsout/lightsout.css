@@ -1,0 +1,10 @@
+/* Lights Out: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #facc15;
+  --game-b: #a16207;
+  --game-aspect: 1;
+  --chrome: 250px;
+}
