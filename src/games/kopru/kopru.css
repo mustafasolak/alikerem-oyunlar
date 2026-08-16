@@ -1,0 +1,10 @@
+/* Köprü Kurma: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #38bdf8;
+  --game-b: #0c4a6e;
+  --game-aspect: 1;
+  --chrome: 280px;
+}
