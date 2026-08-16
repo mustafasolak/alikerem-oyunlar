@@ -1,0 +1,10 @@
+/* Şeker Patlatma: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #fb7185;
+  --game-b: #9f1239;
+  --game-aspect: 1;
+  --chrome: 280px;
+}

@@ -1,0 +1,10 @@
+/* Blok Yerleştirme: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #a78bfa;
+  --game-b: #6d28d9;
+  --game-aspect: 0.7286;
+  --chrome: 250px;
+}

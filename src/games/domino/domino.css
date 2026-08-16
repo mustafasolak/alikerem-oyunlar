@@ -1,0 +1,10 @@
+/* Domino Bulmacası: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #fbbf24;
+  --game-b: #92400e;
+  --game-aspect: 1;
+  --chrome: 280px;
+}
