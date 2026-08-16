@@ -6,7 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "katalog": "node --experimental-strip-types betikler/katalog-uret.mjs",
+    "prebuild": "npm run katalog",
+    "predev": "npm run katalog",
+    "kontrol": "npm run katalog && npm run sozlesme && tsc --noEmit",
+    "sozlesme": "node --experimental-strip-types betikler/sozlesme.mjs",
+    "yeni-oyun": "node betikler/yeni-oyun.mjs"
   },
   "devDependencies": {
     "typescript": "~6.0.2",

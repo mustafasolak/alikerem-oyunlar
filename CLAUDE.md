@@ -17,61 +17,60 @@ Hedef: 60 FPS, masaüstü ve mobil tarayıcıda sorunsuz çalışması.
 - `npm run preview` — derlemeyi yerelde test et
 - `npx tsc --noEmit` — tip kontrolü
 
-## Klasör yapısı
+## Mimari
+
+Tek sayfalı yapı. `index.html` bir tanedir; oyunlar `import.meta.glob` ile
+**tembel** yüklenir ve Vite her oyunu kendi parçasına böler. Ana sayfa açılırken
+Phaser inmez (~15 KB), oyun açılınca iner.
+
 ```
-index.html               # ana sayfa (oyun galerisi)
-games/<oyun>/index.html  # her oyunun kendi sayfası
-vite.config.ts           # çok sayfalı build girdileri
+index.html               # tek kabuk
 src/
-  shared/                # bütün oyunların ortak kullandığı parçalar
-    base.css             # site geneli sıfırlama + tasarım değişkenleri
-    game-page.css        # ortak oyun sayfası düzeni (üst bar, skor, katman)
-    games.ts             # oyun kataloğu (ana sayfa kartları buradan üretilir)
-    GameHud.ts           # skor / en iyi / tablo / sonuç katmanı (DOM)
-    Leaderboard.ts       # oyun başına isimli ilk 5 skor (bu cihazda)
-    ScoreRecorder.ts     # tablo + HUD köprüsü; tur bitince takma ad sorar
-    SwipeInput.ts        # dokunmatik kaydırma → yön
-    KeyPad.ts            # DOM tuş takımı (harf klavyesi / rakam takımı)
-    TemelSahne.ts        # sahne iskeleti: HUD + skor kaydı + sayaç + bitiş akışı
-    KareIzgara.ts        # kare ızgara görünümü ve imleç→hücre eşlemesi
-    Gorsel.ts            # katman sırası (KATMAN), hacimli parça/top, nişan izi, seken yol
-  shared/motorlar/       # birden fazla oyunun paylaştığı oyun motorları
-    BoruAgi.ts           # Boru Bağlama, Su Borusu, Elektrik Devresi
-    LazerAgi.ts          # Laser Reflection, Aynalarla Lazer
-    UcluEslestirme.ts    # Match-3, Şeker Patlatma
-    Iskambil.ts          # Solitaire, Spider, FreeCell
-    Sesler.ts            # WebAudio ile anlık üretilen ses efektleri (dosya yok)
-    Sayac.ts             # geçen süre sayacı
-    dom.ts               # durum rozeti, buton grubu gibi küçük DOM işleri
-    rastgele.ts          # karıştırma / seçme (üreteç dışarıdan verilebilir)
-    kelimeler.ts         # Türkçe kelime + ipucu sözlüğü (kelime oyunları)
-    safeStorage.ts       # localStorage sarmalayıcı (gizli sekmede çökmez)
-  home/                  # ana sayfa kodu ve stili
-  games/<oyun>/
-    main.ts              # Phaser config, oyun başlatma
-    <oyun>.css           # sadece o oyunun rengi ve tuval oranı (--game-a/b, --game-aspect)
-    scenes/              # her sahne ayrı dosya
-    systems/             # oyun mantığı ve kayıt
-    config/constants.ts  # sabitler: ölçü, süre, renk, kurallar
-public/assets/           # görsel ve ses dosyaları
+  main.ts                # yönlendirici + tembel sayfalar
+  cekirdek/
+    tanim.ts             # OyunTanimi tipi + tanim() yardımcısı
+    OyunKabugu.ts        # oyun sayfası arayüzünü `arayuz` bildiriminden üretir
+    yonlendirici.ts      # hash yönlendirici (#/ ve #/oyun/<id>)
+    yukleyiciler.ts      # import.meta.glob — oyun modülü haritası
+    tercihler.ts         # favoriler, son oynananlar
+    site.ts
+  sayfalar/
+    KatalogSayfasi.ts    # arama, kategori, favori, sayfalı liste
+    OyunSayfasi.ts       # kabuk + Phaser yaşam döngüsü (destroy dahil)
+  uretilmis/katalog.ts   # OTOMATİK — npm run katalog
+  shared/                # ortak modüller (HUD, ses, görsel, motorlar…)
+  games/<id>/
+    oyun.ts              # TEK kayıt noktası: üstveri + arayüz + tembel sahne
+    config/constants.ts
+    systems/*.ts
+    scenes/GameScene.ts
+public/games/<id>/       # eski adresler için yönlendirme (üretilir)
+betikler/
+  katalog-uret.mjs       # oyun.ts dosyalarını tarayıp katalog yazar
+  sozlesme.mjs           # tanım denetimi (kimlik, kategori, tuval, rozet)
+  yeni-oyun.mjs          # iskele
 ```
 
-Yeni oyun yazarken HUD, kaydırma ve depolama için `src/shared/` içindekileri kullan;
-oyuna özel kodu tekrar yazma. Bütün oyun sayfaları aynı DOM id'lerini paylaşır
-(`#score`, `#best`, `#best-name`, `#restart`, `#overlay`, `#overlay-form`, `#overlay-name`,
-`#scoreboard`, `#game`, `#game-stage`).
+## Yeni oyun eklemek
 
-Skorlar sunucuda değil, tarayıcının localStorage'ında tutulur: tablo yalnızca o cihazda geçerlidir.
+```
+npm run yeni-oyun -- <id> <kategori>
+```
 
-## Yeni oyun ekleme adımları
-1. `games/<oyun>/index.html` oluştur — mevcut bir oyun sayfasını kopyala, id'ler aynı kalsın;
-   script etiketi `../../src/games/<oyun>/main.ts` göstersin.
-2. `src/games/<oyun>/` altına main.ts + config/scenes/systems iskeletini kur.
-   `<oyun>.css` yalnızca `@import '../../shared/game-page.css'` ve başlık renklerini içersin.
-3. `vite.config.ts` içindeki `rollupOptions.input`'a girdiyi ekle.
-4. `src/shared/games.ts` içine katalog kaydını ekle (`status: 'ready'`).
+Klasör açılır, gerisi otomatik: katalog kaydı, sayfa kabuğu, adres, kart.
+**Elle kayıt tutulan hiçbir liste yok.** Kategoriler: arcade · mantik · kelime ·
+kagit · dikkat · yerlestirme.
+
+## Komutlar
+- `npm run dev` — geliştirme sunucusu (katalog otomatik üretilir)
+- `npm run build` — üretim derlemesi
+- `npm run kontrol` — katalog + sözleşme testi + tip kontrolü
+- `npm run katalog` — kataloğu yeniden üret
+- `npm run sozlesme` — oyun tanımlarını denetle
 
 ## Kod kuralları
+- Oyun klasöründe HTML ya da CSS bulunmaz; sayfa arayüzü `oyun.ts` içindeki
+  `arayuz` bildiriminden üretilir, renkler `renk` alanından gelir.
 - Sihirli sayı yok. Tüm ayarlanabilir değerler ilgili oyunun `config/constants.ts` dosyasında adlandırılmış sabit olsun.
 - Her sahne kendi dosyasında; sahne dosyaları 300 satırı geçerse sistemlere böl.
 - Oyun mantığı Phaser'a mümkün olduğunca az bağlı olsun (test edilebilirlik için).
