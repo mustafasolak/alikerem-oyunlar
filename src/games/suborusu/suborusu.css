@@ -1,0 +1,10 @@
+/* Su Borusu Yönlendirme: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #38bdf8;
+  --game-b: #0369a1;
+  --game-aspect: 1;
+  --chrome: 290px;
+}

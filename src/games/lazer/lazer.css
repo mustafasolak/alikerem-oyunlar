@@ -1,0 +1,10 @@
+/* Laser Reflection: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #f87171;
+  --game-b: #b91c1c;
+  --game-aspect: 1;
+  --chrome: 290px;
+}

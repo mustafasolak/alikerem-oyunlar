@@ -1,0 +1,10 @@
+/* Aynalarla Lazer: sayfa rengi, tuval oranı ve tuval dışı arayüz payı */
+
+@import '../../shared/game-page.css';
+
+:root {
+  --game-a: #c084fc;
+  --game-b: #6b21a8;
+  --game-aspect: 1;
+  --chrome: 290px;
+}
