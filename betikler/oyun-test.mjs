@@ -9,6 +9,7 @@
 import { Board2048 } from '../src/games/game2048/systems/Board2048.ts'
 import { FreeCell } from '../src/games/freecell/systems/FreeCell.ts'
 import { Klondike } from '../src/games/solitaire/systems/Klondike.ts'
+import { Mahjong } from '../src/games/mahjong/systems/Mahjong.ts'
 import { Spider } from '../src/games/orumcek/systems/Spider.ts'
 import { Minesweeper } from '../src/games/mayin/systems/Minesweeper.ts'
 import { SudokuGame } from '../src/games/sudoku/systems/SudokuGame.ts'
@@ -414,6 +415,62 @@ function tohumlu(tohum) {
   // Kaynak ile hedef aynıysa taşıma olmaz
   const f = new FreeCell(tohumlu(29))
   esit('aynı yere taşıma yok', f.tasi({ tur: 'sutun', index: 2 }, { tur: 'sutun', index: 2 }), false)
+}
+
+// --- Mahjong: katmanlı tahta ---
+{
+  const m = new Mahjong(tohumlu(101))
+  esit('taş sayısı çift', m.toplam % 2, 0)
+  esit('üç kat var', new Set(m.taslar.map((t) => t.kat)).size, 3)
+  kontrol('üstü kapalı taş var', m.taslar.some((_, i) => m.kapaliMi(i)))
+  kontrol('kapalı taş serbest değil', m.taslar.every((_, i) => !(m.kapaliMi(i) && m.serbestMi(i))))
+
+  // Üst kattaki sıranın yalnız uçları serbesttir; ortadakilerin iki yanı da dolu
+  const enUst = m.taslar.filter((t) => t.kat === 2).sort((a, b) => a.sutun - b.sutun)
+  kontrol('üst katın uçları serbest', m.serbestMi(m.taslar.indexOf(enUst[0])) && m.serbestMi(m.taslar.indexOf(enUst.at(-1))))
+  kontrol('üst katın ortası kapalı değil ama serbest de değil', !m.serbestMi(m.taslar.indexOf(enUst[1])))
+
+  // Simgeler çift çift
+  const sayim = new Map()
+  for (const t of m.taslar) sayim.set(t.simge, (sayim.get(t.simge) ?? 0) + 1)
+  kontrol('her simge çift sayıda', [...sayim.values()].every((n) => n % 2 === 0))
+}
+
+{
+  // Üretilen tahta çözülebilir olmalı: ipucu çiftlerini oynayarak bitir
+  for (const tohum of [7, 23, 88, 404]) {
+    const m = new Mahjong(tohumlu(tohum))
+    let adim = 0
+    while (!m.bitti && adim < 200) {
+      const cift = m.ipucuCifti()
+      if (!cift) break
+      m.sec(cift[0])
+      m.sec(cift[1])
+      adim++
+    }
+    kontrol(`tohum ${tohum}: tahta çözüldü`, m.bitti, `kalan ${m.kalan}`)
+  }
+}
+
+{
+  // Seçim akışı
+  const m = new Mahjong(tohumlu(55))
+  const serbest = m.serbestIndexler()
+  esit('serbest taş var', serbest.length > 0, true)
+  esit('ilk dokunuş seçer', m.sec(serbest[0]), 'secildi')
+  esit('aynısına dokunmak iptal eder', m.sec(serbest[0]), 'iptal')
+
+  const cift = m.ipucuCifti()
+  if (cift) {
+    m.sec(cift[0])
+    esit('eşleşen çift kalkar', m.sec(cift[1]), 'eslesti')
+    kontrol('taşlar alındı', m.taslar[cift[0]].alindi && m.taslar[cift[1]].alindi)
+    esit('çift sayacı arttı', m.eslesenCift, 1)
+  }
+
+  // Kapalı taşa dokunmak iş görmez
+  const kapali = m.taslar.findIndex((t, i) => !t.alindi && m.kapaliMi(i))
+  if (kapali >= 0) esit('kapalı taş seçilemez', m.sec(kapali), 'yok')
 }
 
 if (hatalar.length) {

@@ -5,12 +5,12 @@ export default tanim({
   ad: "Mahjong",
   ozet: "Kenarı açık aynı taşları eşleştirip tahtayı boşalt.",
   aciklama: "Serbest taşları ikişer ikişer eşleştir.",
-  ipucu: "Kenarı açık taşlara dokun · aynı iki taş birlikte kalkar",
+  ipucu: "Üstü açık ve yanı boş taşlara dokun · aynı iki taş birlikte kalkar · takılırsan <b>İpucu</b>",
   emoji: '🀄',
   kategori: 'kagit',
   etiketler: ['Eşleştirme', 'Sakin'],
   renk: ['#4ade80', '#166534'],
-  tuval: { genislik: 510, yukseklik: 450, disPay: 270 },
+  tuval: { genislik: 510, yukseklik: 470, disPay: 300 },
   arayuz: {
     rozetler: [
       {
@@ -23,7 +23,8 @@ export default tanim({
         id: "timer",
         baslangic: "0:00"
       }
-    ]
+    ],
+    pad: [{ etiket: '💡 İpucu', deger: 'ipucu' }]
   },
   sahne: () => import('./scenes/GameScene.ts'),
 })
