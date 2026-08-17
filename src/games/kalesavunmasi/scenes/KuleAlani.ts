@@ -53,6 +53,9 @@ interface Dugme extends Kutu {
 /** Fiyat etiketindeki altın parasının yarıçapı. */
 const PARA_R = 5
 
+/** "Okçu Kulesi" → "Okçu": menü satırı dar, uzun ad taşıyor. */
+const kisaAd = (ad: string): string => ad.replace(' Kulesi', '')
+
 const icinde = (kutu: Kutu, x: number, y: number): boolean =>
   x >= kutu.x1 && x <= kutu.x2 && y >= kutu.y1 && y <= kutu.y2
 
@@ -287,6 +290,14 @@ export class KuleAlani {
     // Okçu: mazgalın arkasından görünen baş
     kule3.add(this.scene.add.circle(x, mazgalHatti - 1, 4, COLORS.MIZRAKCI_TEN))
 
+    // Tip işareti: bombacıda gülle, büyücüde parlayan küre
+    if (bilgi.alan > 0) {
+      kule3.add(this.scene.add.circle(x, mazgalHatti - g.cati - 12, 6, koyuTon(bilgi.renk, 0.45)))
+    } else if (bilgi.zirhDelici) {
+      kule3.add(this.scene.add.circle(x, mazgalHatti - g.cati - 13, 7, acikTon(bilgi.renk, 0.55)).setAlpha(0.9))
+      kule3.add(this.scene.add.circle(x, mazgalHatti - g.cati - 13, 3, 0xffffff).setAlpha(0.85))
+    }
+
     if (g.cati > 0) {
       kule3.add(
         this.scene.add.triangle(x, mazgalHatti - 8, -g.en / 2 - 2, 0, 0, -g.cati, g.en / 2 + 2, 0, COLORS.KULE_CATI),
@@ -361,7 +372,7 @@ export class KuleAlani {
       const bilgi = KULE_TIPLERI[kule.tip]
       this.menuKap.add(
         this.scene.add
-          .text(merkezX, baslikY, `${bilgi.ad} · Lv${kule.seviye}/${KULE_MAX_SEVIYE}`, {
+          .text(merkezX, baslikY, `${kisaAd(bilgi.ad)} · Lv${kule.seviye}/${KULE_MAX_SEVIYE}`, {
             fontFamily: FONT_FAMILY,
             fontSize: '12px',
             color: '#e2e8f0',
@@ -380,7 +391,17 @@ export class KuleAlani {
       const alinabilir = altin >= fiyat
 
       this.satirZemini(merkezX, y, alinabilir ? bilgi.renk : COLORS.MENU_PARA_YOK, alinabilir)
-      this.paraEtiketi(this.menuKap, merkezX, y, `${bilgi.ad} · ${fiyat}`, alinabilir ? '#f8fafc' : '#cbd5e1', '11px')
+      this.paraEtiketi(this.menuKap, merkezX, y - 6, `${kisaAd(bilgi.ad)} · ${fiyat}`, alinabilir ? '#f8fafc' : '#cbd5e1', '11px')
+      // Ne yaptığı da yazsın: üç tipin farkı menüden okunsun.
+      this.menuKap.add(
+        this.scene.add
+          .text(merkezX, y + 8, bilgi.ozet, {
+            fontFamily: FONT_FAMILY,
+            fontSize: '9px',
+            color: alinabilir ? '#e2e8f0' : '#94a3b8',
+          })
+          .setOrigin(0.5),
+      )
       this.dugmeEkle(merkezX, y, tip, alinabilir, 'al')
     }
   }

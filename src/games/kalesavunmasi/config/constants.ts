@@ -6,29 +6,29 @@
  * yürür. Yukarı yön eksi y'dir, açılar derece cinsindendir (0 = sağa yatay).
  */
 
-export const GAME_WIDTH = 540
+export const GAME_WIDTH = 720
 /** Bu genişlikten itibaren paneller açık başlar (tablet ve masaüstü). */
 export const GENIS_EKRAN_ESIGI = 900
-export const GAME_HEIGHT = 400
+export const GAME_HEIGHT = 430
 
 export const FONT_FAMILY = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
 
 // --- Yerleşim ---
 
 /** Canavarların ayak bastığı hat — toprak yolun ortası. */
-export const ZEMIN_Y = 360
-export const KALE_GENISLIK = 104
+export const ZEMIN_Y = 384
+export const KALE_GENISLIK = 112
 /** Kale duvarının tepesi; mızrakçı burada durur. */
 export const KALE_UST_Y = 150
 /** Canavar duvarın bu kadar önünde durup vurmaya başlar. */
-export const DURAK_X = KALE_GENISLIK + 20
+export const DURAK_X = KALE_GENISLIK + 22
 /** Canavarlar ekranın bu kadar sağında doğar. */
 export const DOGUS_X = GAME_WIDTH + 34
 /** Mızrak bu kadar sağa geçince silinir. */
 export const MIZRAK_TASMA = 60
 
 /** Mızrağın çıktığı el. */
-export const MIZRAK_CIKIS_X = 84
+export const MIZRAK_CIKIS_X = 92
 export const MIZRAK_CIKIS_Y = KALE_UST_Y - 26
 
 // --- Mızrak ---
@@ -459,6 +459,8 @@ export function dalgaOdulCarpani(dalga: number): number {
 
 export interface KuleTipi {
   ad: string
+  /** Dükkânda görünen kısa açıklama. */
+  ozet: string
   /** Seviye başına fiyat: [0] satın alma, sonrası yükseltme. */
   fiyat: number[]
   /** Seviye başına atış hasarı. */
@@ -468,6 +470,14 @@ export interface KuleTipi {
   /** Seviye başına yatay menzil (piksel). */
   menzil: number[]
   renk: number
+  /** Alan hasarı yarıçapı; 0 ise tek hedef vurur. */
+  alan: number
+  /** Zırhı yok sayar mı? (büyücü) */
+  zirhDelici: boolean
+  /** Vurduğunu yavaşlatır mı? (büyücü) */
+  yavaslatir: boolean
+  /** Atışın görünümü. */
+  atisTuru: 'ok' | 'bomba' | 'buyu'
 }
 
 /** Oyuncu ilk kuleyi hemen kurabilsin: mekanik ilk saniyede görünür olsun. */
@@ -476,20 +486,55 @@ export const BASLANGIC_ALTIN = 45
 export const KULE_TIPLERI: KuleTipi[] = [
   {
     ad: 'Okçu Kulesi',
+    ozet: 'hızlı, tek hedef',
     fiyat: [45, 80, 130, 200, 300, 440, 640, 900, 1250, 1700, 2300, 3100],
     hasar: [1, 2, 3, 4, 6, 8, 11, 15, 20, 26, 34, 44],
     aralikMs: [1200, 950, 750, 600, 470, 400, 340, 290, 250, 220, 196, 176],
     menzil: [190, 225, 260, 295, 335, 370, 405, 440, 470, 495, 518, 540],
     renk: 0x0ea5e9,
+    alan: 0,
+    zirhDelici: false,
+    yavaslatir: false,
+    atisTuru: 'ok',
+  },
+  {
+    // Bombacı: yavaş ama düştüğü yerin çevresindeki herkesi vurur.
+    // Kalabalık dalgada okçudan çok daha verimli.
+    ad: 'Bombacı Kulesi',
+    ozet: 'yavaş, alan hasarı',
+    fiyat: [110, 180, 280, 420, 620, 880, 1240, 1700, 2300, 3050, 4000, 5200],
+    hasar: [3, 5, 7, 10, 14, 19, 25, 33, 43, 55, 70, 88],
+    aralikMs: [2400, 2100, 1850, 1650, 1480, 1330, 1200, 1090, 990, 900, 820, 750],
+    menzil: [170, 200, 230, 260, 290, 320, 350, 380, 405, 430, 452, 472],
+    renk: 0xea580c,
+    alan: 62,
+    zirhDelici: false,
+    yavaslatir: false,
+    atisTuru: 'bomba',
+  },
+  {
+    // Büyücü: zırhı yok sayar ve vurduğunu yavaşlatır.
+    // Zırhlı ve golem karşısındaki kule cevabı.
+    ad: 'Büyücü Kulesi',
+    ozet: 'zırhı geçer, yavaşlatır',
+    fiyat: [150, 240, 370, 550, 800, 1130, 1560, 2100, 2800, 3700, 4800, 6200],
+    hasar: [2, 4, 6, 9, 12, 16, 21, 27, 35, 45, 57, 72],
+    aralikMs: [1700, 1520, 1370, 1240, 1130, 1030, 950, 880, 820, 770, 725, 690],
+    menzil: [200, 235, 270, 305, 340, 375, 410, 445, 478, 508, 535, 560],
+    renk: 0x8b5cf6,
+    alan: 0,
+    zirhDelici: true,
+    yavaslatir: true,
+    atisTuru: 'buyu',
   },
 ]
 
 export const KULE_MAX_SEVIYE = 12
 
 /** Kule yuvalarının x konumları — kalenin sağında, yolun arkasındaki çimde. */
-export const KULE_YUVALARI = [176, 300, 424]
+export const KULE_YUVALARI = [178, 292, 406, 520, 634]
 /** Kulelerin oturduğu hat. */
-export const KULE_TABAN_Y = 320
+export const KULE_TABAN_Y = 342
 /** Yuva tabanındaki taş platform. */
 export const YUVA_EN = 38
 export const YUVA_BOY = 9
@@ -552,7 +597,7 @@ export function kuleTepeY(seviye: number): number {
 }
 
 /** Dükkân kutusu ölçüleri. */
-export const MENU_EN = 138
+export const MENU_EN = 186
 export const MENU_BASLIK_BOY = 22
 export const MENU_SATIR_BOY = 34
 /** Kutunun kule tepesinden yukarı payı. */
@@ -609,7 +654,15 @@ export const OTOMATIK_BEKLEME_ORANI = 1.7
 /** Otomatik nişan açı taramasının adımı (derece). Küçük olursa daha isabetli, daha pahalı. */
 export const OTOMATIK_ACI_ADIMI = 3
 
-export type YukseltmeTuru = 'tamir' | 'hasar' | 'hiz' | 'kale' | 'element' | 'otomatik'
+export type YukseltmeTuru =
+  | 'tamir'
+  | 'hasar'
+  | 'hiz'
+  | 'kale'
+  | 'kritiksans'
+  | 'kritikhasar'
+  | 'element'
+  | 'otomatik'
 
 export interface Yukseltme {
   id: string
@@ -624,6 +677,17 @@ export interface Yukseltme {
   tur: YukseltmeTuru
   element?: Element
 }
+
+/**
+ * Kritik vuruş: mızrak bazen fazladan hasar verir.
+ * Taban şans ve çarpan burada; yükseltmeler bunları büyütür.
+ */
+export const KRITIK_TABAN_SANS = 0.05
+export const KRITIK_SANS_BONUSU = 0.04
+export const KRITIK_TABAN_CARPAN = 2
+export const KRITIK_CARPAN_BONUSU = 0.25
+/** Kritik şansı bu oranı geçmesin; her vuruş kritik olmasın. */
+export const KRITIK_MAX_SANS = 0.6
 
 /** Duvar tamiri bir seferde ne kadar can verir. */
 export const TAMIR_MIKTARI = 8
@@ -648,7 +712,7 @@ export const YUKSELTMELER: Yukseltme[] = [
     id: 'hasar',
     etiket: '⚔️ Mızrak hasarı',
     ozet: `her seviyede +${HASAR_BONUSU} hasar`,
-    maxSeviye: 12,
+    maxSeviye: 20,
     fiyat: 70,
     fiyatArtisi: 1.55,
     tur: 'hasar',
@@ -657,7 +721,7 @@ export const YUKSELTMELER: Yukseltme[] = [
     id: 'hiz',
     etiket: '⚡ Atış hızı',
     ozet: 'her seviyede bekleme %12 kısa',
-    maxSeviye: 10,
+    maxSeviye: 14,
     fiyat: 60,
     fiyatArtisi: 1.55,
     tur: 'hiz',
@@ -666,10 +730,28 @@ export const YUKSELTMELER: Yukseltme[] = [
     id: 'kale',
     etiket: '🛡 Kale duvarı',
     ozet: `her seviyede +${KALE_BONUSU} azami can`,
-    maxSeviye: 10,
+    maxSeviye: 20,
     fiyat: 90,
     fiyatArtisi: 1.5,
     tur: 'kale',
+  },
+  {
+    id: 'kritiksans',
+    etiket: '🎯 Kritik şans',
+    ozet: `her seviyede +%${Math.round(KRITIK_SANS_BONUSU * 100)} kritik şansı`,
+    maxSeviye: 12,
+    fiyat: 120,
+    fiyatArtisi: 1.5,
+    tur: 'kritiksans',
+  },
+  {
+    id: 'kritikhasar',
+    etiket: '💥 Kritik hasar',
+    ozet: `her seviyede kritik çarpanı +${KRITIK_CARPAN_BONUSU}`,
+    maxSeviye: 10,
+    fiyat: 150,
+    fiyatArtisi: 1.5,
+    tur: 'kritikhasar',
   },
   {
     id: 'otomatik',
@@ -795,8 +877,12 @@ export const CAN_BAR_BOY = 9
 /** Bu oranın altında bar kırmızıya döner. */
 export const CAN_BAR_AZ_ORAN = 0.35
 
-/** Canavar başındaki küçük can barı. */
-export const CANAVAR_BAR_BOY = 4
+/** Canavar başındaki küçük can barı — her zaman görünür. */
+export const CANAVAR_BAR_BOY = 5
+/** Hasar sayısının yükselip söndüğü süre. */
+export const HASAR_YAZI_MS = 620
+/** Kritik hasar yazısı bu kadar büyük çıkar. */
+export const KRITIK_YAZI_OLCEK = 1.6
 
 // --- Arka plan ---
 
@@ -880,13 +966,13 @@ export function vakitIndeksi(dalga: number): number {
 /** Gökyüzü geçişi kaç banda bölünsün — az olursa bantlar çizgi çizgi görünür. */
 export const GOK_BANT = 28
 /** Dağ tabanı (ufuk). */
-export const UFUK_Y = 250
+export const UFUK_Y = 262
 /** Tepe tabanı. */
-export const TEPE_Y = 306
+export const TEPE_Y = 328
 /** Çim şeridinin üst kenarı; gökyüzü buraya kadar iner. */
-export const CIM_UST_Y = 312
+export const CIM_UST_Y = 334
 /** Toprak yolun üst kenarı — canavarlar bu bandın üzerinde yürür. */
-export const YOL_UST_Y = 328
+export const YOL_UST_Y = 350
 
 export const BULUT_ADET = 4
 /** Bulut sürüklenme hızı (piksel/saniye). */

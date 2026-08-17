@@ -169,7 +169,8 @@ Diğer: Mastermind · Labirent · Matematik Bulmacası · Sayı Piramidi
 - [x] Kale Savunması: dünyalar (1000 canavar öldürünce 2. dünya açılır, kalıcı)
 - [x] Kale Savunması: mızrakçı yükseltmeleri (element, otomatik ateş, seviyeli hasar/hız/duvar)
 - [x] Kale Savunması: kolay/orta/zor zorluk seviyeleri
-- [ ] Kale Savunması: Mancınık ve Buz Kulesi (alan hasarı / yavaşlatma)
+- [x] Kale Savunması: kule tipleri (okçu / bombacı-alan / büyücü-zırh delici), 5 yuva
+- [x] Kale Savunması: kritik vuruş, hasar sayıları, sürekli can barları
 - [ ] Kale Savunması: 3. dünya (DUNYALAR tablosuna satır eklemek yeterli)
 - [ ] Mahjong tek katmanlı — gerçek kat yapısı yok
 - [ ] Tangram parçaları hâlâ kare — gerçek tangram parçaları çizilmeli

@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser'
 
-import { KATMAN, nisanIzi } from '../../../shared/Gorsel.ts'
+import { KATMAN, acikTon, koyuTon, nisanIzi } from '../../../shared/Gorsel.ts'
 import { TemelSahne } from '../../../shared/TemelSahne.ts'
 import { sesler } from '../../../shared/Sesler.ts'
 import { butonGrubu, setChip } from '../../../shared/dom.ts'
@@ -15,6 +15,8 @@ import {
   FONT_FAMILY,
   GAME_WIDTH,
   GENIS_EKRAN_ESIGI,
+  HASAR_YAZI_MS,
+  KRITIK_YAZI_OLCEK,
   ISABET_EFEKT_MS,
   KALE_SARSINTI_GUC,
   KALE_SARSINTI_MS,
@@ -240,6 +242,7 @@ export class GameScene extends TemelSahne {
     this.isabetleriIsle(sonuc.isabetler)
     for (const saplanan of sonuc.saplananlar) this.saplananCiz(saplanan.x, saplanan.aci)
     for (const zincir of sonuc.zincirler) this.zincirCiz(zincir)
+    for (const patlama of sonuc.patlamalar) this.patlamaCiz(patlama)
     if (sonuc.kaleVuruldu) this.kaleHasari()
     if (sonuc.kuleAtti) sesler.tik()
     if (sonuc.bitenDalga !== null) this.dalgaBitti(sonuc.bitenDalga)
@@ -454,7 +457,7 @@ export class GameScene extends TemelSahne {
       ucan.add(atis.id)
       let gorunum = this.mizrakGorunumleri.get(atis.id)
       if (!gorunum) {
-        gorunum = atis.tur === 'ok' ? this.okYap() : this.mizrakYap(ELEMENT_RENGI[atis.element])
+        gorunum = atis.tur === 'ok' ? this.kuleAtisiYap(atis) : this.mizrakYap(ELEMENT_RENGI[atis.element])
         this.mizrakKatmani.add(gorunum)
         this.mizrakGorunumleri.set(atis.id, gorunum)
       }
@@ -477,8 +480,26 @@ export class GameScene extends TemelSahne {
     ])
   }
 
-  /** Kule oku: mızraktan kısa, arkasında tüy var. */
-  private okYap(): Phaser.GameObjects.Container {
+  /**
+   * Kule atışı: tipine göre ok, gülle ya da büyü topu.
+   * Tip, atışın taşıdığı özelliklerden anlaşılıyor (alan / zırh delici).
+   */
+  private kuleAtisiYap(atis: { alan: number; zirhDelici: boolean }): Phaser.GameObjects.Container {
+    if (atis.alan > 0) {
+      // Gülle: koyu top + kısa fitil
+      return this.add.container(0, 0, [
+        this.add.circle(0, 0, 6, koyuTon(KULE_TIPLERI[1].renk, 0.35)),
+        this.add.circle(-2, -2, 2.4, acikTon(KULE_TIPLERI[1].renk, 0.5)),
+      ])
+    }
+    if (atis.zirhDelici) {
+      // Büyü topu: parlayan halka + çekirdek
+      return this.add.container(0, 0, [
+        this.add.circle(0, 0, 8, KULE_TIPLERI[2].renk, 0.45),
+        this.add.circle(0, 0, 4.5, acikTon(KULE_TIPLERI[2].renk, 0.6)),
+        this.add.circle(0, 0, 2, 0xffffff),
+      ])
+    }
     return this.add.container(0, 0, [
       this.add.rectangle(-OK_BOY / 2, 0, OK_BOY, OK_KALINLIK, COLORS.OK_SAP).setOrigin(0, 0.5),
       this.add.triangle(OK_BOY / 2, 0, 0, -3, 6, 0, 0, 3, COLORS.OK_UC),
@@ -512,9 +533,13 @@ export class GameScene extends TemelSahne {
       const gorunum = this.canavarGorunumleri.get(isabet.canavarId)
       if (!gorunum) continue
 
+      // Her vuruşta geçen hasar sayı olarak görünsün; kritik daha büyük ve altın.
+      if (isabet.hasar > 0) this.hasarYaz(isabet.x, isabet.y, isabet.hasar, isabet.kritik)
+
       if (!isabet.oldu) {
         gorunum.hasarGoster()
-        sesler.tik()
+        if (isabet.kritik) sesler.dogru()
+        else sesler.tik()
         continue
       }
 
@@ -588,6 +613,40 @@ export class GameScene extends TemelSahne {
       duration: ZINCIR_EFEKT_MS,
       onComplete: () => cizim.destroy(),
     })
+  }
+
+  /** Hasar sayısı: yükselip sönen yazı. Kritik altın ve daha büyük. */
+  private hasarYaz(x: number, y: number, hasar: number, kritik: boolean): void {
+    const yazi = this.add
+      .text(x, y - 6, kritik ? `${hasar}!` : String(hasar), {
+        fontFamily: FONT_FAMILY,
+        fontSize: kritik ? '18px' : '13px',
+        color: kritik ? '#fde047' : '#f8fafc',
+      })
+      .setOrigin(0.5)
+      .setDepth(KATMAN.NISAN)
+      .setScale(kritik ? KRITIK_YAZI_OLCEK : 1)
+    this.tweens.add({
+      targets: yazi,
+      y: y - 34,
+      alpha: 0,
+      scale: 1,
+      duration: HASAR_YAZI_MS,
+      onComplete: () => yazi.destroy(),
+    })
+  }
+
+  /** Bomba patlaması: menzili gösteren büyüyüp sönen halka. */
+  private patlamaCiz(patlama: { x: number; y: number; yaricap: number }): void {
+    const halka = this.add.circle(patlama.x, patlama.y, patlama.yaricap, KULE_TIPLERI[1].renk, 0.3).setDepth(KATMAN.EFEKT)
+    this.tweens.add({
+      targets: halka,
+      scale: 1.35,
+      alpha: 0,
+      duration: ISABET_EFEKT_MS * 1.6,
+      onComplete: () => halka.destroy(),
+    })
+    sesler.patlama()
   }
 
   private isabetEfekti(x: number, y: number): void {

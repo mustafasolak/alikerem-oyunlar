@@ -8,7 +8,7 @@
  */
 
 import { type Uretec } from '../../../shared/rastgele.ts'
-import type { CanavarTipi, Element, Zorluk } from '../config/constants.ts'
+import type { CanavarTipi, Element, KuleTipi, Zorluk } from '../config/constants.ts'
 import {
   ACI_BASLANGIC,
   ACI_MAX,
@@ -20,6 +20,11 @@ import {
   HASAR_BONUSU,
   HIZ_ORANI,
   KALE_BONUSU,
+  KRITIK_CARPAN_BONUSU,
+  KRITIK_MAX_SANS,
+  KRITIK_SANS_BONUSU,
+  KRITIK_TABAN_CARPAN,
+  KRITIK_TABAN_SANS,
   OTOMATIK_ACI_ADIMI,
   OTOMATIK_BEKLEME_ORANI,
   SIMSEK_HASAR,
@@ -110,6 +115,14 @@ export interface Atis {
   tur: 'mizrak' | 'ok'
   /** Mızrağın elementi; ok her zaman 'normal'. */
   element: Element
+  /** Kritik vuruş mu? (atış anında belirlenir) */
+  kritik: boolean
+  /** Alan hasarı yarıçapı; 0 ise tek hedef. */
+  alan: number
+  /** Zırhı yok sayar mı? */
+  zirhDelici: boolean
+  /** Vurduğunu yavaşlatır mı? */
+  yavaslatir: boolean
 }
 
 /** Yuvaya kurulmuş kule. */
@@ -131,6 +144,9 @@ export interface Isabet {
   oldu: boolean
   /** Ölümden kazanılan puan (öldürmediyse 0). */
   puan: number
+  /** Geçen hasar; sahne bunu sayı olarak gösterir. */
+  hasar: number
+  kritik: boolean
 }
 
 /** Bir karede olan biten: sahne bunları görsele çevirir. */
@@ -143,6 +159,8 @@ export interface AdimSonucu {
   kuleAtti: boolean
   /** Şimşeğin atladığı yollar; sahne çizgi çizer. */
   zincirler: { x1: number; y1: number; x2: number; y2: number }[]
+  /** Bomba patlamaları; sahne halka çizer. */
+  patlamalar: { x: number; y: number; yaricap: number }[]
   /** Bu adımda başlayan dalganın numarası (yoksa null). */
   yeniDalga: number | null
   /** Bu adımda tamamlanan dalganın numarası (yoksa null). */
@@ -160,6 +178,7 @@ function bosSonuc(): AdimSonucu {
     kaleVuruldu: false,
     kuleAtti: false,
     zincirler: [],
+    patlamalar: [],
     yeniDalga: null,
     bitenDalga: null,
     oyunBitti: false,
@@ -243,6 +262,16 @@ export class KaleSavunmasi {
     const temel = ATIS_BEKLEME_MS * Math.pow(HIZ_ORANI, this.yukseltmeSeviyesi('hiz'))
     // Otomatik ateş elle atıştan yavaş olsun.
     return Math.round(temel * (this.otomatik ? OTOMATIK_BEKLEME_ORANI : 1))
+  }
+
+  /** Kritik vuruş şansı (0..1). */
+  get kritikSansi(): number {
+    return Math.min(KRITIK_MAX_SANS, KRITIK_TABAN_SANS + this.yukseltmeSeviyesi('kritiksans') * KRITIK_SANS_BONUSU)
+  }
+
+  /** Kritik hasar çarpanı. */
+  get kritikCarpani(): number {
+    return KRITIK_TABAN_CARPAN + this.yukseltmeSeviyesi('kritikhasar') * KRITIK_CARPAN_BONUSU
   }
 
   /** Satın alınmış elementler; normal her zaman var. */
@@ -352,16 +381,22 @@ export class KaleSavunmasi {
     if (!this.calisiyor || !this.atisHazir) return false
     this.beklemeBirikim = 0
     const radyan = (this.aci * Math.PI) / 180
+    // Kritik atış anında belirlenir: uçarken de kritik görünsün.
+    const kritik = this.random() < this.kritikSansi
     this.atislar.push({
       id: this.sonrakiId++,
       x: MIZRAK_CIKIS_X,
       y: MIZRAK_CIKIS_Y,
       vx: Math.cos(radyan) * MIZRAK_HIZI,
       vy: Math.sin(radyan) * MIZRAK_HIZI,
-      hasar: this.mizrakHasari,
+      hasar: kritik ? Math.round(this.mizrakHasari * this.kritikCarpani) : this.mizrakHasari,
       agir: true,
       tur: 'mizrak',
       element: this.element,
+      kritik,
+      alan: 0,
+      zirhDelici: false,
+      yavaslatir: false,
     })
     return true
   }
@@ -593,7 +628,7 @@ export class KaleSavunmasi {
       if (!hedef) continue
 
       kule.atisBirikim = 0
-      this.okAt(kuleX, kule.seviye, hedef, bilgi.hasar[basamak])
+      this.okAt(kuleX, kule.seviye, hedef, bilgi.hasar[basamak], bilgi)
       sonuc.kuleAtti = true
     }
   }
@@ -608,7 +643,7 @@ export class KaleSavunmasi {
     return hedef
   }
 
-  private okAt(kuleX: number, seviye: number, hedef: Canavar, hasar: number): void {
+  private okAt(kuleX: number, seviye: number, hedef: Canavar, hasar: number, tipBilgi: KuleTipi): void {
     const bilgi = this.tipler[hedef.tip]
     // Ok mazgal hattından çıkar; kule yükseldikçe başlangıç da yükselir.
     const baslangicY = kuleAtisY(seviye)
@@ -626,6 +661,10 @@ export class KaleSavunmasi {
       agir: false,
       tur: 'ok',
       element: 'normal',
+      kritik: false,
+      alan: tipBilgi.alan,
+      zirhDelici: tipBilgi.zirhDelici,
+      yavaslatir: tipBilgi.yavaslatir,
     })
   }
 
@@ -755,16 +794,39 @@ export class KaleSavunmasi {
   }
 
   private hasarVer(c: Canavar, m: Atis, sonuc: AdimSonucu): void {
+    this.tekHasar(c, m, m.x, m.y, sonuc)
+    // Bomba: düştüğü yerin çevresindeki herkes de yer.
+    if (m.alan > 0) this.alanHasari(c, m, sonuc)
+    // Ölse de şimşek komşulara atlasın.
+    this.elementUygula(c, m, sonuc)
+  }
+
+  /** Bir canavara atışın hasarını uygular ve olayı yazar. */
+  private tekHasar(c: Canavar, m: Atis, x: number, y: number, sonuc: AdimSonucu): void {
     // Zırh her isabetten sabit hasar yutar ama en az 1 hasar hep geçer.
-    c.can -= Math.max(1, m.hasar - this.tipler[c.tip].zirh)
+    // Zırh delici (büyücü) zırhı tamamen yok sayar.
+    const zirh = m.zirhDelici ? 0 : this.tipler[c.tip].zirh
+    const gecen = Math.max(1, m.hasar - zirh)
+    c.can -= gecen
+    if (m.yavaslatir) c.yavaslikKalan = BUZ_SURE_MS
+
     if (c.can > 0) {
-      sonuc.isabetler.push({ canavarId: c.id, x: m.x, y: m.y, tip: c.tip, oldu: false, puan: 0 })
-      this.elementUygula(c, m, sonuc)
+      sonuc.isabetler.push({ canavarId: c.id, x, y, tip: c.tip, oldu: false, puan: 0, hasar: gecen, kritik: m.kritik })
       return
     }
-    // Ölse de şimşek komşulara atlasın.
-    this.oldur(c, m.y, sonuc)
-    this.elementUygula(c, m, sonuc)
+    this.oldur(c, y, sonuc, gecen, m.kritik)
+  }
+
+  /** Alan hasarı: yarıçap içindeki diğer canavarlar da vurulur. */
+  private alanHasari(merkez: Canavar, m: Atis, sonuc: AdimSonucu): void {
+    const komsular = this.canavarlar.filter(
+      (k) => k !== merkez && Math.abs(k.x - merkez.x) <= m.alan,
+    )
+    for (const komsu of komsular) {
+      const bilgi = this.tipler[komsu.tip]
+      this.tekHasar(komsu, m, komsu.x, canavarAyakY(bilgi) - bilgi.boy / 2, sonuc)
+    }
+    sonuc.patlamalar.push({ x: merkez.x, y: m.y, yaricap: m.alan })
   }
 
   /** Elementin yan etkisi: yakma, yavaşlatma ya da komşulara atlama. */
@@ -790,16 +852,16 @@ export class KaleSavunmasi {
       komsu.can -= Math.max(1, SIMSEK_HASAR - this.tipler[komsu.tip].zirh)
       sonuc.zincirler.push({ x1: c.x, y1: m.y, x2: komsu.x, y2: canavarAyakY(this.tipler[komsu.tip]) - this.tipler[komsu.tip].boy / 2 })
       if (komsu.can > 0) {
-        sonuc.isabetler.push({ canavarId: komsu.id, x: komsu.x, y: m.y, tip: komsu.tip, oldu: false, puan: 0 })
+        sonuc.isabetler.push({ canavarId: komsu.id, x: komsu.x, y: m.y, tip: komsu.tip, oldu: false, puan: 0, hasar: SIMSEK_HASAR, kritik: false })
         continue
       }
-      this.oldur(komsu, m.y, sonuc)
+      this.oldur(komsu, m.y, sonuc, SIMSEK_HASAR, false)
     }
   }
 
   /** Canavarı listeden çıkarır, ödülünü verir ve isabet olayını yazar. */
-  private oldur(c: Canavar, y: number, sonuc: AdimSonucu): void {
-    sonuc.isabetler.push({ canavarId: c.id, x: c.x, y, tip: c.tip, oldu: true, puan: c.puan })
+  private oldur(c: Canavar, y: number, sonuc: AdimSonucu, hasar = 0, kritik = false): void {
+    sonuc.isabetler.push({ canavarId: c.id, x: c.x, y, tip: c.tip, oldu: true, puan: c.puan, hasar, kritik })
     this.skor += c.puan
     this.altin += c.altin
     this.oldurulen++
@@ -821,10 +883,10 @@ export class KaleSavunmasi {
       // Alev zırhı yok sayar: zırhlıya karşı işe yarayan yol bu.
       c.can -= ALEV_HASAR
       if (c.can > 0) {
-        sonuc.isabetler.push({ canavarId: c.id, x: c.x, y: canavarAyakY(this.tipler[c.tip]) - this.tipler[c.tip].boy / 2, tip: c.tip, oldu: false, puan: 0 })
+        sonuc.isabetler.push({ canavarId: c.id, x: c.x, y: canavarAyakY(this.tipler[c.tip]) - this.tipler[c.tip].boy / 2, tip: c.tip, oldu: false, puan: 0, hasar: ALEV_HASAR, kritik: false })
         continue
       }
-      this.oldur(c, canavarAyakY(this.tipler[c.tip]) - this.tipler[c.tip].boy / 2, sonuc)
+      this.oldur(c, canavarAyakY(this.tipler[c.tip]) - this.tipler[c.tip].boy / 2, sonuc, ALEV_HASAR, false)
     }
   }
 

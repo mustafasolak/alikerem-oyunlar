@@ -14,6 +14,7 @@ import {
   CAN_BAR_BOY,
   CAN_BAR_EN,
   COLORS,
+  FONT_FAMILY,
   GAME_HEIGHT,
   KALE_GENISLIK,
   KALE_UST_Y,
@@ -36,6 +37,7 @@ export class KaleGorunumu {
   private readonly kol: Phaser.GameObjects.Container
   private readonly elMizragi: Phaser.GameObjects.Container
   private readonly barDolu: Phaser.GameObjects.Rectangle
+  private readonly barYazi: Phaser.GameObjects.Text
   private readonly alevler: Phaser.GameObjects.Arc[] = []
 
   constructor(scene: Phaser.Scene) {
@@ -102,6 +104,11 @@ export class KaleGorunumu {
       .setOrigin(0, 0.5)
       .setRounded(3)
     kap.add(this.barDolu)
+    // Barın üstünde sayı: kaç can kaldığı barla birlikte okunsun.
+    this.barYazi = scene.add
+      .text(KALE_GENISLIK / 2, barY, '', { fontFamily: FONT_FAMILY, fontSize: '9px', color: '#f8fafc' })
+      .setOrigin(0.5)
+    kap.add(this.barYazi)
 
     // --- Meşaleler ---
     for (const x of [12, KALE_GENISLIK - 16]) {
@@ -163,5 +170,6 @@ export class KaleGorunumu {
     const oran = Math.max(0, can) / maxCan
     this.barDolu.setDisplaySize(Math.max(1, CAN_BAR_EN * oran), CAN_BAR_BOY)
     this.barDolu.setFillStyle(oran < CAN_BAR_AZ_ORAN ? COLORS.CAN_BAR_AZ : COLORS.CAN_BAR_DOLU)
+    this.barYazi.setText(`${Math.max(0, can)} / ${maxCan}`)
   }
 }

@@ -124,8 +124,7 @@ export class CanavarGorunumu {
       .rectangle(-this.barEn / 2, barY, this.barEn, CANAVAR_BAR_BOY, COLORS.CAN_BAR_DOLU)
       .setOrigin(0, 0.5)
       .setRounded(2)
-    this.barArka.setVisible(false)
-    this.barDolu.setVisible(false)
+
 
     const susler: Phaser.GameObjects.GameObject[] = []
 
@@ -226,13 +225,10 @@ export class CanavarGorunumu {
     this.durumOrtusu.setAlpha(0)
   }
 
+  /** Can barı her zaman görünür: oyuncu hangi canavarın ne kadar kaldığını görsün. */
   private canBariniTazele(canavar: Canavar): void {
     this.durumGoster(canavar)
     const oran = Math.max(0, canavar.can) / canavar.maxCan
-    const yarali = oran < 1
-    this.barArka.setVisible(yarali)
-    this.barDolu.setVisible(yarali)
-    if (!yarali) return
     this.barDolu.setDisplaySize(Math.max(1, this.barEn * oran), CANAVAR_BAR_BOY)
     this.barDolu.setFillStyle(oran < 0.4 ? COLORS.CAN_BAR_AZ : COLORS.CAN_BAR_DOLU)
   }
