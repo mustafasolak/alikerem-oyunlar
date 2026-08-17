@@ -8,6 +8,19 @@
  */
 import { Board2048 } from '../src/games/game2048/systems/Board2048.ts'
 import { FreeCell } from '../src/games/freecell/systems/FreeCell.ts'
+import { KaleSavunmasi } from '../src/games/kalesavunmasi/systems/KaleSavunmasi.ts'
+import {
+  ACI_MAX,
+  ACI_MIN,
+  ATIS_BEKLEME_MS,
+  DALGA_MAX_ADET,
+  DOGUS_X,
+  KALE_CANI,
+  SIM_ADIM_MS,
+  ZEMIN_Y,
+  dalgaCanavarSayisi,
+  vakitIndeksi,
+} from '../src/games/kalesavunmasi/config/constants.ts'
 import { Klondike } from '../src/games/solitaire/systems/Klondike.ts'
 import { Mahjong } from '../src/games/mahjong/systems/Mahjong.ts'
 import { Spider } from '../src/games/orumcek/systems/Spider.ts'
@@ -471,6 +484,104 @@ function tohumlu(tohum) {
   // Kapalı taşa dokunmak iş görmez
   const kapali = m.taslar.findIndex((t, i) => !t.alindi && m.kapaliMi(i))
   if (kapali >= 0) esit('kapalı taş seçilemez', m.sec(kapali), 'yok')
+}
+
+// --- Kale Savunması: dalga tablosu ve arka plan vakti ---
+{
+  esit('1. dalgada 4 canavar', dalgaCanavarSayisi(1), 4)
+  esit('2. dalgada 6 canavar', dalgaCanavarSayisi(2), 6)
+  esit('dalga sayısı tavanı geçmez', dalgaCanavarSayisi(50), DALGA_MAX_ADET)
+
+  esit('1-3. dalga gündüz', [1, 2, 3].map(vakitIndeksi), [0, 0, 0])
+  esit('4-6. dalga akşam', [4, 5, 6].map(vakitIndeksi), [1, 1, 1])
+  esit('7. dalgadan sonra gece', [7, 12, 99].map(vakitIndeksi), [2, 2, 2])
+}
+
+// --- Kale Savunması: dalga akışı, mızrak fiziği, kale canı ---
+{
+  const oyun = new KaleSavunmasi(tohumlu(11))
+  esit('başta dalga yok', oyun.dalga, 0)
+  esit('kale tam canlı', oyun.kaleCani, KALE_CANI)
+
+  // Hazırlık payı dolunca ilk dalga başlar
+  let yeniDalga = null
+  for (let i = 0; i < 400 && yeniDalga === null; i++) {
+    yeniDalga = oyun.ilerlet(SIM_ADIM_MS).yeniDalga
+  }
+  esit('ilk dalga başladı', yeniDalga, 1)
+  esit('aşama dalga', oyun.asama, 'dalga')
+
+  // İlk dalgada yalnız goblin çıkar (Ork 2., Trol 4. dalgadan itibaren)
+  for (let i = 0; i < 400; i++) oyun.ilerlet(SIM_ADIM_MS)
+  kontrol('canavar doğdu', oyun.canavarlar.length > 0, `bulunan ${oyun.canavarlar.length}`)
+  esit(
+    '1. dalgada hepsi goblin',
+    oyun.canavarlar.every((c) => c.tip === 0),
+    true,
+  )
+  kontrol(
+    'canavarlar kaleye doğru yürüdü',
+    oyun.canavarlar.every((c) => c.x < DOGUS_X),
+  )
+}
+
+{
+  // Nişan sınırları
+  const oyun = new KaleSavunmasi(tohumlu(3))
+  oyun.aciAyarla(-300)
+  esit('açı alt sınırda durur', oyun.aci, ACI_MIN)
+  oyun.aciAyarla(300)
+  esit('açı üst sınırda durur', oyun.aci, ACI_MAX)
+
+  // Nişan yayı yerçekimiyle aşağı düşer ve zeminde biter
+  oyun.aciAyarla(-40)
+  const yol = oyun.nisanYolu()
+  kontrol('nişan yayı birkaç noktalı', yol.length > 3, `bulunan ${yol.length}`)
+  const son = yol[yol.length - 1]
+  kontrol('yay zeminde ya da ekran dışında biter', son.y >= ZEMIN_Y || son.x > 540)
+  kontrol('yay yükselip alçalır', yol[1].y < yol[0].y && son.y > yol[1].y)
+}
+
+{
+  // Atış beklemesi: üst üste iki mızrak atılamaz
+  const oyun = new KaleSavunmasi(tohumlu(5))
+  esit('ilk atış geçer', oyun.at(), true)
+  esit('bekleme dolmadan ikinci atış olmaz', oyun.at(), false)
+  esit('bir mızrak uçuyor', oyun.mizraklar.length, 1)
+
+  for (let i = 0; i < Math.ceil(ATIS_BEKLEME_MS / SIM_ADIM_MS) + 1; i++) oyun.ilerlet(SIM_ADIM_MS)
+  esit('bekleme dolunca yeniden atılır', oyun.at(), true)
+}
+
+{
+  // Mızrak yere düşünce saplanır, sonsuza kadar uçmaz
+  const oyun = new KaleSavunmasi(tohumlu(9))
+  oyun.aciAyarla(0)
+  oyun.at()
+  let saplanan = 0
+  for (let i = 0; i < 300 && saplanan === 0; i++) {
+    saplanan += oyun.ilerlet(SIM_ADIM_MS).saplananlar.length
+  }
+  esit('mızrak yere saplandı', saplanan, 1)
+  esit('uçan mızrak kalmadı', oyun.mizraklar.length, 0)
+}
+
+{
+  // Canavar duvara varınca kale canı düşer, sıfırlanınca oyun biter
+  const oyun = new KaleSavunmasi(tohumlu(21))
+  let bitti = false
+  let kaleVuruldu = false
+  for (let i = 0; i < 120000 / SIM_ADIM_MS && !bitti; i++) {
+    const sonuc = oyun.ilerlet(SIM_ADIM_MS)
+    kaleVuruldu = kaleVuruldu || sonuc.kaleVuruldu
+    bitti = sonuc.oyunBitti
+  }
+  kontrol('kale hasar aldı', kaleVuruldu)
+  esit('kale düşünce oyun biter', bitti, true)
+  esit('aşama bitti', oyun.asama, 'bitti')
+  esit('kale canı sıfır', oyun.kaleCani, 0)
+  esit('bitince atış yapılamaz', oyun.at(), false)
+  esit('sıfırlama kaleyi doldurur', (oyun.reset(), oyun.kaleCani), KALE_CANI)
 }
 
 if (hatalar.length) {
