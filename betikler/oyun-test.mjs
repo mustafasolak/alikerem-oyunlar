@@ -25,6 +25,8 @@ import {
   TAMIR_MIKTARI,
   ZEMIN_Y,
   dalgaCanavarSayisi,
+  kuleAtisY,
+  kuleGorunum,
   vakitIndeksi,
 } from '../src/games/kalesavunmasi/config/constants.ts'
 import { Klondike } from '../src/games/solitaire/systems/Klondike.ts'
@@ -585,6 +587,33 @@ function tohumlu(tohum) {
   oyun.altin = 0
   oyun.kuleAl(1, 0)
   esit('parasızken kule kurulmaz', oyun.kuleler[1], null)
+}
+
+// --- Kale Savunması: seviye görünümü ---
+{
+  const boylar = [1, 2, 3].map((s) => kuleGorunum(s).boy)
+  kontrol('kule seviyeyle büyüyor', boylar[0] < boylar[1] && boylar[1] < boylar[2], boylar.join(' → '))
+
+  const enler = [1, 2, 3].map((s) => kuleGorunum(s).en)
+  kontrol('kule seviyeyle genişliyor', enler[0] < enler[1] && enler[1] < enler[2], enler.join(' → '))
+
+  const mazgallar = [1, 2, 3].map((s) => kuleGorunum(s).mazgal)
+  kontrol('mazgal sayısı artıyor', mazgallar[0] < mazgallar[1] && mazgallar[1] < mazgallar[2], mazgallar.join(' → '))
+
+  esit('Lv1 çatısız', kuleGorunum(1).cati, 0)
+  kontrol('Lv2 çatılı', kuleGorunum(2).cati > 0)
+  esit('Lv2 bayraksız', kuleGorunum(2).bayrak, 0)
+  kontrol('Lv3 bayraklı', kuleGorunum(3).bayrak > 0)
+  kontrol('Lv3 süslemeli ve takviyeli', kuleGorunum(3).susleme && kuleGorunum(3).takviye)
+
+  // Ok mazgal hattından çıkar: kule yükseldikçe başlangıç yükselir
+  kontrol(
+    'ok daha tepeden çıkıyor',
+    kuleAtisY(3) < kuleAtisY(2) && kuleAtisY(2) < kuleAtisY(1),
+    [1, 2, 3].map(kuleAtisY).join(' → '),
+  )
+  esit('sınır dışı seviye en yakın basamağa düşer', kuleGorunum(99), kuleGorunum(3))
+  esit('sıfır seviye ilk basamağa düşer', kuleGorunum(0), kuleGorunum(1))
 }
 
 // --- Kale Savunması: nişan duvarın dibine ulaşır ---

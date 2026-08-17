@@ -19,9 +19,8 @@ import {
   GAME_HEIGHT,
   GAME_WIDTH,
   KALE_GENISLIK,
-  KULE_BOY,
-  KULE_EN,
   KULE_MAX_SEVIYE,
+  KULE_POP_MS,
   KULE_TABAN_Y,
   KULE_TIPLERI,
   KULE_YUVALARI,
@@ -32,6 +31,8 @@ import {
   YOL_UST_Y,
   YUVA_BOY,
   YUVA_EN,
+  kuleGorunum,
+  kuleTepeY,
 } from '../config/constants.ts'
 import type { Kule } from '../systems/KaleSavunmasi.ts'
 
@@ -65,7 +66,8 @@ export class KuleAlani {
   /** Açık kutunun yuvası; kapalıysa -1. */
   private secili = -1
   private dugmeler: Dugme[] = []
-  private readonly yuvaKutulari: Kutu[] = []
+  /** Yükseltme zıplamasını bir kez oynatmak için son çizilen seviyeler. */
+  private readonly oncekiSeviyeler: number[] = KULE_YUVALARI.map(() => 0)
   /** Boşuna yeniden çizmemek için son çizilen durumun imzası. */
   private imza = ''
 
@@ -80,15 +82,21 @@ export class KuleAlani {
     this.menzilCizim = scene.add.graphics().setDepth(KATMAN.IZGARA)
     this.kap = scene.add.container(0, 0).setDepth(KATMAN.IZGARA)
     this.menuKap = scene.add.container(0, 0).setDepth(KATMAN.NISAN)
+  }
 
-    // Dokunma alanları kulelerden geniş: parmakla da tutulsun.
-    for (const x of KULE_YUVALARI) {
-      this.yuvaKutulari.push({
-        x1: x - KULE_EN / 2 - 10,
-        y1: KULE_TABAN_Y - KULE_BOY - 10,
-        x2: x + KULE_EN / 2 + 10,
-        y2: KULE_TABAN_Y + YUVA_BOY,
-      })
+  /**
+   * Yuvanın dokunma alanı. Kulenin gerçek boyuna göre hesaplanır: boş yuvanın
+   * üstündeki gökyüzü dokunuşu mızrak atmaya gitsin, dükkânı açmasın.
+   */
+  private yuvaKutusu(yuva: number, kuleler: (Kule | null)[]): Kutu {
+    const x = KULE_YUVALARI[yuva]
+    const kule = kuleler[yuva]
+    const g = kuleGorunum(kule?.seviye ?? 1)
+    return {
+      x1: x - g.en / 2 - 10,
+      y1: kuleTepeY(kule?.seviye ?? 1) - 6,
+      x2: x + g.en / 2 + 10,
+      y2: KULE_TABAN_Y + YUVA_BOY,
     }
   }
 
@@ -112,8 +120,8 @@ export class KuleAlani {
       return true
     }
 
-    for (let yuva = 0; yuva < this.yuvaKutulari.length; yuva++) {
-      if (!icinde(this.yuvaKutulari[yuva], x, y)) continue
+    for (let yuva = 0; yuva < KULE_YUVALARI.length; yuva++) {
+      if (!icinde(this.yuvaKutusu(yuva, kuleler), x, y)) continue
       this.secili = yuva
       this.ciz(kuleler, altin)
       return true
@@ -133,6 +141,7 @@ export class KuleAlani {
   sifirla(): void {
     this.kapat()
     this.kap.removeAll(true)
+    this.oncekiSeviyeler.fill(0)
     this.imza = ''
   }
 
@@ -157,6 +166,10 @@ export class KuleAlani {
       this.yuvaCiz(x, yuva === this.secili)
       if (kule) this.kuleCiz(x, kule)
       else this.bosYuvaCiz(x, altin)
+    }
+    // Zıplama bir kez oynasın: çizimden sonra seviyeleri not et.
+    for (let yuva = 0; yuva < KULE_YUVALARI.length; yuva++) {
+      this.oncekiSeviyeler[yuva] = kuleler[yuva]?.seviye ?? 0
     }
 
     if (this.secili >= 0) this.menuCiz(this.secili, kuleler, altin)
@@ -199,56 +212,109 @@ export class KuleAlani {
     kap.add(this.scene.add.circle(paraX, y, PARA_R * 0.5, COLORS.ALTIN_KENAR).setAlpha(0.45))
   }
 
-  /** Boş yuva: kesikli çerçeve + fiyat. Parası yetiyorsa sarı, yoksa gri. */
+  /** Boş yuva: 1. seviye ölçüsünde çerçeve + fiyat. Parası yetiyorsa sarı. */
   private bosYuvaCiz(x: number, altin: number): void {
     const fiyat = KULE_TIPLERI[0].fiyat[0]
     const yeter = altin >= fiyat
     const renk = yeter ? COLORS.YUVA_BOS : COLORS.MENU_PARA_YOK
+    const g = kuleGorunum(1)
+    const orta = KULE_TABAN_Y - g.boy / 2
 
     this.kap.add(
       this.scene.add
-        .rectangle(x, KULE_TABAN_Y - KULE_BOY / 2, KULE_EN, KULE_BOY, 0x000000, 0)
+        .rectangle(x, orta, g.en, g.boy, 0x000000, 0)
         .setRounded(5)
         .setStrokeStyle(2, renk, yeter ? 0.85 : 0.5),
     )
     this.kap.add(
       this.scene.add
-        .text(x, KULE_TABAN_Y - KULE_BOY / 2 - 7, '+', {
+        .text(x, orta - 7, '+', {
           fontFamily: FONT_FAMILY,
           fontSize: '20px',
           color: yeter ? '#fef08a' : '#94a3b8',
         })
         .setOrigin(0.5),
     )
-    this.paraEtiketi(this.kap, x, KULE_TABAN_Y - KULE_BOY / 2 + 13, String(fiyat), yeter ? '#fef08a' : '#94a3b8', '11px')
+    this.paraEtiketi(this.kap, x, orta + 13, String(fiyat), yeter ? '#fef08a' : '#94a3b8', '11px')
   }
 
+  /**
+   * Seviyeye göre kule: Lv1 kısa ve sade, Lv2 daha yüksek + çatılı,
+   * Lv3 en yüksek + bayraklı, altın şeritli, tabanı taş takviyeli.
+   */
   private kuleCiz(x: number, kule: Kule): void {
     const bilgi = KULE_TIPLERI[kule.tip]
-    const govdeBoy = KULE_BOY * 0.72
-    const govdeY = KULE_TABAN_Y - govdeBoy / 2
+    const g = kuleGorunum(kule.seviye)
+    const renk = acikTon(bilgi.renk, g.tonOran)
+    const mazgalHatti = KULE_TABAN_Y - g.boy
+    const govdeY = KULE_TABAN_Y - g.boy / 2
+    // Her kule kendi kabında: yükselince yalnız o kule zıplayarak büyüsün.
+    const kule3 = this.scene.add.container(0, 0)
 
-    this.kap.add(parca(this.scene, { x, y: govdeY, genislik: KULE_EN, yukseklik: govdeBoy, renk: bilgi.renk, radius: 5 }))
-    // Mazgallı tepe + çatı
-    for (let i = -1; i <= 1; i++) {
-      this.kap.add(
-        this.scene.add.rectangle(x + i * (KULE_EN / 3), KULE_TABAN_Y - govdeBoy - 3, KULE_EN / 4, 7, acikTon(bilgi.renk, 0.3)),
+    if (g.takviye) {
+      // Taban köşelerinde taş payandalar
+      for (const yon of [-1, 1]) {
+        kule3.add(
+          this.scene.add
+            .rectangle(x + yon * (g.en / 2 + 2), KULE_TABAN_Y - g.boy * 0.2, 7, g.boy * 0.4, COLORS.YUVA_TAS)
+            .setRounded(2),
+        )
+      }
+    }
+
+    kule3.add(parca(this.scene, { x, y: govdeY, genislik: g.en, yukseklik: g.boy, renk, radius: 5 }))
+
+    if (g.susleme) {
+      kule3.add(this.scene.add.rectangle(x, govdeY, g.en + 2, 4, COLORS.ALTIN).setAlpha(0.9))
+      kule3.add(this.scene.add.rectangle(x, govdeY + 7, g.en, 2, COLORS.ALTIN_KENAR).setAlpha(0.6))
+    }
+
+    // Mazgallar: seviye arttıkça sayısı artar
+    const adim = g.en / g.mazgal
+    for (let i = 0; i < g.mazgal; i++) {
+      kule3.add(
+        this.scene.add.rectangle(
+          x - g.en / 2 + adim / 2 + i * adim,
+          mazgalHatti - 4,
+          adim * 0.62,
+          8,
+          acikTon(renk, 0.32),
+        ),
       )
     }
-    this.kap.add(
-      this.scene.add.triangle(x, KULE_TABAN_Y - govdeBoy - 8, -KULE_EN / 2, 0, 0, -13, KULE_EN / 2, 0, COLORS.KULE_CATI),
-    )
+
     // Okçu: mazgalın arkasından görünen baş
-    this.kap.add(this.scene.add.circle(x, KULE_TABAN_Y - govdeBoy - 1, 4, COLORS.MIZRAKCI_TEN))
-    this.kap.add(
+    kule3.add(this.scene.add.circle(x, mazgalHatti - 1, 4, COLORS.MIZRAKCI_TEN))
+
+    if (g.cati > 0) {
+      kule3.add(
+        this.scene.add.triangle(x, mazgalHatti - 8, -g.en / 2 - 2, 0, 0, -g.cati, g.en / 2 + 2, 0, COLORS.KULE_CATI),
+      )
+    }
+
+    if (g.bayrak > 0) {
+      const direkAlt = mazgalHatti - 8 - g.cati
+      kule3.add(this.scene.add.rectangle(x, direkAlt - g.bayrak / 2, 2, g.bayrak, COLORS.BAYRAK_DIREK))
+      kule3.add(
+        this.scene.add.triangle(x + 1, direkAlt - g.bayrak + 4, 0, -4, 13, 1, 0, 6, COLORS.ALTIN),
+      )
+    }
+
+    kule3.add(
       this.scene.add
-        .text(x, govdeY + govdeBoy / 2 - 9, `Lv${kule.seviye}`, {
+        .text(x, KULE_TABAN_Y - 10, `Lv${kule.seviye}`, {
           fontFamily: FONT_FAMILY,
           fontSize: '10px',
           color: '#f8fafc',
         })
         .setOrigin(0.5),
     )
+
+    this.kap.add(kule3)
+    // Yükseltme belli olsun: yeni görünüm bir kez zıplayıp yerine otursun.
+    if (this.oncekiSeviyeler[kule.yuva] >= kule.seviye) return
+    kule3.setScale(0.7)
+    this.scene.tweens.add({ targets: kule3, scale: 1, duration: KULE_POP_MS, ease: 'Back.easeOut' })
   }
 
   /**
@@ -259,7 +325,7 @@ export class KuleAlani {
     const yuvaX = KULE_YUVALARI[yuva]
     const satirlar = kule ? 1 : KULE_TIPLERI.length
     const boy = MENU_BASLIK_BOY + satirlar * MENU_SATIR_BOY + 8
-    const alt = KULE_TABAN_Y - KULE_BOY - MENU_ALT_PAY
+    const alt = kuleTepeY(kule?.seviye ?? 1) - MENU_ALT_PAY
     const ust = alt - boy
     // Kutu ekran dışına taşmasın.
     const merkezX = Math.min(GAME_WIDTH - MENU_EN / 2 - 6, Math.max(MENU_EN / 2 + 6, yuvaX))

@@ -30,9 +30,7 @@ import {
   ILK_ARA_MS,
   KALE_CANI,
   KESKIN_BONUS,
-  KULE_BOY,
   KULE_MAX_SEVIYE,
-  KULE_TABAN_Y,
   KULE_TIPLERI,
   KULE_YUVALARI,
   MALZEMELER,
@@ -51,6 +49,7 @@ import {
   YERCEKIMI,
   ZEMIN_Y,
   dalgaCanavarSayisi,
+  kuleAtisY,
 } from '../config/constants.ts'
 
 export type CanavarDurum = 'yuruyor' | 'vuruyor'
@@ -430,7 +429,7 @@ export class KaleSavunmasi {
       if (!hedef) continue
 
       kule.atisBirikim = 0
-      this.okAt(kuleX, hedef, bilgi.hasar[basamak])
+      this.okAt(kuleX, kule.seviye, hedef, bilgi.hasar[basamak])
       sonuc.kuleAtti = true
     }
   }
@@ -445,9 +444,10 @@ export class KaleSavunmasi {
     return hedef
   }
 
-  private okAt(kuleX: number, hedef: Canavar, hasar: number): void {
+  private okAt(kuleX: number, seviye: number, hedef: Canavar, hasar: number): void {
     const bilgi = CANAVAR_TIPLERI[hedef.tip]
-    const baslangicY = KULE_TABAN_Y - KULE_BOY
+    // Ok mazgal hattından çıkar; kule yükseldikçe başlangıç da yükselir.
+    const baslangicY = kuleAtisY(seviye)
     // Gövdenin ortasına nişan al.
     const hedefY = ZEMIN_Y - bilgi.boy * 0.5
     const uzaklik = Math.hypot(hedef.x - kuleX, hedefY - baslangicY) || 1

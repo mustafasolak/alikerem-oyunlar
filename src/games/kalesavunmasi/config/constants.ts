@@ -170,11 +170,55 @@ export const KULE_MAX_SEVIYE = 3
 export const KULE_YUVALARI = [176, 300, 424]
 /** Kulelerin oturduğu hat. */
 export const KULE_TABAN_Y = 320
-export const KULE_EN = 30
-export const KULE_BOY = 54
 /** Yuva tabanındaki taş platform. */
 export const YUVA_EN = 38
 export const YUVA_BOY = 9
+
+/**
+ * Seviyeye göre kule görünümü.
+ *
+ * Yükseltme yalnız sayı değiştirmesin: kule büyüyor, mazgalı çoğalıyor,
+ * çatı çıkıyor, en üstte bayrak ve altın süsleme geliyor. Oyuncu tahtaya
+ * bakınca hangi kulenin güçlü olduğunu okuyabilsin.
+ */
+export interface KuleSeviyeGorunum {
+  en: number
+  /** Mazgal hattına kadar gövde yüksekliği. */
+  boy: number
+  mazgal: number
+  /** Çatı yüksekliği; 0 = çatı yok. */
+  cati: number
+  /** Bayrak direği yüksekliği; 0 = bayrak yok. */
+  bayrak: number
+  /** Taban köşelerinde taş takviye. */
+  takviye: boolean
+  /** Gövdeyi saran altın şerit. */
+  susleme: boolean
+  /** Gövde renginin açılma oranı: üst seviye daha parlak. */
+  tonOran: number
+}
+
+export const KULE_SEVIYE_GORUNUM: KuleSeviyeGorunum[] = [
+  { en: 26, boy: 44, mazgal: 3, cati: 0, bayrak: 0, takviye: false, susleme: false, tonOran: 0 },
+  { en: 31, boy: 58, mazgal: 4, cati: 15, bayrak: 0, takviye: false, susleme: false, tonOran: 0.12 },
+  { en: 37, boy: 74, mazgal: 5, cati: 21, bayrak: 17, takviye: true, susleme: true, tonOran: 0.24 },
+]
+
+export function kuleGorunum(seviye: number): KuleSeviyeGorunum {
+  const sira = Math.min(KULE_SEVIYE_GORUNUM.length, Math.max(1, seviye)) - 1
+  return KULE_SEVIYE_GORUNUM[sira]
+}
+
+/** Okun çıktığı yükseklik: mazgal hattı. */
+export function kuleAtisY(seviye: number): number {
+  return KULE_TABAN_Y - kuleGorunum(seviye).boy
+}
+
+/** Kulenin bayrak ucuna kadar en tepesi — dükkân kutusu buranın üstüne oturur. */
+export function kuleTepeY(seviye: number): number {
+  const g = kuleGorunum(seviye)
+  return KULE_TABAN_Y - g.boy - g.cati - g.bayrak
+}
 
 /** Dükkân kutusu ölçüleri. */
 export const MENU_EN = 138
@@ -408,6 +452,8 @@ export const MESALE_MS = 620
 // --- Efektler ---
 
 export const ISABET_EFEKT_MS = 220
+/** Kule yükselince yeni görünümün zıplama süresi. */
+export const KULE_POP_MS = 320
 export const OLUM_EFEKT_MS = 380
 export const KALE_SARSINTI_MS = 180
 export const KALE_SARSINTI_GUC = 0.006
