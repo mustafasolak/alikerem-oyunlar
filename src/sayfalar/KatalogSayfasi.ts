@@ -41,6 +41,8 @@ export function katalogSayfasi(): Temizleyici {
    * gelirse yeniden çizilir. Sunucu kapalıysa hiçbir oyun gizlenmez.
    */
   let gizli: string[] = []
+  /** Ana sayfa vitrini: yönetim panelinden verilen sıra. */
+  let vitrin: string[] = []
   let kapandi = false
 
   const kategoriler = [...new Set(KATALOG.map((o) => o.kategori))].sort((a, b) =>
@@ -74,6 +76,11 @@ export function katalogSayfasi(): Temizleyici {
           .join('')}
       </div>
 
+      <section id="vitrin-bolum" hidden>
+        <div class="section-title"><span>⭐ Öne çıkanlar</span></div>
+        <div class="grid grid--vitrin" id="vitrin-grid"></div>
+      </section>
+
       <section id="son-bolum" hidden>
         <div class="section-title"><span>Son oynananlar</span></div>
         <div class="grid" id="son-grid"></div>
@@ -95,6 +102,8 @@ export function katalogSayfasi(): Temizleyici {
   `
 
   const grid = kok.querySelector<HTMLElement>('#grid')!
+  const vitrinBolum = kok.querySelector<HTMLElement>('#vitrin-bolum')!
+  const vitrinGrid = kok.querySelector<HTMLElement>('#vitrin-grid')!
   const sonBolum = kok.querySelector<HTMLElement>('#son-bolum')!
   const sonGrid = kok.querySelector<HTMLElement>('#son-grid')!
   const listeSayisi = kok.querySelector<HTMLElement>('#liste-sayisi')!
@@ -150,11 +159,21 @@ export function katalogSayfasi(): Temizleyici {
       grid.innerHTML = `<p class="bos-liste">Aramana uyan oyun yok.</p>`
     }
 
+    // Vitrin: yönetim panelindeki sıra. Süzgeç ya da arama varken gizlenir —
+    // aksi hâlde "aramana uyan oyun yok" derken üstte oyunlar durur.
+    const sade = durum.suzgec === 'hepsi' && durum.arama.trim() === ''
+    const vitrindekiler = vitrin
+      .map((id) => KATALOG.find((o) => o.id === id))
+      .filter((o): o is KatalogKaydi => o !== undefined && !gizli.includes(o.id))
+    vitrinBolum.hidden = !sade || vitrindekiler.length === 0
+    if (!vitrinBolum.hidden) vitrinGrid.innerHTML = vitrindekiler.map(kart).join('')
+
     // Son oynananlar yalnız süzgeçsiz ve aramasız görünsün
+    // Gizlenen oyun burada da görünmemeli (vitrin ve ana listede süzülüyor)
     const son = sonOynananlar()
       .map((id) => KATALOG.find((o) => o.id === id))
-      .filter((o): o is KatalogKaydi => Boolean(o))
-    const gosterSon = son.length > 0 && durum.suzgec === 'hepsi' && durum.arama.trim() === ''
+      .filter((o): o is KatalogKaydi => o !== undefined && !gizli.includes(o.id))
+    const gosterSon = son.length > 0 && sade
     sonBolum.hidden = !gosterSon
     if (gosterSon) sonGrid.innerHTML = son.slice(0, 4).map(kart).join('')
   }
@@ -203,9 +222,11 @@ export function katalogSayfasi(): Temizleyici {
   ciz()
 
   // Gizli oyun listesi arka planda gelsin; sayfa onu beklemesin
-  void sunucu.gizliOyunlar().then((liste) => {
-    if (kapandi || liste.length === 0) return
-    gizli = liste
+  void sunucu.katalogAyarlari().then((ayar) => {
+    if (kapandi) return
+    if (ayar.gizli.length === 0 && ayar.vitrin.length === 0) return
+    gizli = ayar.gizli
+    vitrin = ayar.vitrin
     ciz()
   })
 

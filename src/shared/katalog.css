@@ -47,6 +47,43 @@
   padding-bottom: 3rem;
 }
 
+/*
+ * Vitrin şeridi. Dar ekranda yatay kaydırılır: dikey ızgara olsaydı üç öne
+ * çıkan oyun asıl listeyi ekran boyu aşağı iterdi. Sonraki kart kenardan
+ * görünsün diye genişlik %78 — kaydırılabildiği belli olsun.
+ */
+.grid--vitrin {
+  display: flex;
+  overflow-x: auto;
+  padding-bottom: 1.25rem;
+  gap: 0.75rem;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.grid--vitrin > * {
+  flex: 0 0 78%;
+  scroll-snap-align: start;
+}
+
+.grid--vitrin .card {
+  height: 100%;
+  border-color: rgb(237 194 46 / 0.45);
+}
+
+/* Geniş ekranda şeride gerek yok: normal ızgara */
+@media (min-width: 700px) {
+  .grid--vitrin {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    overflow: visible;
+  }
+
+  .grid--vitrin > * {
+    flex: initial;
+  }
+}
+
 .card {
   display: flex;
   flex-direction: column;

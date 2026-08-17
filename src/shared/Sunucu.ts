@@ -74,15 +74,21 @@ class Sunucu {
   }
 
   /**
-   * Katalogda gizlenecek oyunlar. Sunucu yoksa boş dizi döner —
-   * yani sunucu kapalıyken bütün oyunlar görünür kalır.
+   * Katalog ayarları: gizlenen oyunlar ve vitrin sırası.
+   * Sunucu yoksa boş döner — yani bütün oyunlar görünür, vitrin çizilmez.
    */
-  async gizliOyunlar(): Promise<string[]> {
-    if (!(await this.hazir())) return []
+  async katalogAyarlari(): Promise<{ gizli: string[]; vitrin: string[] }> {
+    const bos = { gizli: [], vitrin: [] }
+    if (!(await this.hazir())) return bos
     const yanit = await iste('/api/oyunlar')
-    if (!yanit?.ok) return []
-    const govde = (await yanit.json().catch(() => null)) as { gizli?: string[] } | null
-    return Array.isArray(govde?.gizli) ? govde.gizli : []
+    if (!yanit?.ok) return bos
+    const govde = (await yanit.json().catch(() => null)) as
+      | { gizli?: string[]; vitrin?: string[] }
+      | null
+    return {
+      gizli: Array.isArray(govde?.gizli) ? govde.gizli : [],
+      vitrin: Array.isArray(govde?.vitrin) ? govde.vitrin : [],
+    }
   }
 
   /** Yönetim ucuna istek. Panelin dışından kullanılmaz. */

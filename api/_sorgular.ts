@@ -190,6 +190,31 @@ export async function gizliOyunlar(sql: Sorgulayici): Promise<string[]> {
   return satirlar.map((r) => String(r.id))
 }
 
+/**
+ * Ana sayfa vitrini: `one_cikan` sırasına göre. Gizlenen oyun vitrine girmez —
+ * yoksa gizlenmiş bir oyun ana sayfanın en üstünde durmaya devam ederdi.
+ */
+export async function vitrinOyunlari(sql: Sorgulayici): Promise<string[]> {
+  const satirlar = await sql`
+    select id from oyunlar
+    where one_cikan is not null and gizli = false
+    order by one_cikan asc, id asc`
+  return satirlar.map((r) => String(r.id))
+}
+
+/**
+ * Vitrini bütünüyle yeniden yazar: verilen sıra `one_cikan` olur,
+ * listede olmayan her oyunun vitrin işareti kalkar.
+ */
+export async function vitriniAyarla(sql: Sorgulayici, kimlikler: string[]): Promise<void> {
+  await sql`update oyunlar set one_cikan = null where one_cikan is not null`
+  for (const [sira, id] of kimlikler.entries()) {
+    await sql`
+      insert into oyunlar (id, one_cikan) values (${id}, ${sira + 1})
+      on conflict (id) do update set one_cikan = excluded.one_cikan`
+  }
+}
+
 export interface DenetimKaydi {
   oyunId: string
   uid: string

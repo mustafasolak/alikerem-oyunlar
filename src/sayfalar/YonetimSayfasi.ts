@@ -180,6 +180,11 @@ export async function yonetimSayfasi(): Promise<Temizleyici> {
       return cizGiris(govde?.mesaj ?? 'Sunucuya ulaşılamadı.')
     }
     const veri = (await yanit.json()) as YonetimVerisi
+    // Vitrin sırası tek yerden yönetilir; tablo işaretleri de buna bakar
+    vitrinSirasi = veri.oyunlar
+      .filter((o) => o.oneCikan !== null)
+      .sort((a, b) => (a.oneCikan ?? 0) - (b.oneCikan ?? 0))
+      .map((o) => o.id)
     cizPanel(veri)
   }
 
@@ -192,7 +197,18 @@ export async function yonetimSayfasi(): Promise<Temizleyici> {
     return Boolean(yanit?.ok)
   }
 
+  /** Panelin o anki vitrin sırası; her değişiklikte sunucuya bütünüyle yazılır. */
+  let vitrinSirasi: string[] = []
+  let sonVeri: YonetimVerisi | null = null
+
+  const vitriniYaz = async (kimlikler: string[]): Promise<void> => {
+    if (!(await kaydet({ islem: 'vitrin', kimlikler }))) return
+    vitrinSirasi = kimlikler
+    if (sonVeri) cizPanel(sonVeri)
+  }
+
   function cizPanel(veri: YonetimVerisi): void {
+    sonVeri = veri
     kabuk.replaceChildren()
 
     // --- Üst bar ---
@@ -245,6 +261,63 @@ export async function yonetimSayfasi(): Promise<Temizleyici> {
     }
 
     // --- Oyunlar ---
+    // --- Vitrin ---
+    {
+      const bolum = el('section', 'yonetim-bolum')
+      const ust = el('div', 'yonetim-bolum-ust')
+      ust.append(el('h2', undefined, `⭐ Ana sayfa vitrini (${vitrinSirasi.length})`))
+      bolum.append(ust)
+
+      if (vitrinSirasi.length === 0) {
+        bolum.append(
+          el(
+            'p',
+            'yonetim-bilgi',
+            'Vitrin boş. Aşağıdaki listeden bir oyunun “Vitrin” kutusunu işaretle; ana sayfanın en üstünde görünür.',
+          ),
+        )
+      } else {
+        const liste = el('ol', 'yonetim-vitrin')
+        vitrinSirasi.forEach((id, sira) => {
+          const satir = el('li')
+          satir.append(el('span', 'yonetim-vitrin-ad', adiniAl(id)))
+
+          const dugmeler = el('div', 'yonetim-vitrin-araclar')
+          const yukari = el('button', 'btn', '↑')
+          yukari.type = 'button'
+          yukari.title = 'Yukarı taşı'
+          yukari.disabled = sira === 0
+          yukari.addEventListener('click', () => {
+            const yeni = [...vitrinSirasi]
+            ;[yeni[sira - 1], yeni[sira]] = [yeni[sira], yeni[sira - 1]]
+            void vitriniYaz(yeni)
+          })
+
+          const asagi = el('button', 'btn', '↓')
+          asagi.type = 'button'
+          asagi.title = 'Aşağı taşı'
+          asagi.disabled = sira === vitrinSirasi.length - 1
+          asagi.addEventListener('click', () => {
+            const yeni = [...vitrinSirasi]
+            ;[yeni[sira], yeni[sira + 1]] = [yeni[sira + 1], yeni[sira]]
+            void vitriniYaz(yeni)
+          })
+
+          const cikar = el('button', 'btn btn--tehlike', 'Çıkar')
+          cikar.type = 'button'
+          cikar.addEventListener('click', () => {
+            void vitriniYaz(vitrinSirasi.filter((x) => x !== id))
+          })
+
+          dugmeler.append(yukari, asagi, cikar)
+          satir.append(dugmeler)
+          liste.append(satir)
+        })
+        bolum.append(liste)
+      }
+      kabuk.append(bolum)
+    }
+
     const oyunListesi = oyunlariBirlestir(veri)
     const oyunBolum = el('section', 'yonetim-bolum')
 
@@ -263,7 +336,7 @@ export async function yonetimSayfasi(): Promise<Temizleyici> {
       const tablo = el('table', 'yonetim-tablo')
       const bas = el('thead')
       const basSatir = el('tr')
-      for (const ad of ['Oyun', 'Gizli', 'Öne çıkar', 'Skor sınırı', 'Kayıt', 'Oyuncu', 'En yüksek', 'Son']) {
+      for (const ad of ['Oyun', 'Gizli', 'Vitrin', 'Skor sınırı', 'Kayıt', 'Oyuncu', 'En yüksek', 'Son']) {
         basSatir.append(el('th', undefined, ad))
       }
       bas.append(basSatir)
@@ -280,12 +353,11 @@ export async function yonetimSayfasi(): Promise<Temizleyici> {
         gizliHucre.append(gizliKutu)
 
         const oneHucre = el('td')
-        const oneAlan = el('input', 'yonetim-sayi')
-        oneAlan.type = 'number'
-        oneAlan.min = '0'
-        oneAlan.value = oyun.oneCikan === null ? '' : String(oyun.oneCikan)
-        oneAlan.placeholder = '—'
-        oneHucre.append(oneAlan)
+        const vitrinKutu = el('input')
+        vitrinKutu.type = 'checkbox'
+        vitrinKutu.checked = vitrinSirasi.includes(oyun.id)
+        vitrinKutu.title = 'Ana sayfada öne çıkar'
+        oneHucre.append(vitrinKutu)
 
         const sinirHucre = el('td')
         const sinirAlan = el('input', 'yonetim-sayi')
@@ -308,7 +380,7 @@ export async function yonetimSayfasi(): Promise<Temizleyici> {
             islem: 'oyun',
             oyunId: oyun.id,
             gizli: gizliKutu.checked,
-            oneCikan: oneAlan.value === '' ? null : Number(oneAlan.value),
+            oneCikan: vitrinSirasi.includes(oyun.id) ? vitrinSirasi.indexOf(oyun.id) + 1 : null,
             ustSinir: Number(sinirAlan.value),
           }).then((oldu) => {
             satir.classList.remove('is-kaydediliyor')
@@ -316,8 +388,15 @@ export async function yonetimSayfasi(): Promise<Temizleyici> {
           })
         }
         gizliKutu.addEventListener('change', uygula)
-        oneAlan.addEventListener('change', uygula)
         sinirAlan.addEventListener('change', uygula)
+
+        // Vitrin işareti bütün sırayı yeniden yazar; tek tek sayı girmek yerine
+        vitrinKutu.addEventListener('change', () => {
+          const yeni = vitrinKutu.checked
+            ? [...vitrinSirasi, oyun.id]
+            : vitrinSirasi.filter((id) => id !== oyun.id)
+          void vitriniYaz(yeni)
+        })
 
         govde.append(satir)
       }

@@ -167,7 +167,7 @@ Diğer: Mastermind · Labirent · Matematik Bulmacası · Sayı Piramidi
 - [x] Solitaire ailesinde çoklu kart taşıma ve geri alma
 - [ ] Mahjong tek katmanlı — gerçek kat yapısı yok
 - [ ] Tangram parçaları hâlâ kare — gerçek tangram parçaları çizilmeli
-- [x] Yönetim paneli (#/yonetim) — gizleme, öne çıkarma, skor denetimi, istatistik
+- [x] Yönetim paneli (#/yonetim) — gizleme, ana sayfa vitrini, skor denetimi, istatistik
 - [ ] Sunucu: Seviye 2 doğrulama, telemetri, gecelik yedek
 
 ## Skor tasarımı

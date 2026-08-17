@@ -237,6 +237,56 @@
   outline-offset: -1px;
 }
 
+/* --- Vitrin sırası --- */
+
+.yonetim-vitrin {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: vitrin;
+}
+
+.yonetim-vitrin li {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  counter-increment: vitrin;
+}
+
+.yonetim-vitrin li::before {
+  content: counter(vitrin);
+  flex: 0 0 1.5rem;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.yonetim-vitrin-ad {
+  overflow: hidden;
+  flex: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.yonetim-vitrin-araclar {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.3rem;
+}
+
+.yonetim-vitrin-araclar .btn {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.85rem;
+}
+
 /* --- Skor denetimi --- */
 
 .yonetim-skorlar {

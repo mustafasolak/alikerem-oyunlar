@@ -60,7 +60,9 @@ Değişken tanımlı değilse uç hiç açılmaz (`503`) — kaza eseri korumas�
 yayında kalmasın diye. Giriş imzalı, `httpOnly` çerezle 12 saat sürer.
 
 Panelde neler var:
-- **Oyunlar** — gizle/göster, öne çıkarma sırası, oyun başına skor üst sınırı
+- **Ana sayfa vitrini** — hangi oyunlar öne çıksın ve hangi sırayla; ↑ ↓ ile
+  sıra değiştirilir. Ana sayfada "⭐ Öne çıkanlar" şeridi olarak görünür.
+- **Oyunlar** — gizle/göster, vitrine ekle, oyun başına skor üst sınırı
 - **Son gönderimler** — uygunsuz takma adı ya da şüpheli skoru silme
   (bir oyuncunun o oyundaki dört dönem kaydı birlikte silinir)
 - **İstatistik** — oyuncu/kayıt sayısı, oyun başına en yüksek skor, son 14 gün

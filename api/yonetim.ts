@@ -25,12 +25,15 @@ import {
   ozet,
   skorlariSil,
   sonSkorlar,
+  vitriniAyarla,
   yonetimOyunlari,
 } from './_sorgular.js'
 import { sql, veritabaniVar } from './_veritabani.js'
 
 /** Denetim listesinde gösterilecek en fazla kayıt. */
 const SON_SKOR_ADEDI = 60
+/** Vitrinde en fazla bu kadar oyun durabilir; ana sayfa bir şerit kalsın. */
+const VITRIN_SINIRI = 12
 /** Yanlış parolada beklenen süre: deneme yanılmayı yavaşlatır. */
 const YANLIS_PAROLA_GECIKMESI_MS = 500
 
@@ -73,6 +76,20 @@ export default async function handler(istek: Istek, yanit: Yanit): Promise<void>
 
         await oyunAyarla(sql, oyunId, Boolean(govde.gizli), oneCikan, ustSinir)
         return yanit.status(200).json({ tamam: true })
+      }
+
+      if (islem === 'vitrin') {
+        const ham = Array.isArray(govde.kimlikler) ? govde.kimlikler : null
+        if (!ham) return hata(yanit, 400, 'Vitrin listesi bekleniyor')
+        if (ham.length > VITRIN_SINIRI) return hata(yanit, 400, 'Vitrin fazla kalabalık')
+
+        const kimlikler: string[] = []
+        for (const d of ham) {
+          if (typeof d !== 'string' || !OYUN_ID_KALIBI.test(d)) return hata(yanit, 400, 'Geçersiz oyun')
+          if (!kimlikler.includes(d)) kimlikler.push(d)
+        }
+        await vitriniAyarla(sql, kimlikler)
+        return yanit.status(200).json({ tamam: true, kimlikler })
       }
 
       if (islem === 'skorSil') {
