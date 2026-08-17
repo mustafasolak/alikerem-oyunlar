@@ -25,7 +25,6 @@ import {
   KRITIK_SANS_BONUSU,
   KRITIK_TABAN_CARPAN,
   KRITIK_TABAN_SANS,
-  OTOMATIK_ACI_ADIMI,
   OTOMATIK_BEKLEME_ORANI,
   SIMSEK_HASAR,
   SIMSEK_HEDEF,
@@ -62,12 +61,9 @@ import {
   MIZRAK_HIZI,
   MIZRAK_TASMA,
   MIZRAK_TEMAS,
-  NISAN_ADIM_MS,
-  NISAN_MAX_ADIM,
   OK_HIZI,
   SIM_ADIM_MS,
   TIP_KAYMA_DALGA,
-  YERCEKIMI,
   ZEMIN_Y,
   canavarAyakY,
   dalgaCanCarpani,
@@ -110,8 +106,6 @@ export interface Atis {
   vx: number
   vy: number
   hasar: number
-  /** Yerçekimine tabi mi? Mızrak yay çizer, ok düz gider. */
-  agir: boolean
   /** Sahne buna göre çizer. */
   tur: 'mizrak' | 'ok'
   /** Mızrağın elementi; ok her zaman 'normal'. */
@@ -398,7 +392,6 @@ export class KaleSavunmasi {
       vx: Math.cos(radyan) * MIZRAK_HIZI,
       vy: Math.sin(radyan) * MIZRAK_HIZI,
       hasar: kritik ? Math.round(this.mizrakHasari * this.kritikCarpani) : this.mizrakHasari,
-      agir: true,
       tur: 'mizrak',
       element: this.element,
       kritik,
@@ -468,27 +461,9 @@ export class KaleSavunmasi {
     return true
   }
 
-  /**
-   * Verilen noktaya en yakın geçen atış açısını arar.
-   *
-   * Yerçekimli yayın açısını kapalı formülle çözmek yerine mevcut yay
-   * simülasyonunu tarıyoruz: açı aralığı küçük, ayrıca nişan önizlemesiyle
-   * birebir aynı yolu kullanıyor — yani gösterilen yay ile gerçek atış
-   * hiç ayrışmıyor. Hem elle nişanda hem otomatik ateşte bu kullanılıyor.
-   */
+  /** Verilen noktaya bakan açı (derece). Düz atışta doğrudan yön. */
   hedefAcisi(hedefX: number, hedefY: number): number {
-    let enIyi = ACI_BASLANGIC
-    let enKisa = Number.POSITIVE_INFINITY
-    for (let aci = ACI_MIN; aci <= ACI_MAX; aci += OTOMATIK_ACI_ADIMI) {
-      const yol = this.nisanYolu(aci)
-      for (const nokta of yol) {
-        const uzaklik = Math.hypot(nokta.x - hedefX, nokta.y - hedefY)
-        if (uzaklik >= enKisa) continue
-        enKisa = uzaklik
-        enIyi = aci
-      }
-    }
-    return enIyi
+    return (Math.atan2(hedefY - MIZRAK_CIKIS_Y, Math.max(1, hedefX - MIZRAK_CIKIS_X)) * 180) / Math.PI
   }
 
   // --- Kuleler ---
@@ -553,26 +528,26 @@ export class KaleSavunmasi {
   }
 
   /**
-   * Nişan önizlemesi: mızrağın izleyeceği yay. Son nokta düşeceği yerdir,
-   * sahne oraya hayalet koyar.
+   * Nişan önizlemesi: mızrağın izleyeceği düz çizgi.
+   *
+   * İki nokta yeter — çıkış eli ve sahneden ayrıldığı yer. Ayrılma noktası
+   * analitik: zemine, üst kenara ya da sağ kenara hangisi önce geliyorsa.
+   * Son nokta düşeceği yerdir, sahne oraya hayalet halka koyar.
    */
   nisanYolu(aci = this.aci): { x: number; y: number }[] {
     const radyan = (aci * Math.PI) / 180
-    const sn = NISAN_ADIM_MS / 1000
-    let x = MIZRAK_CIKIS_X
-    let y = MIZRAK_CIKIS_Y
-    const vx = Math.cos(radyan) * MIZRAK_HIZI
-    let vy = Math.sin(radyan) * MIZRAK_HIZI
-    const yol = [{ x, y }]
+    const yonX = Math.cos(radyan)
+    const yonY = Math.sin(radyan)
+    const baslangic = { x: MIZRAK_CIKIS_X, y: MIZRAK_CIKIS_Y }
 
-    for (let i = 0; i < NISAN_MAX_ADIM; i++) {
-      vy += YERCEKIMI * sn
-      x += vx * sn
-      y += vy * sn
-      yol.push({ x, y })
-      if (y >= ZEMIN_Y || x > GAME_WIDTH) break
-    }
-    return yol
+    const adaylar: number[] = []
+    if (yonX > 0) adaylar.push((GAME_WIDTH + MIZRAK_TASMA - baslangic.x) / yonX)
+    if (yonY > 0) adaylar.push((ZEMIN_Y - baslangic.y) / yonY)
+    if (yonY < 0) adaylar.push((0 - baslangic.y) / yonY)
+
+    const gecerli = adaylar.filter((v) => v > 0)
+    const t = gecerli.length > 0 ? Math.min(...gecerli) : 0
+    return [baslangic, { x: baslangic.x + yonX * t, y: baslangic.y + yonY * t }]
   }
 
   // --- Simülasyon ---
@@ -689,7 +664,6 @@ export class KaleSavunmasi {
       vx: ((hedef.x - kuleX) / uzaklik) * OK_HIZI,
       vy: ((hedefY - baslangicY) / uzaklik) * OK_HIZI,
       hasar,
-      agir: false,
       tur: 'ok',
       element: 'normal',
       kritik: false,
@@ -787,7 +761,6 @@ export class KaleSavunmasi {
   private atisIlerlet(sn: number, sonuc: AdimSonucu): void {
     for (let i = this.atislar.length - 1; i >= 0; i--) {
       const m = this.atislar[i]
-      if (m.agir) m.vy += YERCEKIMI * sn
       m.x += m.vx * sn
       m.y += m.vy * sn
 

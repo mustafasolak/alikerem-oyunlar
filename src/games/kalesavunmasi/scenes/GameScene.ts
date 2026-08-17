@@ -25,7 +25,6 @@ import {
   KULE_YUVA_DOKUNMA,
   MIZRAK_BOY,
   MIZRAK_KALINLIK,
-  NISAN_ESIGI,
   NISAN_NOKTA_ARALIK,
   OK_BOY,
   OK_KALINLIK,
@@ -64,9 +63,6 @@ export class GameScene extends TemelSahne {
 
   /** Nişan yayı boşuna yeniden çizilmesin: son çizilen açı. */
   private cizilenAci = Number.NaN
-  /** Son nişan alınan nokta; küçük oynamalarda açı yeniden çözülmesin. */
-  private nisanX = Number.NaN
-  private nisanY = Number.NaN
   private baslamisMi = false
   /** DOM'a her karede yazmamak için son basılan malzeme/skor durumu. */
   private malzemeImza = ''
@@ -423,15 +419,8 @@ export class GameScene extends TemelSahne {
     })
   }
 
-  /**
-   * Açı çözümü yay simülasyonu taradığı için ucuz değil; işaretçi birkaç
-   * pikselden az oynadıysa yeniden hesaplamıyoruz.
-   */
   private nisanla(p: Phaser.Input.Pointer): void {
     if (this.bitti || this.yaziyor) return
-    if (Math.hypot(p.worldX - this.nisanX, p.worldY - this.nisanY) < NISAN_ESIGI) return
-    this.nisanX = p.worldX
-    this.nisanY = p.worldY
     this.oyun.nisanlaNokta(p.worldX, p.worldY)
   }
 

@@ -41,7 +41,7 @@ export default tanim({
   ozet: 'Kaleye yürüyen canavarları mızrakla durdur.',
   aciklama: 'Dalga dalga gelen canavarları mızrakla vur, kaleyi ayakta tut.',
   ipucu:
-    '<b>Nereye dokunursan mızrak oraya düşer</b> · <kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · <kbd>E</kbd> element · <b>+</b> yuvasına dokun = kule kur, kuleye dokun = yükselt ya da yık · <b>uçan canavara mızrak değmez, yalnız kuleler vurur</b>',
+    '<b>Mızrak düz gider: nereye dokunursan oraya</b> · <kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · <kbd>E</kbd> element · <b>+</b> yuvasına dokun = kule kur, kuleye dokun = yükselt ya da yık · <b>uçan canavara mızrak değmez, yalnız kuleler vurur</b>',
   emoji: '🏰',
   kategori: 'arcade',
   etiketler: ['Arcade', 'Nişan', 'Savunma'],

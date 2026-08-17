@@ -667,7 +667,7 @@ function tohumlu(tohum) {
   const vur = (element, hasar = 1) => {
     oyun.atislar.push({
       id: 1, x: oyun.canavarlar[0].x, y: ZEMIN_Y - 10, vx: 0, vy: 1,
-      hasar, agir: false, tur: 'mizrak', element,
+      hasar, tur: 'mizrak', element,
       kritik: false, alan: 0, zirhDelici: false, yavaslatir: false,
     })
     oyun.ilerlet(SIM_ADIM_MS)
@@ -708,7 +708,7 @@ function tohumlu(tohum) {
   const komsuOncesi = oyun.canavarlar[1].can
   const sonuc2 = (() => {
     oyun.atislar.push({
-      id: 5, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 1, agir: false, tur: 'mizrak', element: 'simsek',
+      id: 5, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 1, tur: 'mizrak', element: 'simsek',
       kritik: false, alan: 0, zirhDelici: false, yavaslatir: false,
     })
     return oyun.ilerlet(SIM_ADIM_MS)
@@ -886,7 +886,7 @@ function tohumlu(tohum) {
   const oncekiler = oyun.canavarlar.map((c) => c.can)
   const sonuc = (() => {
     oyun.atislar.push({
-      id: 1, x: 400, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 10, agir: false, tur: 'ok',
+      id: 1, x: 400, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 10, tur: 'ok',
       element: 'normal', kritik: false, alan: KULE_TIPLERI[1].alan, zirhDelici: false, yavaslatir: false,
     })
     return oyun.ilerlet(SIM_ADIM_MS)
@@ -910,7 +910,7 @@ function tohumlu(tohum) {
     durum: 'yuruyor', faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
   })
   oyun.atislar.push({
-    id: 2, x: 400, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: zirh + 5, agir: false, tur: 'ok',
+    id: 2, x: 400, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: zirh + 5, tur: 'ok',
     element: 'normal', kritik: false, alan: 0, zirhDelici: true, yavaslatir: true,
   })
   oyun.ilerlet(SIM_ADIM_MS)
@@ -963,28 +963,35 @@ function tohumlu(tohum) {
 {
   const oyun = new KaleSavunmasi(tohumlu(37), 0, 1)
 
-  // Yolun farklı noktalarına nişan al: yay o noktanın yakınına düşmeli
-  for (const hedefX of [200, 320, 450, 560]) {
+  // Sahnenin her yerine nişan alınabiliyor: en uzak kenar dahil.
+  // Düz atışta çizginin hedefe olan uzaklığı sıfıra yakın olmalı.
+  const cizgiUzakligi = (hedefX, hedefY) => {
+    const [a, b] = oyun.nisanYolu()
+    const uzun = Math.hypot(b.x - a.x, b.y - a.y) || 1
+    // Noktanın doğruya dik uzaklığı
+    return Math.abs((b.x - a.x) * (a.y - hedefY) - (a.x - hedefX) * (b.y - a.y)) / uzun
+  }
+
+  for (const hedefX of [DURAK_X, 300, 500, GAME_WIDTH - 10]) {
     oyun.nisanlaNokta(hedefX, ZEMIN_Y)
-    const yol = oyun.nisanYolu()
-    const dusus = yol[yol.length - 1]
     kontrol(
-      `x=${hedefX} nişanı hedefe yakın düşüyor`,
-      Math.abs(dusus.x - hedefX) < 40,
-      `düşüş ${dusus.x.toFixed(0)}, hedef ${hedefX}`,
+      `x=${hedefX} nişan hedefin üstünden geçiyor`,
+      cizgiUzakligi(hedefX, ZEMIN_Y) < 2,
+      `uzaklık ${cizgiUzakligi(hedefX, ZEMIN_Y).toFixed(2)}px`,
     )
   }
 
-  // Yakın hedef için açı dik, uzak hedef için yayvan olmalı
+  // Yakın hedefte açı dik, uzak kenarda yayvan
   oyun.nisanlaNokta(DURAK_X, ZEMIN_Y)
   const yakinAci = oyun.aci
-  oyun.nisanlaNokta(600, ZEMIN_Y)
+  oyun.nisanlaNokta(GAME_WIDTH - 10, ZEMIN_Y)
   const uzakAci = oyun.aci
   kontrol('yakın hedefte açı daha dik', yakinAci > uzakAci, `yakın ${yakinAci.toFixed(0)}°, uzak ${uzakAci.toFixed(0)}°`)
+  kontrol('uzak kenar açı sınırı içinde', uzakAci >= ACI_MIN && uzakAci <= ACI_MAX, `${uzakAci.toFixed(1)}°`)
 
-  // Menzil dışını gösterince sınırda kalıyor, patlamıyor
+  // Sahne dışını gösterince açı sınırda kalıyor, patlamıyor
   oyun.nisanlaNokta(GAME_WIDTH * 3, ZEMIN_Y)
-  kontrol('menzil dışında açı sınırlar içinde', oyun.aci >= ACI_MIN && oyun.aci <= ACI_MAX, `${oyun.aci}`)
+  kontrol('sahne dışında açı sınırlar içinde', oyun.aci >= ACI_MIN && oyun.aci <= ACI_MAX, `${oyun.aci}`)
 }
 
 // --- Kale Savunması: kritik vuruş ---
@@ -1030,7 +1037,7 @@ function tohumlu(tohum) {
     durum: 'yuruyor', faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
   })
   oyun.atislar.push({
-    id: 3, x: 400, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 7, agir: false, tur: 'mizrak',
+    id: 3, x: 400, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 7, tur: 'mizrak',
     element: 'normal', kritik: true, alan: 0, zirhDelici: false, yavaslatir: false,
   })
   const isabetler = oyun.ilerlet(SIM_ADIM_MS).isabetler
@@ -1216,13 +1223,13 @@ function tohumlu(tohum) {
   oyun.aciAyarla(0)
   const oncekiCan = oyun.canavarlar[0].can
   // Mızrağı doğrudan canavarın üstüne koyup bir adım ilerlet
-  oyun.atislar.push({ id: 1, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: testHasari, agir: false, tur: 'mizrak', element: 'normal', kritik: false, alan: 0, zirhDelici: false, yavaslatir: false })
+  oyun.atislar.push({ id: 1, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: testHasari, tur: 'mizrak', element: 'normal', kritik: false, alan: 0, zirhDelici: false, yavaslatir: false })
   oyun.ilerlet(SIM_ADIM_MS)
   esit('zırh hasarı azaltıyor', oncekiCan - oyun.canavarlar[0].can, 3)
 
   // Zırhtan zayıf vuruş bile 1 hasar geçirir
   koy(zirhliTip, 100)
-  oyun.atislar.push({ id: 2, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 1, agir: false, tur: 'ok', element: 'normal', kritik: false, alan: 0, zirhDelici: false, yavaslatir: false })
+  oyun.atislar.push({ id: 2, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 1, tur: 'ok', element: 'normal', kritik: false, alan: 0, zirhDelici: false, yavaslatir: false })
   oyun.ilerlet(SIM_ADIM_MS)
   esit('zayıf vuruş en az 1 hasar geçirir', 100 - oyun.canavarlar[0].can, 1)
 }
@@ -1245,12 +1252,12 @@ function tohumlu(tohum) {
   }
 
   koyUcan()
-  oyun.atislar.push({ id: 1, x: 300, y: ucanY, vx: 0, vy: 1, hasar: 5, agir: false, tur: 'mizrak', element: 'normal', kritik: false, alan: 0, zirhDelici: false, yavaslatir: false })
+  oyun.atislar.push({ id: 1, x: 300, y: ucanY, vx: 0, vy: 1, hasar: 5, tur: 'mizrak', element: 'normal', kritik: false, alan: 0, zirhDelici: false, yavaslatir: false })
   oyun.ilerlet(SIM_ADIM_MS)
   esit('mızrak uçana değmiyor', oyun.canavarlar[0].can, 50)
 
   koyUcan()
-  oyun.atislar.push({ id: 2, x: 300, y: ucanY, vx: 0, vy: 1, hasar: 5, agir: false, tur: 'ok', element: 'normal', kritik: false, alan: 0, zirhDelici: false, yavaslatir: false })
+  oyun.atislar.push({ id: 2, x: 300, y: ucanY, vx: 0, vy: 1, hasar: 5, tur: 'ok', element: 'normal', kritik: false, alan: 0, zirhDelici: false, yavaslatir: false })
   oyun.ilerlet(SIM_ADIM_MS)
   esit('kule oku uçanı vuruyor', oyun.canavarlar[0].can, 45)
 }
@@ -1338,7 +1345,7 @@ function tohumlu(tohum) {
   oyun.aciAyarla(ACI_MAX)
   const yol = oyun.nisanYolu()
   const dususX = yol[yol.length - 1].x
-  kontrol('en dik atış duvarın dibine düşer', dususX < DURAK_X, `düşüş x=${dususX.toFixed(0)}, durak=${DURAK_X}`)
+  kontrol('en dik atış duvarın dibine iner', dususX < DURAK_X, `düşüş x=${dususX.toFixed(0)}, durak=${DURAK_X}`)
 
   // Asıl ölçüt: duvara dayanmış canavar gerçekten vurulabiliyor mu?
   oyun.basla()
@@ -1395,13 +1402,14 @@ function tohumlu(tohum) {
   oyun.aciAyarla(300)
   esit('açı üst sınırda durur', oyun.aci, ACI_MAX)
 
-  // Nişan yayı yerçekimiyle aşağı düşer ve zeminde biter
-  oyun.aciAyarla(-40)
+  // Nişan çizgisi düz: iki nokta, aradaki yön açıyla birebir
+  oyun.aciAyarla(30)
   const yol = oyun.nisanYolu()
-  kontrol('nişan yayı birkaç noktalı', yol.length > 3, `bulunan ${yol.length}`)
+  esit('nişan çizgisi iki noktalı', yol.length, 2)
   const son = yol[yol.length - 1]
-  kontrol('yay zeminde ya da ekran dışında biter', son.y >= ZEMIN_Y || son.x > 540)
-  kontrol('yay yükselip alçalır', yol[1].y < yol[0].y && son.y > yol[1].y)
+  kontrol('çizgi sahnenin kenarında biter', son.y >= ZEMIN_Y - 1 || son.x >= GAME_WIDTH, `${son.x.toFixed(0)},${son.y.toFixed(0)}`)
+  const cizgiAcisi = (Math.atan2(son.y - yol[0].y, son.x - yol[0].x) * 180) / Math.PI
+  kontrol('çizgi açıyla aynı yönde', Math.abs(cizgiAcisi - 30) < 0.5, `${cizgiAcisi.toFixed(2)}°`)
 }
 
 {
@@ -1420,7 +1428,7 @@ function tohumlu(tohum) {
   // Mızrak yere düşünce saplanır, sonsuza kadar uçmaz
   const oyun = new KaleSavunmasi(tohumlu(9))
   oyun.basla()
-  oyun.aciAyarla(0)
+  oyun.aciAyarla(30)
   oyun.at()
   let saplanan = 0
   for (let i = 0; i < 300 && saplanan === 0; i++) {

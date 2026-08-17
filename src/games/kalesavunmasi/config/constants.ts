@@ -33,18 +33,17 @@ export const MIZRAK_CIKIS_Y = KALE_UST_Y - 26
 
 // --- Mızrak ---
 
-export const YERCEKIMI = 780
-export const MIZRAK_HIZI = 470
+export const MIZRAK_HIZI = 620
 /**
  * Nişan sınırları: yukarı bakış eksi.
  *
- * ACI_MAX dik olmalı — yoksa mızrak en aşağı açıda bile uzağa düşer ve
- * duvarın dibine gelmiş canavar hiç vurulamaz. 80° ile yolun tamamı,
- * duvarın hemen önü dahil, nişan alınabiliyor.
+ * Mızrak düz gidiyor, yani açı doğrudan nişan yönü. Sınırlar sahanın her
+ * köşesine yetişecek kadar geniş: duvarın dibi (~81°) da uzak sağ kenar
+ * (~22°) da nişan alınabiliyor.
  */
-export const ACI_MIN = -78
-export const ACI_MAX = 80
-export const ACI_BASLANGIC = -42
+export const ACI_MIN = -80
+export const ACI_MAX = 86
+export const ACI_BASLANGIC = 8
 /** Klavyeyle bir basışta değişen açı. */
 export const ACI_ADIM = 4
 export const ATIS_BEKLEME_MS = 400
@@ -57,12 +56,8 @@ export const MIZRAK_KALINLIK = 3
 /** Yere saplanan mızrak bu kadar sonra silinir. */
 export const SAPLANAN_OMUR_MS = 2600
 
-/** Nişan yayı önizlemesi. */
-export const NISAN_ADIM_MS = 24
-export const NISAN_MAX_ADIM = 140
+/** Nişan çizgisindeki kesik nokta aralığı. */
 export const NISAN_NOKTA_ARALIK = 12
-/** İşaretçi bu kadar oynamadıkça açı yeniden çözülmez (piksel). */
-export const NISAN_ESIGI = 4
 
 // --- Simülasyon ---
 
@@ -662,8 +657,6 @@ export const SIMSEK_HASAR = 3
 
 /** Otomatik ateş elle atıştan yavaş olsun; elle oynamak yine daha iyi. */
 export const OTOMATIK_BEKLEME_ORANI = 1.7
-/** Otomatik nişan açı taramasının adımı (derece). Küçük olursa daha isabetli, daha pahalı. */
-export const OTOMATIK_ACI_ADIMI = 3
 
 export type YukseltmeTuru =
   | 'tamir'
