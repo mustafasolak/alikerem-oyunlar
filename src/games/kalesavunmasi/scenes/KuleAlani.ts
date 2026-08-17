@@ -45,6 +45,7 @@ interface Kutu {
 interface Dugme extends Kutu {
   tip: number
   alinabilir: boolean
+  eylem: 'al' | 'yukselt'
 }
 
 /** Fiyat etiketindeki altın parasının yarıçapı. */
@@ -59,6 +60,7 @@ export class KuleAlani {
   private readonly menuKap: Phaser.GameObjects.Container
   private readonly menzilCizim: Phaser.GameObjects.Graphics
   private readonly satinAl: (yuva: number, tip: number) => void
+  private readonly yukselt: (yuva: number) => void
 
   /** Açık kutunun yuvası; kapalıysa -1. */
   private secili = -1
@@ -67,9 +69,14 @@ export class KuleAlani {
   /** Boşuna yeniden çizmemek için son çizilen durumun imzası. */
   private imza = ''
 
-  constructor(scene: Phaser.Scene, satinAl: (yuva: number, tip: number) => void) {
+  constructor(
+    scene: Phaser.Scene,
+    satinAl: (yuva: number, tip: number) => void,
+    yukselt: (yuva: number) => void,
+  ) {
     this.scene = scene
     this.satinAl = satinAl
+    this.yukselt = yukselt
     this.menzilCizim = scene.add.graphics().setDepth(KATMAN.IZGARA)
     this.kap = scene.add.container(0, 0).setDepth(KATMAN.IZGARA)
     this.menuKap = scene.add.container(0, 0).setDepth(KATMAN.NISAN)
@@ -93,7 +100,10 @@ export class KuleAlani {
     if (this.secili >= 0) {
       for (const dugme of this.dugmeler) {
         if (!icinde(dugme, x, y)) continue
-        if (dugme.alinabilir) this.satinAl(this.secili, dugme.tip)
+        if (dugme.alinabilir) {
+          if (dugme.eylem === 'yukselt') this.yukselt(this.secili)
+          else this.satinAl(this.secili, dugme.tip)
+        }
         this.kapat()
         return true
       }
@@ -241,10 +251,13 @@ export class KuleAlani {
     )
   }
 
+  /**
+   * Boş yuvada satın alma satırları, kurulu kulede yükseltme satırı çizilir.
+   */
   private menuCiz(yuva: number, kuleler: (Kule | null)[], altin: number): void {
     const kule = kuleler[yuva]
     const yuvaX = KULE_YUVALARI[yuva]
-    const satirlar = KULE_TIPLERI.length
+    const satirlar = kule ? 1 : KULE_TIPLERI.length
     const boy = MENU_BASLIK_BOY + satirlar * MENU_SATIR_BOY + 8
     const alt = KULE_TABAN_Y - KULE_BOY - MENU_ALT_PAY
     const ust = alt - boy
@@ -259,53 +272,75 @@ export class KuleAlani {
         .setRounded(8)
         .setStrokeStyle(2, COLORS.MENU_KENAR, 0.8),
     )
+
     const baslikY = ust + MENU_BASLIK_BOY / 2 + 2
+    const satirY = ust + MENU_BASLIK_BOY + MENU_SATIR_BOY / 2
+
     if (kule) {
+      const bilgi = KULE_TIPLERI[kule.tip]
       this.menuKap.add(
         this.scene.add
-          .text(merkezX, baslikY, 'Kule kurulu', { fontFamily: FONT_FAMILY, fontSize: '12px', color: '#e2e8f0' })
+          .text(merkezX, baslikY, `${bilgi.ad} · Lv${kule.seviye}/${KULE_MAX_SEVIYE}`, {
+            fontFamily: FONT_FAMILY,
+            fontSize: '12px',
+            color: '#e2e8f0',
+          })
+          .setOrigin(0.5),
+      )
+      this.yukseltmeSatiri(merkezX, satirY, kule, altin)
+      return
+    }
+
+    this.paraEtiketi(this.menuKap, merkezX, baslikY, `Kule kur · ${altin}`, '#e2e8f0', '12px')
+    for (let tip = 0; tip < KULE_TIPLERI.length; tip++) {
+      const bilgi = KULE_TIPLERI[tip]
+      const y = ust + MENU_BASLIK_BOY + tip * MENU_SATIR_BOY + MENU_SATIR_BOY / 2
+      const fiyat = bilgi.fiyat[0]
+      const alinabilir = altin >= fiyat
+
+      this.satirZemini(merkezX, y, alinabilir ? bilgi.renk : COLORS.MENU_PARA_YOK, alinabilir)
+      this.paraEtiketi(this.menuKap, merkezX, y, `${bilgi.ad} · ${fiyat}`, alinabilir ? '#f8fafc' : '#cbd5e1', '11px')
+      this.dugmeEkle(merkezX, y, tip, alinabilir, 'al')
+    }
+  }
+
+  private yukseltmeSatiri(merkezX: number, y: number, kule: Kule, altin: number): void {
+    const bilgi = KULE_TIPLERI[kule.tip]
+    const enUst = kule.seviye >= KULE_MAX_SEVIYE
+    const fiyat = enUst ? null : bilgi.fiyat[kule.seviye]
+    const alinabilir = fiyat !== null && altin >= fiyat
+
+    this.satirZemini(merkezX, y, alinabilir ? COLORS.YUKSELT : COLORS.MENU_PARA_YOK, alinabilir)
+    if (fiyat === null) {
+      this.menuKap.add(
+        this.scene.add
+          .text(merkezX, y, 'En üst seviye', { fontFamily: FONT_FAMILY, fontSize: '11px', color: '#cbd5e1' })
           .setOrigin(0.5),
       )
     } else {
-      this.paraEtiketi(this.menuKap, merkezX, baslikY, `Kule kur · ${altin}`, '#e2e8f0', '12px')
+      this.paraEtiketi(this.menuKap, merkezX, y, `Yükselt Lv${kule.seviye + 1} · ${fiyat}`, alinabilir ? '#f8fafc' : '#cbd5e1', '11px')
     }
+    this.dugmeEkle(merkezX, y, kule.tip, alinabilir, 'yukselt')
+  }
 
-    for (let tip = 0; tip < satirlar; tip++) {
-      const bilgi = KULE_TIPLERI[tip]
-      const satirY = ust + MENU_BASLIK_BOY + tip * MENU_SATIR_BOY + MENU_SATIR_BOY / 2
-      const dolu = kule !== null
-      const fiyat = bilgi.fiyat[0]
-      const alinabilir = !dolu && altin >= fiyat
-      const yaziRengi = alinabilir ? '#f8fafc' : '#cbd5e1'
+  private satirZemini(merkezX: number, y: number, renk: number, canli: boolean): void {
+    this.menuKap.add(
+      this.scene.add
+        .rectangle(merkezX, y, MENU_EN - 12, MENU_SATIR_BOY - 6, renk, canli ? 0.9 : 0.35)
+        .setRounded(6),
+    )
+  }
 
-      this.menuKap.add(
-        this.scene.add
-          .rectangle(merkezX, satirY, MENU_EN - 12, MENU_SATIR_BOY - 6, alinabilir ? bilgi.renk : COLORS.MENU_PARA_YOK, alinabilir ? 0.9 : 0.35)
-          .setRounded(6),
-      )
-      if (dolu) {
-        this.menuKap.add(
-          this.scene.add
-            .text(merkezX, satirY, `${bilgi.ad} · Lv${kule.seviye}/${KULE_MAX_SEVIYE}`, {
-              fontFamily: FONT_FAMILY,
-              fontSize: '11px',
-              color: yaziRengi,
-            })
-            .setOrigin(0.5),
-        )
-      } else {
-        this.paraEtiketi(this.menuKap, merkezX, satirY, `${bilgi.ad} · ${fiyat}`, yaziRengi, '11px')
-      }
-
-      this.dugmeler.push({
-        x1: merkezX - MENU_EN / 2,
-        y1: satirY - MENU_SATIR_BOY / 2,
-        x2: merkezX + MENU_EN / 2,
-        y2: satirY + MENU_SATIR_BOY / 2,
-        tip,
-        alinabilir,
-      })
-    }
+  private dugmeEkle(merkezX: number, y: number, tip: number, alinabilir: boolean, eylem: 'al' | 'yukselt'): void {
+    this.dugmeler.push({
+      x1: merkezX - MENU_EN / 2,
+      y1: y - MENU_SATIR_BOY / 2,
+      x2: merkezX + MENU_EN / 2,
+      y2: y + MENU_SATIR_BOY / 2,
+      tip,
+      alinabilir,
+      eylem,
+    })
   }
 
   /** Menzil: yol üzerinde şeffaf bant + kenar çizgileri. */

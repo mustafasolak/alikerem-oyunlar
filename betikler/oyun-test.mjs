@@ -16,9 +16,13 @@ import {
   BASLANGIC_ALTIN,
   DALGA_MAX_ADET,
   DOGUS_X,
+  DURAK_X,
   KALE_CANI,
+  KESKIN_BONUS,
+  KULE_MAX_SEVIYE,
   KULE_TIPLERI,
   SIM_ADIM_MS,
+  TAMIR_MIKTARI,
   ZEMIN_Y,
   dalgaCanavarSayisi,
   vakitIndeksi,
@@ -499,11 +503,124 @@ function tohumlu(tohum) {
   esit('7. dalgadan sonra gece', [7, 12, 99].map(vakitIndeksi), [2, 2, 2])
 }
 
+// --- Kale Savunması: başlat / duraklat ---
+{
+  const oyun = new KaleSavunmasi(tohumlu(77))
+  esit('oyun hazır bekliyor', oyun.asama, 'hazir')
+  esit('başlamadan ilerlemez', oyun.calisiyor, false)
+
+  // Başlat'a basılmadan hiçbir şey olmaz
+  for (let i = 0; i < 600; i++) oyun.ilerlet(SIM_ADIM_MS)
+  esit('başlamadan dalga gelmez', oyun.dalga, 0)
+  esit('başlamadan mızrak atılmaz', oyun.at(), false)
+
+  esit('başlat çalışır', oyun.basla(), true)
+  esit('ikinci başlat iş görmez', oyun.basla(), false)
+  esit('artık ilerliyor', oyun.calisiyor, true)
+
+  // Duraklatınca simülasyon durur
+  for (let i = 0; i < 300; i++) oyun.ilerlet(SIM_ADIM_MS)
+  const dalgaOnce = oyun.dalga
+  esit('duraklatıldı', oyun.duraklatDegistir(), true)
+  esit('duraklamada ilerlemez', oyun.calisiyor, false)
+  const yerlerOnce = oyun.canavarlar.map((c) => c.x)
+  for (let i = 0; i < 600; i++) oyun.ilerlet(SIM_ADIM_MS)
+  esit('duraklamada canavar yürümez', oyun.canavarlar.map((c) => c.x), yerlerOnce)
+  esit('duraklamada mızrak atılmaz', oyun.at(), false)
+
+  oyun.devam()
+  esit('devam edince yine ilerler', oyun.calisiyor, true)
+  esit('dalga kaybolmadı', oyun.dalga, dalgaOnce)
+}
+
+// --- Kale Savunması: malzeme dükkânı ---
+{
+  const oyun = new KaleSavunmasi(tohumlu(88))
+  oyun.basla()
+
+  // Kale tam canlıyken tamir satılmaz: para boşa gitmesin
+  oyun.altin = 500
+  esit('tam canlı kalede tamir alınmaz', oyun.malzemeAlinabilir('tamir'), false)
+  oyun.kaleCani = KALE_CANI - 20
+  esit('hasarlı kalede tamir alınır', oyun.malzemeAl('tamir'), true)
+  esit('tamir can ekler', oyun.kaleCani, KALE_CANI - 20 + TAMIR_MIKTARI)
+
+  // Keskin mızrak hasarı kalıcı arttırır ve bir kez alınır
+  const oncekiHasar = oyun.mizrakHasari
+  esit('keskin mızrak alınır', oyun.malzemeAl('keskin'), true)
+  esit('mızrak hasarı arttı', oyun.mizrakHasari, oncekiHasar + KESKIN_BONUS)
+  esit('keskin mızrak ikinci kez alınmaz', oyun.malzemeAl('keskin'), false)
+
+  // Hızlı atış beklemeyi kısaltır
+  const oncekiBekleme = oyun.atisBeklemesi
+  esit('hızlı atış alınır', oyun.malzemeAl('hizli'), true)
+  kontrol('bekleme kısaldı', oyun.atisBeklemesi < oncekiBekleme, `${oncekiBekleme} → ${oyun.atisBeklemesi}`)
+
+  esit('parasızken malzeme alınmaz', (oyun.altin = 0, oyun.malzemeAl('tamir')), false)
+  esit('olmayan malzeme alınmaz', oyun.malzemeAl('yok'), false)
+
+  oyun.reset()
+  esit('sıfırlama malzemeleri geri alır', oyun.alinanMalzemeler.size, 0)
+}
+
+// --- Kale Savunması: kule yükseltme ---
+{
+  const oyun = new KaleSavunmasi(tohumlu(99))
+  oyun.basla()
+  oyun.altin = 1000
+  oyun.kuleAl(0, 0)
+  esit('kule Lv1', oyun.kuleler[0].seviye, 1)
+
+  const fiyat = KULE_TIPLERI[0].fiyat[1]
+  const altinOnce = oyun.altin
+  esit('kule yükseldi', oyun.kuleYukselt(0), true)
+  esit('seviye 2 oldu', oyun.kuleler[0].seviye, 2)
+  esit('yükseltme parası düştü', oyun.altin, altinOnce - fiyat)
+
+  esit('bir kez daha yükselir', oyun.kuleYukselt(0), true)
+  esit('en üst seviyede durur', oyun.kuleler[0].seviye, KULE_MAX_SEVIYE)
+  esit('en üstte yükseltme olmaz', oyun.kuleYukselt(0), false)
+  esit('boş yuva yükseltilmez', oyun.kuleYukselt(1), false)
+
+  oyun.altin = 0
+  oyun.kuleAl(1, 0)
+  esit('parasızken kule kurulmaz', oyun.kuleler[1], null)
+}
+
+// --- Kale Savunması: nişan duvarın dibine ulaşır ---
+{
+  // En dik açıda mızrak duvarın hemen önüne düşmeli; yoksa duvara dayanmış
+  // canavar hiç vurulamaz.
+  const oyun = new KaleSavunmasi(tohumlu(123))
+  oyun.aciAyarla(ACI_MAX)
+  const yol = oyun.nisanYolu()
+  const dususX = yol[yol.length - 1].x
+  kontrol('en dik atış duvarın dibine düşer', dususX < DURAK_X, `düşüş x=${dususX.toFixed(0)}, durak=${DURAK_X}`)
+
+  // Asıl ölçüt: duvara dayanmış canavar gerçekten vurulabiliyor mu?
+  oyun.basla()
+  let duvarda = null
+  for (let i = 0; i < 60000 / SIM_ADIM_MS && !duvarda; i++) {
+    oyun.ilerlet(SIM_ADIM_MS)
+    duvarda = oyun.canavarlar.find((c) => c.durum === 'vuruyor') ?? null
+  }
+  kontrol('canavar duvara dayandı', duvarda !== null)
+
+  oyun.nisanlaNokta(duvarda.x, ZEMIN_Y - 12)
+  esit('duvar dibine mızrak atılabildi', oyun.at(), true)
+  let isabet = false
+  for (let i = 0; i < 200 && !isabet; i++) {
+    isabet = oyun.ilerlet(SIM_ADIM_MS).isabetler.length > 0
+  }
+  esit('duvarın dibindeki canavar vuruldu', isabet, true)
+}
+
 // --- Kale Savunması: dalga akışı, mızrak fiziği, kale canı ---
 {
   const oyun = new KaleSavunmasi(tohumlu(11))
   esit('başta dalga yok', oyun.dalga, 0)
   esit('kale tam canlı', oyun.kaleCani, KALE_CANI)
+  oyun.basla()
 
   // Hazırlık payı dolunca ilk dalga başlar
   let yeniDalga = null
@@ -547,6 +664,7 @@ function tohumlu(tohum) {
 {
   // Atış beklemesi: üst üste iki mızrak atılamaz
   const oyun = new KaleSavunmasi(tohumlu(5))
+  oyun.basla()
   esit('ilk atış geçer', oyun.at(), true)
   esit('bekleme dolmadan ikinci atış olmaz', oyun.at(), false)
   esit('bir mızrak uçuyor', oyun.atislar.length, 1)
@@ -558,6 +676,7 @@ function tohumlu(tohum) {
 {
   // Mızrak yere düşünce saplanır, sonsuza kadar uçmaz
   const oyun = new KaleSavunmasi(tohumlu(9))
+  oyun.basla()
   oyun.aciAyarla(0)
   oyun.at()
   let saplanan = 0
@@ -571,6 +690,7 @@ function tohumlu(tohum) {
 {
   // Kule satın alma: para, dolu yuva, geçersiz yuva
   const oyun = new KaleSavunmasi(tohumlu(31))
+  oyun.basla()
   esit('oyun başlangıç altınıyla açılır', oyun.altin, BASLANGIC_ALTIN)
 
   oyun.altin = 0
@@ -603,6 +723,7 @@ function tohumlu(tohum) {
 {
   // Canavar duvara varınca kale canı düşer, sıfırlanınca oyun biter
   const oyun = new KaleSavunmasi(tohumlu(21))
+  oyun.basla()
   let bitti = false
   let kaleVuruldu = false
   for (let i = 0; i < 120000 / SIM_ADIM_MS && !bitti; i++) {

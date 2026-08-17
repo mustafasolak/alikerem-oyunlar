@@ -16,6 +16,7 @@ import {
   KALE_SARSINTI_GUC,
   KALE_SARSINTI_MS,
   KULE_TIPLERI,
+  MALZEMELER,
   MIZRAK_BOY,
   MIZRAK_KALINLIK,
   NISAN_NOKTA_ARALIK,
@@ -38,6 +39,7 @@ export class GameScene extends TemelSahne {
   private readonly oyun = new KaleSavunmasi()
   private readonly canavarGorunumleri = new Map<number, CanavarGorunumu>()
   private readonly mizrakGorunumleri = new Map<number, Phaser.GameObjects.Container>()
+  private readonly malzemeButonlari = new Map<string, HTMLButtonElement>()
 
   private arkaPlan!: ArkaPlan
   private kale!: KaleGorunumu
@@ -51,6 +53,9 @@ export class GameScene extends TemelSahne {
   /** Nişan yayı boşuna yeniden çizilmesin: son çizilen açı. */
   private cizilenAci = Number.NaN
   private baslamisMi = false
+  /** DOM'a her karede yazmamak için son basılan malzeme/skor durumu. */
+  private malzemeImza = ''
+  private gosterilenSkor = -1
 
   constructor() {
     super('kalesavunmasi')
@@ -60,7 +65,11 @@ export class GameScene extends TemelSahne {
     this.arkaPlan = new ArkaPlan(this)
     this.saplananKatmani = this.add.container(0, 0).setDepth(KATMAN.IZGARA)
     this.kale = new KaleGorunumu(this)
-    this.kuleAlani = new KuleAlani(this, (yuva, tip) => this.kuleAl(yuva, tip))
+    this.kuleAlani = new KuleAlani(
+      this,
+      (yuva, tip) => this.kuleAl(yuva, tip),
+      (yuva) => this.kuleYukselt(yuva),
+    )
     this.canavarKatmani = this.add.container(0, 0).setDepth(KATMAN.ICERIK)
     this.mizrakKatmani = this.add.container(0, 0).setDepth(KATMAN.EFEKT)
     this.nisanCizim = this.add.graphics().setDepth(KATMAN.NISAN)
@@ -84,8 +93,12 @@ export class GameScene extends TemelSahne {
     klavye?.on('keydown-W', () => this.oyun.aciDegistir(-ACI_ADIM))
     klavye?.on('keydown-DOWN', () => this.oyun.aciDegistir(ACI_ADIM))
     klavye?.on('keydown-S', () => this.oyun.aciDegistir(ACI_ADIM))
+    for (const tus of ['keydown-P', 'keydown-ESC']) klavye?.on(tus, () => this.duraklatDegistir())
     this.tuslariYakala(['SPACE', 'UP', 'DOWN'])
-    this.saldirDugmesi()
+
+    this.padDugmesi('at', () => this.at())
+    this.padDugmesi('duraklat', () => this.duraklatDegistir())
+    this.malzemeDugmeleri()
   }
 
   protected yeniOyun(): void {
@@ -98,6 +111,8 @@ export class GameScene extends TemelSahne {
 
     this.baslamisMi = false
     this.cizilenAci = Number.NaN
+    this.malzemeImza = ''
+    this.gosterilenSkor = -1
     // Yeniden başlarken bütün tweenler silinir; arka plan ve meşaleler yeniden kurulmalı.
     this.arkaPlan.sifirla(1)
     this.kale.sifirla()
@@ -111,11 +126,18 @@ export class GameScene extends TemelSahne {
     setChip('gold', this.oyun.altin)
     this.skorGoster(0)
     this.nisanCiz()
+    this.malzemeleriTazele()
+    // Oyun kendiliğinden başlamaz: Başlat ekranı bekler.
+    this.baslatEkrani()
   }
 
   update(_time: number, delta: number): void {
+    // Arka plan ve dükkânlar duraklamada da canlı: beklerken alışveriş yapılabilir.
     this.arkaPlan.guncelle(delta)
-    if (this.bitti) return
+    this.kuleAlani.tazele(this.oyun.kuleler, this.oyun.altin)
+    this.malzemeleriTazele()
+    this.gostergeleriTazele()
+    if (!this.oyun.calisiyor) return
 
     const sonuc = this.oyun.ilerlet(delta)
 
@@ -128,28 +150,118 @@ export class GameScene extends TemelSahne {
 
     this.canavarlariEsle()
     this.atislariEsle()
-    this.nisanCiz()
-    this.kuleAlani.tazele(this.oyun.kuleler, this.oyun.altin)
 
+    if (sonuc.oyunBitti) this.oyunuBitir()
+  }
+
+  /** Nişan, kale barı ve rozetler — duraklamada da doğru görünsün. */
+  private gostergeleriTazele(): void {
+    this.nisanCiz()
     this.kale.nisanAyarla(this.oyun.aci)
     this.kale.hazirGoster(this.oyun.atisHazir)
     this.kale.canGoster(this.oyun.kaleCani, KALE_CANI)
     setChip('castle', this.oyun.kaleCani)
     setChip('gold', this.oyun.altin)
+    if (this.gosterilenSkor === this.oyun.skor) return
+    this.gosterilenSkor = this.oyun.skor
     this.skorGoster(this.oyun.skor)
-
-    if (sonuc.oyunBitti) this.oyunuBitir()
   }
 
   // --- Girdi ---
 
-  /** Sayfadaki "🗡 Saldır" düğmesi (mobilde tek elle atış). */
-  private saldirDugmesi(): void {
-    const dugme = document.querySelector<HTMLButtonElement>('#pad button[data-move="at"]')
+  /** Sayfadaki araç çubuğu düğmesini bağlar (Saldır, Duraklat). */
+  private padDugmesi(deger: string, isle: () => void): void {
+    const dugme = document.querySelector<HTMLButtonElement>(`#pad button[data-move="${deger}"]`)
     if (!dugme) return
-    const bas = (): void => this.at()
+    const bas = (): void => isle()
     dugme.addEventListener('click', bas)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => dugme.removeEventListener('click', bas))
+  }
+
+  /** Malzeme panelindeki düğmeler; yazıları ve pasifliği her karede tazelenir. */
+  private malzemeDugmeleri(): void {
+    for (const malzeme of MALZEMELER) {
+      const dugme = document.querySelector<HTMLButtonElement>(`#malzeme button[data-malzeme="${malzeme.id}"]`)
+      if (!dugme) continue
+      this.malzemeButonlari.set(malzeme.id, dugme)
+      const bas = (): void => this.malzemeAl(malzeme.id)
+      dugme.addEventListener('click', bas)
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => dugme.removeEventListener('click', bas))
+    }
+  }
+
+  private malzemeAl(id: string): void {
+    if (!this.oyun.malzemeAl(id)) {
+      sesler.yanlis()
+      return
+    }
+    const malzeme = MALZEMELER.find((m) => m.id === id)
+    sesler.dogru()
+    this.bildir(malzeme?.ozet ?? 'Malzeme alındı')
+  }
+
+  /** Parası yetmeyen ya da alınmış malzemenin düğmesi kapansın. */
+  private malzemeleriTazele(): void {
+    const imza = `${this.oyun.altin}|${this.oyun.kaleCani}|${this.oyun.asama}|${[...this.oyun.alinanMalzemeler].sort().join(',')}`
+    if (imza === this.malzemeImza) return
+    this.malzemeImza = imza
+
+    for (const malzeme of MALZEMELER) {
+      const dugme = this.malzemeButonlari.get(malzeme.id)
+      if (!dugme) continue
+      const alindi = malzeme.tekSeferlik && this.oyun.alinanMalzemeler.has(malzeme.id)
+      dugme.disabled = !this.oyun.malzemeAlinabilir(malzeme.id)
+      dugme.setAttribute('aria-pressed', String(alindi))
+      const durum = dugme.querySelector('b')
+      if (durum) durum.textContent = alindi ? 'alındı' : String(malzeme.fiyat)
+    }
+  }
+
+  // --- Başlat / duraklat ---
+
+  private basla(): void {
+    if (!this.oyun.basla()) return
+    this.hud.hideOverlay()
+  }
+
+  private duraklatDegistir(): void {
+    if (this.bitti || this.yaziyor) return
+    if (this.oyun.asama === 'hazir') {
+      this.basla()
+      return
+    }
+    if (this.oyun.duraklatDegistir()) {
+      // Süre de dursun: duraklatma skoru şişirmesin.
+      this.sayac.durdur()
+      this.duraklatmaEkrani()
+      return
+    }
+    this.sayac.basla()
+    this.hud.hideOverlay()
+  }
+
+  private baslatEkrani(): void {
+    this.hud.showOverlay({
+      title: 'Kale Savunması',
+      text: 'Canavarlar sağdan geliyor. Mızrakla vur, altınla kule kur, kaleyi ayakta tut.',
+      primaryLabel: '▶ Başlat',
+      onPrimary: () => this.basla(),
+    })
+  }
+
+  private duraklatmaEkrani(): void {
+    this.hud.showOverlay({
+      title: 'Duraklatıldı',
+      text: `Dalga ${this.oyun.dalga} · Kale ${this.oyun.kaleCani} · Altın ${this.oyun.altin}`,
+      primaryLabel: '▶ Devam et',
+      onPrimary: () => {
+        this.oyun.devam()
+        this.sayac.basla()
+        this.hud.hideOverlay()
+      },
+      secondaryLabel: 'Yeni oyun',
+      onSecondary: () => this.yenidenBasla(),
+    })
   }
 
   private nisanla(p: Phaser.Input.Pointer): void {
@@ -232,6 +344,15 @@ export class GameScene extends TemelSahne {
       return
     }
     sesler.yanlis()
+  }
+
+  private kuleYukselt(yuva: number): void {
+    if (!this.oyun.kuleYukselt(yuva)) {
+      sesler.yanlis()
+      return
+    }
+    sesler.birlesme(this.oyun.kuleler[yuva]?.seviye ?? 2)
+    this.bildir(`Kule Lv${this.oyun.kuleler[yuva]?.seviye} oldu`)
   }
 
   // --- Olaylar ---

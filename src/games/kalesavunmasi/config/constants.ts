@@ -33,9 +33,15 @@ export const MIZRAK_CIKIS_Y = KALE_UST_Y - 26
 
 export const YERCEKIMI = 780
 export const MIZRAK_HIZI = 470
-/** Nişan sınırları: yukarı bakış eksi. */
+/**
+ * Nişan sınırları: yukarı bakış eksi.
+ *
+ * ACI_MAX dik olmalı — yoksa mızrak en aşağı açıda bile uzağa düşer ve
+ * duvarın dibine gelmiş canavar hiç vurulamaz. 80° ile yolun tamamı,
+ * duvarın hemen önü dahil, nişan alınabiliyor.
+ */
 export const ACI_MIN = -78
-export const ACI_MAX = 12
+export const ACI_MAX = 80
 export const ACI_BASLANGIC = -42
 /** Klavyeyle bir basışta değişen açı. */
 export const ACI_ADIM = 4
@@ -177,6 +183,49 @@ export const MENU_SATIR_BOY = 34
 /** Kutunun kule tepesinden yukarı payı. */
 export const MENU_ALT_PAY = 12
 
+// --- Malzemeler (altınla alınan destekler) ---
+
+export interface Malzeme {
+  id: string
+  /** Düğme yazısı; sayfada DOM'a basılıyor, emoji burada sorun değil. */
+  etiket: string
+  ozet: string
+  fiyat: number
+  /** Bir kez alınıp kalıcı mı? (tamir her seferinde alınabilir) */
+  tekSeferlik: boolean
+}
+
+/** Duvar tamiri bir seferde ne kadar can verir. */
+export const TAMIR_MIKTARI = 8
+/** Keskin mızrak hasara ne ekler. */
+export const KESKIN_BONUS = 1
+/** Hızlı atış beklemeyi hangi oranla çarpar. */
+export const HIZLI_ORAN = 0.7
+
+export const MALZEMELER: Malzeme[] = [
+  {
+    id: 'tamir',
+    etiket: '🧱 Duvar tamiri',
+    ozet: `+${TAMIR_MIKTARI} kale canı`,
+    fiyat: 40,
+    tekSeferlik: false,
+  },
+  {
+    id: 'keskin',
+    etiket: '⚔️ Keskin mızrak',
+    ozet: `mızrak hasarı +${KESKIN_BONUS}`,
+    fiyat: 70,
+    tekSeferlik: true,
+  },
+  {
+    id: 'hizli',
+    etiket: '⚡ Hızlı atış',
+    ozet: `bekleme %${Math.round((1 - HIZLI_ORAN) * 100)} kısa`,
+    fiyat: 60,
+    tekSeferlik: true,
+  },
+]
+
 // --- Ok (kule atışı) ---
 
 export const OK_HIZI = 430
@@ -238,6 +287,7 @@ export const COLORS = {
   MENU_KENAR: 0x94a3b8,
   MENU_PARA_YOK: 0x64748b,
   MENZIL: 0x38bdf8,
+  YUKSELT: 0x16a34a,
   ALTIN: 0xfbbf24,
   ALTIN_KENAR: 0x92400e,
   NISAN: 0xfef08a,

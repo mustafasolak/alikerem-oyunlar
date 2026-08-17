@@ -765,7 +765,7 @@ export const KATALOG: KatalogKaydi[] = [
     "ad": "Kale Savunması",
     "ozet": "Kaleye yürüyen canavarları mızrakla durdur.",
     "aciklama": "Dalga dalga gelen canavarları mızrakla vur, kaleyi ayakta tut.",
-    "ipucu": "<kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · ekrana dokun = mızrak at · <b>+</b> yuvasına dokun = altınla kule kur",
+    "ipucu": "<kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · ekrana dokun = mızrak at · <b>+</b> yuvasına dokun = kule kur, kuleye dokun = yükselt",
     "emoji": "🏰",
     "kategori": "arcade",
     "etiketler": [
@@ -780,7 +780,7 @@ export const KATALOG: KatalogKaydi[] = [
     "tuval": {
       "genislik": 540,
       "yukseklik": 400,
-      "disPay": 290
+      "disPay": 400
     },
     "arayuz": {
       "rozetler": [
@@ -809,6 +809,17 @@ export const KATALOG: KatalogKaydi[] = [
         {
           "etiket": "🗡 Saldır",
           "deger": "at"
+        },
+        {
+          "etiket": "⏸ Duraklat",
+          "deger": "duraklat"
+        }
+      ],
+      "paneller": [
+        {
+          "id": "malzeme",
+          "baslik": "Malzeme dükkânı",
+          "ic": "<div class=\"toolbar\"><button class=\"btn\" type=\"button\" data-malzeme=\"tamir\" title=\"+8 kale canı\">🧱 Duvar tamiri · <b>40</b></button><button class=\"btn\" type=\"button\" data-malzeme=\"keskin\" title=\"mızrak hasarı +1\">⚔️ Keskin mızrak · <b>70</b></button><button class=\"btn\" type=\"button\" data-malzeme=\"hizli\" title=\"bekleme %30 kısa\">⚡ Hızlı atış · <b>60</b></button></div>"
         }
       ]
     }

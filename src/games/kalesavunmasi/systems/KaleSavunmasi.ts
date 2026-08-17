@@ -26,13 +26,16 @@ import {
   DOGUS_X,
   DURAK_X,
   GAME_WIDTH,
+  HIZLI_ORAN,
   ILK_ARA_MS,
   KALE_CANI,
+  KESKIN_BONUS,
   KULE_BOY,
   KULE_MAX_SEVIYE,
   KULE_TABAN_Y,
   KULE_TIPLERI,
   KULE_YUVALARI,
+  MALZEMELER,
   MAX_BIRIKIM_MS,
   MIZRAK_CIKIS_X,
   MIZRAK_CIKIS_Y,
@@ -44,6 +47,7 @@ import {
   NISAN_MAX_ADIM,
   OK_HIZI,
   SIM_ADIM_MS,
+  TAMIR_MIKTARI,
   YERCEKIMI,
   ZEMIN_Y,
   dalgaCanavarSayisi,
@@ -112,7 +116,8 @@ export interface AdimSonucu {
   oyunBitti: boolean
 }
 
-export type Asama = 'ara' | 'dalga' | 'bitti'
+/** 'hazir': oyuncu Başlat'a basmadı, hiçbir şey ilerlemiyor. */
+export type Asama = 'hazir' | 'ara' | 'dalga' | 'bitti'
 
 function bosSonuc(): AdimSonucu {
   return {
@@ -133,9 +138,16 @@ export class KaleSavunmasi {
   /** Oyun parası — kuleler bununla alınır. */
   altin = BASLANGIC_ALTIN
   oldurulen = 0
-  asama: Asama = 'ara'
+  asama: Asama = 'hazir'
+  duraklatildi = false
   /** Nişan açısı (derece; 0 = sağa yatay, eksi = yukarı). */
   aci = ACI_BASLANGIC
+
+  /** Malzemeyle yükselen değerler. */
+  mizrakHasari = MIZRAK_HASARI
+  atisBeklemesi = ATIS_BEKLEME_MS
+  /** Bir kez alınan malzemelerin kimlikleri. */
+  readonly alinanMalzemeler = new Set<string>()
 
   readonly canavarlar: Canavar[] = []
   readonly atislar: Atis[] = []
@@ -162,15 +174,19 @@ export class KaleSavunmasi {
     this.skor = 0
     this.altin = BASLANGIC_ALTIN
     this.oldurulen = 0
-    this.asama = 'ara'
+    this.asama = 'hazir'
+    this.duraklatildi = false
     this.aci = ACI_BASLANGIC
+    this.mizrakHasari = MIZRAK_HASARI
+    this.atisBeklemesi = ATIS_BEKLEME_MS
+    this.alinanMalzemeler.clear()
     this.canavarlar.length = 0
     this.atislar.length = 0
     this.kuleler.fill(null)
     this.sonrakiId = 1
     this.kalanDogus = 0
     this.dogusBirikim = 0
-    // İlk dalga tam 3 saniye beklemesin.
+    // Başlat'a basılınca ilk dalga tam 3 saniye beklemesin.
     this.araBirikim = DALGA_ARASI_MS - ILK_ARA_MS
     this.beklemeBirikim = ATIS_BEKLEME_MS
     this.simBirikim = 0
@@ -180,14 +196,42 @@ export class KaleSavunmasi {
     return this.asama === 'bitti'
   }
 
+  /** Simülasyon ilerliyor mu? */
+  get calisiyor(): boolean {
+    return (this.asama === 'ara' || this.asama === 'dalga') && !this.duraklatildi
+  }
+
   /** Atış hazır mı? */
   get atisHazir(): boolean {
-    return this.beklemeBirikim >= ATIS_BEKLEME_MS
+    return this.beklemeBirikim >= this.atisBeklemesi
   }
 
   /** Bekleme çubuğu için 0..1. */
   get atisDolulugu(): number {
-    return Math.min(1, this.beklemeBirikim / ATIS_BEKLEME_MS)
+    return Math.min(1, this.beklemeBirikim / this.atisBeklemesi)
+  }
+
+  // --- Akış denetimi ---
+
+  /** Başlat: ilk dalganın hazırlık payını çalıştırır. */
+  basla(): boolean {
+    if (this.asama !== 'hazir') return false
+    this.asama = 'ara'
+    this.duraklatildi = false
+    return true
+  }
+
+  /** Duraklat / devam et. Döndürdüğü değer yeni duraklama durumu. */
+  duraklatDegistir(): boolean {
+    if (this.asama === 'hazir' || this.asama === 'bitti') return this.duraklatildi
+    this.duraklatildi = !this.duraklatildi
+    // Duraklarken biriken süre atılsın: devam edince oyun fırlamasın.
+    this.simBirikim = 0
+    return this.duraklatildi
+  }
+
+  devam(): void {
+    if (this.duraklatildi) this.duraklatDegistir()
   }
 
   /** Sonraki dalgaya kalan süre (ms); dalga sürüyorsa 0. */
@@ -211,9 +255,9 @@ export class KaleSavunmasi {
     this.aciAyarla(aci)
   }
 
-  /** Mızrak atar; bekleme dolmadıysa ya da oyun bittiyse false döner. */
+  /** Mızrak atar; oyun durmuşsa ya da bekleme dolmadıysa false döner. */
   at(): boolean {
-    if (this.asama === 'bitti' || !this.atisHazir) return false
+    if (!this.calisiyor || !this.atisHazir) return false
     this.beklemeBirikim = 0
     const radyan = (this.aci * Math.PI) / 180
     this.atislar.push({
@@ -222,10 +266,39 @@ export class KaleSavunmasi {
       y: MIZRAK_CIKIS_Y,
       vx: Math.cos(radyan) * MIZRAK_HIZI,
       vy: Math.sin(radyan) * MIZRAK_HIZI,
-      hasar: MIZRAK_HASARI,
+      hasar: this.mizrakHasari,
       agir: true,
       tur: 'mizrak',
     })
+    return true
+  }
+
+  // --- Malzeme dükkânı ---
+
+  /** Bu malzeme şu an alınabilir mi? (para, tekrar, kale canı dolu mu) */
+  malzemeAlinabilir(id: string): boolean {
+    const malzeme = MALZEMELER.find((m) => m.id === id)
+    if (!malzeme || this.asama === 'bitti') return false
+    if (malzeme.tekSeferlik && this.alinanMalzemeler.has(id)) return false
+    if (this.altin < malzeme.fiyat) return false
+    // Kale zaten tam canlıysa tamir parası boşa gitmesin.
+    if (id === 'tamir' && this.kaleCani >= KALE_CANI) return false
+    return true
+  }
+
+  /** Malzemeyi satın alıp etkisini uygular. */
+  malzemeAl(id: string): boolean {
+    if (!this.malzemeAlinabilir(id)) return false
+    const malzeme = MALZEMELER.find((m) => m.id === id)
+    if (!malzeme) return false
+
+    this.altin -= malzeme.fiyat
+    if (malzeme.tekSeferlik) this.alinanMalzemeler.add(id)
+
+    if (id === 'tamir') this.kaleCani = Math.min(KALE_CANI, this.kaleCani + TAMIR_MIKTARI)
+    else if (id === 'keskin') this.mizrakHasari += KESKIN_BONUS
+    else if (id === 'hizli') this.atisBeklemesi = Math.round(this.atisBeklemesi * HIZLI_ORAN)
+
     return true
   }
 
@@ -237,6 +310,21 @@ export class KaleSavunmasi {
     if (!kule) return KULE_TIPLERI[tip].fiyat[0]
     if (kule.tip !== tip || kule.seviye >= KULE_MAX_SEVIYE) return null
     return KULE_TIPLERI[kule.tip].fiyat[kule.seviye] ?? null
+  }
+
+  /** Yuvadaki kuleyi bir seviye yükseltir. */
+  kuleYukselt(yuva: number): boolean {
+    const kule = this.kuleler[yuva]
+    if (!kule || this.asama === 'bitti') return false
+    if (kule.seviye >= KULE_MAX_SEVIYE) return false
+    const fiyat = KULE_TIPLERI[kule.tip].fiyat[kule.seviye]
+    if (fiyat === undefined || this.altin < fiyat) return false
+
+    this.altin -= fiyat
+    kule.seviye++
+    // Yeni seviyenin atışı beklemesin.
+    kule.atisBirikim = KULE_TIPLERI[kule.tip].aralikMs[kule.seviye - 1]
+    return true
   }
 
   /** Boş yuvaya kule kurar; para yetmezse ya da yuva doluysa false döner. */
@@ -280,7 +368,8 @@ export class KaleSavunmasi {
 
   ilerlet(dt: number): AdimSonucu {
     const sonuc = bosSonuc()
-    if (this.asama === 'bitti') return sonuc
+    // 'hazir' ve duraklamada hiçbir şey ilerlemez.
+    if (!this.calisiyor) return sonuc
 
     this.simBirikim = Math.min(this.simBirikim + dt, MAX_BIRIKIM_MS)
     while (this.simBirikim >= SIM_ADIM_MS) {
@@ -294,7 +383,7 @@ export class KaleSavunmasi {
 
   private adim(dt: number, sonuc: AdimSonucu): void {
     const sn = dt / 1000
-    this.beklemeBirikim = Math.min(this.beklemeBirikim + dt, ATIS_BEKLEME_MS)
+    this.beklemeBirikim = Math.min(this.beklemeBirikim + dt, this.atisBeklemesi)
 
     if (this.asama === 'ara') {
       this.araBirikim += dt
