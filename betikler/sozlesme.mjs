@@ -84,6 +84,28 @@ for (const dosya of dosyalar) {
   }
 }
 
+// Düz metin alanlarda HTML olmamalı: kabuk bunları kaçırarak basıyor,
+// etiket yazılırsa ekranda "<strong>" diye görünür.
+// `ipucu` ve panel içerikleri bilerek ham basılır; ipucuda yalnız birkaç
+// biçimlendirme etiketine izin var.
+const DUZ_ALANLAR = ['ad', 'ozet', 'aciklama']
+const IPUCU_IZINLI = /^(kbd|b|strong|i|em|br)$/
+
+for (const dosya of dosyalar) {
+  const t = (await import(pathToFileURL(dosya).href)).default
+  for (const alan of DUZ_ALANLAR) {
+    const deger = t[alan]
+    if (typeof deger === 'string' && /[<>]/.test(deger)) {
+      hatalar.push(`${t.id}: '${alan}' düz metin olmalı, HTML içeriyor`)
+    }
+  }
+  for (const etiket of String(t.ipucu ?? '').matchAll(/<\/?([a-zA-Z0-9]+)/g)) {
+    if (!IPUCU_IZINLI.test(etiket[1])) {
+      hatalar.push(`${t.id}: ipucunda izinsiz etiket <${etiket[1]}>`)
+    }
+  }
+}
+
 // Skor kimliği katalog kimliğiyle aynı olmalı.
 // Aksi hâlde skorlar sunucuda başka bir kimlik altına düşer (yönetim paneli ve
 // istatistikler katalogla eşleşmez) ya da büyük harf yüzünden sessizce reddedilir.

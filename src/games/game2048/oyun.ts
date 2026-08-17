@@ -4,7 +4,7 @@ export default tanim({
   id: 'game2048',
   ad: "2048",
   ozet: "Kareleri kaydır, aynı sayıları birleştir ve 2048 karesine ulaş.",
-  aciklama: "Aynı sayıları birleştir, <strong>2048</strong> karesine ulaş.",
+  aciklama: "Aynı sayıları birleştir, 2048 karesine ulaş.",
   ipucu: "<kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> veya <kbd>WASD</kbd> ile oyna · mobilde parmağını kaydır · <kbd>Z</kbd> ile son hamleyi geri al",
   emoji: '🔢',
   kategori: 'yerlestirme',

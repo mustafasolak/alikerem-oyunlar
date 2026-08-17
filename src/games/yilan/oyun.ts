@@ -4,7 +4,7 @@ export default tanim({
   id: 'yilan',
   ad: "Yılan",
   ozet: "Yem topla, uzadıkça hızlan. Duvara ve kuyruğuna çarpma.",
-  aciklama: "Yem topla, duvara ve <strong>kendi kuyruğuna</strong> çarpma.",
+  aciklama: "Yem topla, duvara ve kendi kuyruğuna çarpma.",
   ipucu: "<kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> veya <kbd>WASD</kbd> ile yön ver · <kbd>Boşluk</kbd> duraklatır · mobilde parmağını kaydır",
   emoji: '🐍',
   kategori: 'arcade',
