@@ -157,16 +157,55 @@
 }
 
 /*
- * Tam ekran: kabuğun 560px sınırı kalksın, yoksa tam ekrana geçmek yalnız
- * tarayıcı çubuklarını gizler, tahta aynı boyutta kalır. Yükseklik sınırı
- * (--chrome) yine geçerli; tahta ekranı taşmaz.
+ * Geniş ekranda tahta büyüsün. 560px telefon ölçüsü; tablette ve masaüstünde
+ * ekranın ortasında küçük bir kutu gibi kalıyordu. Yükseklik sınırı
+ * (--chrome) yine geçerli, yani alçak pencerede tahta yine sığar.
+ */
+@media (min-width: 900px) {
+  .game-shell {
+    width: min(100% - 3rem, 800px);
+  }
+}
+
+@media (min-width: 1280px) {
+  .game-shell {
+    width: min(100% - 4rem, 1000px);
+  }
+}
+
+/*
+ * Tam ekran: kabuğun genişlik sınırı iyice açılsın ve dikey yer kazanmak için
+ * başlık altındaki açıklama gizlensin. Yoksa tam ekrana geçmek yalnız tarayıcı
+ * çubuklarını gizler, tahta aynı boyutta kalırdı.
  */
 :fullscreen .game-shell {
-  width: min(100% - 1.5rem, 960px);
+  width: min(100% - 2rem, 1600px);
+  height: 100dvh;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  gap: 0.6rem;
+}
+
+/* Oynarken gerekmeyenler gizlenip yer tahtaya bırakılır. */
+:fullscreen .game-intro p,
+:fullscreen .scoreboard {
+  display: none;
+}
+
+/*
+ * Tam ekranda tahta artan yüksekliğin tamamını alsın. Genişliği --chrome
+ * tahmininden değil, `aspect-ratio` üzerinden gerçek boş yükseklikten türetiyoruz;
+ * böylece oyunun bildirdiği pay ne olursa olsun ekran gerçekten kaplanıyor.
+ */
+:fullscreen .game-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: auto;
+  max-width: 100%;
 }
 
 :-webkit-full-screen .game-shell {
-  width: min(100% - 1.5rem, 960px);
+  width: min(100% - 2rem, 1600px);
 }
 
 .game-canvas {
