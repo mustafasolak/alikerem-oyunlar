@@ -71,7 +71,7 @@ export function katalogSayfasi(): Temizleyici {
         ${kategoriler
           .map(
             (k) =>
-              `<button class="btn" type="button" data-suzgec="${k}" aria-pressed="false">${KATEGORI_ADLARI[k]}</button>`,
+              `<button class="btn" type="button" data-suzgec="${k}" data-kategori="${k}" aria-pressed="false">${KATEGORI_ADLARI[k]}</button>`,
           )
           .join('')}
       </div>
@@ -138,8 +138,11 @@ export function katalogSayfasi(): Temizleyici {
     const fav = favoriMi(o.id)
     return `
       <div class="card-sarmal">
-        <a class="card" href="#/oyun/${o.id}">
-          <div class="card-art" aria-hidden="true">${o.emoji}</div>
+        <a class="card" href="#/oyun/${o.id}" style="--kart-a:${o.renk[0]};--kart-b:${o.renk[1]}">
+          <div class="card-art" aria-hidden="true">
+            ${o.emoji}
+            <span class="card-kategori" data-kategori="${o.kategori}">${KATEGORI_ADLARI[o.kategori]}</span>
+          </div>
           <h2>${kacir(o.ad)}</h2>
           <p>${kacir(o.ozet)}</p>
           <ul class="tags">${o.etiketler.map((e) => `<li>${kacir(e)}</li>`).join('')}</ul>
