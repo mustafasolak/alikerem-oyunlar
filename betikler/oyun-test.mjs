@@ -14,6 +14,7 @@ import {
   ACI_MIN,
   ATIS_BEKLEME_MS,
   BASLANGIC_ALTIN,
+  CANAVAR_TIPLERI,
   DALGA_MAX_ADET,
   DOGUS_X,
   DURAK_X,
@@ -24,7 +25,9 @@ import {
   SIM_ADIM_MS,
   TAMIR_MIKTARI,
   ZEMIN_Y,
+  dalgaCanCarpani,
   dalgaCanavarSayisi,
+  dalgaOdulCarpani,
   kuleAtisY,
   kuleGorunum,
   vakitIndeksi,
@@ -593,6 +596,79 @@ function tohumlu(tohum) {
   oyun.altin = 0
   oyun.kuleAl(1, 0)
   esit('parasızken kule kurulmaz', oyun.kuleler[1], null)
+}
+
+// --- Kale Savunması: canavarlar dalgayla güçleniyor ---
+{
+  esit('1. dalgada can çarpanı 1', dalgaCanCarpani(1), 1)
+  kontrol('can çarpanı dalgayla büyüyor', dalgaCanCarpani(10) > dalgaCanCarpani(5))
+  kontrol('10. dalgada canlar en az iki kat', dalgaCanCarpani(10) >= 2, `çarpan ${dalgaCanCarpani(10).toFixed(2)}`)
+  esit('1. dalgada ödül çarpanı 1', dalgaOdulCarpani(1), 1)
+  kontrol('ödül de dalgayla büyüyor', dalgaOdulCarpani(10) > 1)
+  kontrol('ödül candan yavaş büyüyor', dalgaOdulCarpani(10) < dalgaCanCarpani(10))
+
+  // Canavar canı ve ödülü doğduğu dalgaya göre ölçekleniyor mu?
+  const oyun = new KaleSavunmasi(tohumlu(41))
+  oyun.basla()
+  // Doğan canavarı hemen sahneden alıyoruz: dalgalar hızla ilerliyor,
+  // kale de hasar almıyor. Her doğuştan bir örnek toplanıyor.
+  const ornekler = []
+  for (let i = 0; i < 30000 && oyun.dalga <= 6; i++) {
+    oyun.ilerlet(SIM_ADIM_MS)
+    if (oyun.canavarlar.length === 0) continue
+    const c = oyun.canavarlar[0]
+    ornekler.push({ dalga: oyun.dalga, tip: c.tip, can: c.maxCan, altin: c.altin, puan: c.puan })
+    oyun.canavarlar.length = 0
+  }
+
+  kontrol('birkaç dalgadan örnek toplandı', ornekler.length >= 6, `${ornekler.length} örnek`)
+  kontrol(
+    'canavar canı dalgaya göre ölçekli',
+    ornekler.every((o) => o.can === Math.round(CANAVAR_TIPLERI[o.tip].can * dalgaCanCarpani(o.dalga))),
+  )
+  kontrol(
+    'canavar ödülü dalgaya göre ölçekli',
+    ornekler.every(
+      (o) =>
+        o.altin === Math.round(CANAVAR_TIPLERI[o.tip].altin * dalgaOdulCarpani(o.dalga)) &&
+        o.puan === Math.round(CANAVAR_TIPLERI[o.tip].puan * dalgaOdulCarpani(o.dalga)),
+    ),
+  )
+  const sonDalga = Math.max(...ornekler.map((o) => o.dalga))
+  const ilk = ornekler.find((o) => o.dalga === 1)
+  const son = ornekler.find((o) => o.dalga === sonDalga && o.tip === ilk.tip)
+  if (son) kontrol('aynı tip ileri dalgada daha canlı', son.can > ilk.can, `${ilk.can} → ${son.can}`)
+}
+
+// --- Kale Savunması: güçlü tipler ileri dalgalarda sıklaşıyor ---
+{
+  // Aynı tohumla iki oyun: birinde ilk dalgalar, diğerinde ileri dalgalar
+  const tipDagilimi = (baslangicDalga) => {
+    const oyun = new KaleSavunmasi(tohumlu(7))
+    oyun.basla()
+    oyun.dalga = baslangicDalga
+    const sayim = CANAVAR_TIPLERI.map(() => 0)
+    for (let i = 0; i < 20000 && sayim.reduce((a, b) => a + b, 0) < 60; i++) {
+      const oncekiDalga = oyun.dalga
+      oyun.ilerlet(SIM_ADIM_MS)
+      for (const c of oyun.canavarlar) sayim[c.tip]++
+      oyun.canavarlar.length = 0
+      // Dalga numarasını sabit tut: dağılımı tek dalga için ölçüyoruz
+      oyun.dalga = oncekiDalga
+    }
+    return sayim
+  }
+
+  const erken = tipDagilimi(4)
+  const geri = tipDagilimi(20)
+  const trolOrani = (s) => s[2] / Math.max(1, s.reduce((a, b) => a + b, 0))
+
+  kontrol('erken dalgada goblin daha sık', erken[0] > erken[2], `goblin ${erken[0]}, trol ${erken[2]}`)
+  kontrol(
+    'ileri dalgada trol sıklaşıyor',
+    trolOrani(geri) > trolOrani(erken),
+    `${(trolOrani(erken) * 100).toFixed(0)}% → ${(trolOrani(geri) * 100).toFixed(0)}%`,
+  )
 }
 
 // --- Kale Savunması: seviye görünümü (seviye sayısından bağımsız) ---

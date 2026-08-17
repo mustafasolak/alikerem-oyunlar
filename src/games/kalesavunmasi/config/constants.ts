@@ -96,44 +96,68 @@ export interface CanavarTipi {
 export const CANAVAR_TIPLERI: CanavarTipi[] = [
   {
     ad: 'Goblin',
-    can: 2,
-    hiz: 38,
+    can: 3,
+    hiz: 42,
     altin: 8,
     puan: 20,
     en: 26,
     boy: 36,
     renk: 0x84cc16,
     vurusHasari: 1,
-    vurusAralikMs: 1600,
+    vurusAralikMs: 1500,
     ilkDalga: 1,
   },
   {
     ad: 'Ork',
-    can: 5,
-    hiz: 27,
+    can: 7,
+    hiz: 30,
     altin: 16,
     puan: 45,
     en: 32,
     boy: 46,
     renk: 0xa855f7,
-    vurusHasari: 2,
-    vurusAralikMs: 1900,
+    vurusHasari: 3,
+    vurusAralikMs: 1800,
     ilkDalga: 2,
   },
   {
     ad: 'Trol',
-    can: 11,
-    hiz: 18,
+    can: 14,
+    hiz: 20,
     altin: 34,
     puan: 95,
     en: 42,
     boy: 58,
     renk: 0xf97316,
-    vurusHasari: 3,
-    vurusAralikMs: 2200,
+    vurusHasari: 4,
+    vurusAralikMs: 2100,
     ilkDalga: 4,
   },
 ]
+
+/**
+ * Dalga başına can çarpanı.
+ *
+ * Bu olmadan 10. dalgada da 1. dalganın canavarı geliyordu: kuleler 5 seviyeye
+ * çıkarken canavarlar aynı kalıyor, oyun bir yerden sonra kendiliğinden
+ * bitiyordu. Artık her dalgada canlar da büyüyor.
+ */
+export const DALGA_CAN_ARTISI = 0.18
+/** Güçlenen canavar daha çok altın ve puan verir; ekonomi geride kalmasın. */
+export const DALGA_ODUL_ARTISI = 0.1
+/**
+ * Güçlü tiplerin sıklaşma hızı: bu dalgaya gelindiğinde ağırlık tamamen
+ * tersine döner, yani trol goblinden sık çıkar.
+ */
+export const TIP_KAYMA_DALGA = 10
+
+export function dalgaCanCarpani(dalga: number): number {
+  return 1 + Math.max(0, dalga - 1) * DALGA_CAN_ARTISI
+}
+
+export function dalgaOdulCarpani(dalga: number): number {
+  return 1 + Math.max(0, dalga - 1) * DALGA_ODUL_ARTISI
+}
 
 // --- Kuleler ---
 
@@ -292,7 +316,7 @@ export const DOGUS_ARALIK_MIN = 520
 export const DALGA_ARASI_MS = 3000
 /** İlk dalga daha çabuk gelsin. */
 export const ILK_ARA_MS = 1700
-export const DALGA_HIZ_ARTISI = 0.035
+export const DALGA_HIZ_ARTISI = 0.045
 export const DALGA_BONUSU = 120
 export const DALGA_ALTIN_BONUSU = 25
 

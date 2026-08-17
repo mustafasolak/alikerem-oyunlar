@@ -6,7 +6,6 @@ import { sesler } from '../../../shared/Sesler.ts'
 import { setChip } from '../../../shared/dom.ts'
 import {
   ACI_ADIM,
-  CANAVAR_TIPLERI,
   COLORS,
   DALGA_BONUSU,
   FONT_FAMILY,
@@ -372,9 +371,9 @@ export class GameScene extends TemelSahne {
       this.canavarGorunumleri.delete(isabet.canavarId)
       gorunum.oldur()
       sesler.patlama()
-      const puan = CANAVAR_TIPLERI[isabet.tip].puan
-      this.hud.showGain(puan)
-      this.puanYaz(isabet.x, isabet.y, puan)
+      // Puan canavarın doğduğu dalgaya göre; ileri dalgalar daha çok verir.
+      this.hud.showGain(isabet.puan)
+      this.puanYaz(isabet.x, isabet.y, isabet.puan)
     }
   }
 

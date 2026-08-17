@@ -46,9 +46,12 @@ import {
   OK_HIZI,
   SIM_ADIM_MS,
   TAMIR_MIKTARI,
+  TIP_KAYMA_DALGA,
   YERCEKIMI,
   ZEMIN_Y,
+  dalgaCanCarpani,
   dalgaCanavarSayisi,
+  dalgaOdulCarpani,
   kuleAtisY,
 } from '../config/constants.ts'
 
@@ -61,6 +64,9 @@ export interface Canavar {
   x: number
   can: number
   maxCan: number
+  /** Doğduğu dalgaya göre hesaplanmış ödül; sonra dalga ilerlese de değişmez. */
+  altin: number
+  puan: number
   durum: CanavarDurum
   /** Yürüme/vuruş animasyon fazı (0..1) — sahne bacakları buna göre çizer. */
   faz: number
@@ -98,6 +104,8 @@ export interface Isabet {
   tip: number
   /** Bu isabetle öldü mü? */
   oldu: boolean
+  /** Ölümden kazanılan puan (öldürmediyse 0). */
+  puan: number
 }
 
 /** Bir karede olan biten: sahne bunları görsele çevirir. */
@@ -484,12 +492,18 @@ export class KaleSavunmasi {
   private canavarDogur(): void {
     const tip = this.tipSec()
     const bilgi = CANAVAR_TIPLERI[tip]
+    // Can ve ödül doğduğu dalgaya göre ölçeklenir.
+    const can = Math.round(bilgi.can * dalgaCanCarpani(this.dalga))
+    const odul = dalgaOdulCarpani(this.dalga)
+
     this.canavarlar.push({
       id: this.sonrakiId++,
       tip,
       x: DOGUS_X,
-      can: bilgi.can,
-      maxCan: bilgi.can,
+      can,
+      maxCan: can,
+      altin: Math.round(bilgi.altin * odul),
+      puan: Math.round(bilgi.puan * odul),
       durum: 'yuruyor',
       // Faz rastgele başlasın; hepsi aynı anda aynı bacağı atmasın.
       faz: this.random(),
@@ -497,7 +511,12 @@ export class KaleSavunmasi {
     })
   }
 
-  /** Dalgaya açılmış tipler arasından seçer; güçlüler daha seyrek çıkar. */
+  /**
+   * Dalgaya açılmış tipler arasından seçer.
+   *
+   * Başta zayıflar sık çıkar; dalga ilerledikçe ağırlık tersine döner ve
+   * TIP_KAYMA_DALGA'ya gelindiğinde güçlüler baskın olur.
+   */
   private tipSec(): number {
     const acik: number[] = []
     for (let i = 0; i < CANAVAR_TIPLERI.length; i++) {
@@ -505,7 +524,13 @@ export class KaleSavunmasi {
     }
     if (acik.length === 0) return 0
 
-    const agirlik = acik.map((i) => CANAVAR_TIPLERI.length - i)
+    const kayma = Math.min(1, Math.max(0, this.dalga - 1) / TIP_KAYMA_DALGA)
+    const agirlik = acik.map((i) => {
+      const zayifAgirlik = CANAVAR_TIPLERI.length - i
+      const gucluAgirlik = i + 1
+      return zayifAgirlik * (1 - kayma) + gucluAgirlik * kayma
+    })
+
     const toplam = agirlik.reduce((a, b) => a + b, 0)
     let secim = this.random() * toplam
     for (let k = 0; k < acik.length; k++) {
@@ -554,12 +579,11 @@ export class KaleSavunmasi {
   private hasarVer(c: Canavar, m: Atis, sonuc: AdimSonucu): void {
     c.can -= m.hasar
     const oldu = c.can <= 0
-    sonuc.isabetler.push({ canavarId: c.id, x: m.x, y: m.y, tip: c.tip, oldu })
+    sonuc.isabetler.push({ canavarId: c.id, x: m.x, y: m.y, tip: c.tip, oldu, puan: oldu ? c.puan : 0 })
     if (!oldu) return
 
-    const bilgi = CANAVAR_TIPLERI[c.tip]
-    this.skor += bilgi.puan
-    this.altin += bilgi.altin
+    this.skor += c.puan
+    this.altin += c.altin
     this.oldurulen++
     const yer = this.canavarlar.indexOf(c)
     if (yer >= 0) this.canavarlar.splice(yer, 1)

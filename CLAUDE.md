@@ -148,8 +148,9 @@ yönlendirmelerle korunuyor; kırılmasınlar diye silinmemeli.
 - [x] Telefon uyumu: yatay taşma yok, tahta ilk ekrana sığıyor
 - [x] Herkese açık ortak skor tablosu (Vercel + Neon Postgres, günlük/haftalık/aylık)
 
-### Oyunlar — 51'i de oynanabilir
-Arcade: 2048 · Yılan · Tetris · Match-3 · Şeker Patlatma · Bubble Shooter · Zuma
+### Oyunlar — 52'si de oynanabilir
+Arcade: 2048 · Yılan · Tetris · Match-3 · Şeker Patlatma · Bubble Shooter · Zuma ·
+  Kale Savunması
 Mantık: Sudoku · Mayın Tarlası · Nonogram · Kakuro · Lights Out · Mantık Kapıları ·
   Köprü Kurma · Boru Bağlama · Su Borusu · Elektrik Devresi · Laser Reflection · Aynalarla Lazer
 Yerleştirme: 15'li Puzzle · Sokoban · Box Push · Araba Çıkarma · Hanoi · Blok Yerleştirme ·
@@ -165,6 +166,7 @@ Diğer: Mastermind · Labirent · Matematik Bulmacası · Sayı Piramidi
 - [x] Mayın Tarlası'nda akor (sayıya çift tıkla çevresini aç)
 - [x] 2048'de geri alma (oyun başına 3 hak)
 - [x] Solitaire ailesinde çoklu kart taşıma ve geri alma
+- [ ] Kale Savunması: Mancınık ve Buz Kulesi (alan hasarı / yavaşlatma), uçan canavar
 - [ ] Mahjong tek katmanlı — gerçek kat yapısı yok
 - [ ] Tangram parçaları hâlâ kare — gerçek tangram parçaları çizilmeli
 - [x] Yönetim paneli (#/yonetim) — gizleme, ana sayfa vitrini, skor denetimi, istatistik
