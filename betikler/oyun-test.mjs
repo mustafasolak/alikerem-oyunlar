@@ -10,6 +10,11 @@ import { Board2048 } from '../src/games/game2048/systems/Board2048.ts'
 import { FreeCell } from '../src/games/freecell/systems/FreeCell.ts'
 import { KaleSavunmasi } from '../src/games/kalesavunmasi/systems/KaleSavunmasi.ts'
 import {
+  acikDunyaSayisi,
+  dunyaAcikMi,
+  sonrakiDunyayaKalan,
+} from '../src/games/kalesavunmasi/systems/Ilerleme.ts'
+import {
   ACI_MAX,
   ACI_MIN,
   ATIS_BEKLEME_MS,
@@ -17,8 +22,9 @@ import {
   CANAVAR_TIPLERI,
   DALGA_MAX_ADET,
   DOGUS_X,
+  DUNYALAR,
+  DUNYA_ESIGI,
   DURAK_X,
-  KALE_CANI,
   KESKIN_BONUS,
   KULE_MAX_SEVIYE,
   KULE_TIPLERI,
@@ -30,6 +36,7 @@ import {
   dalgaCanCarpani,
   dalgaCanavarSayisi,
   dalgaOdulCarpani,
+  dunya,
   kuleAtisY,
   kuleGorunum,
   patronDalgasiMi,
@@ -549,9 +556,9 @@ function tohumlu(tohum) {
   // Kale tam canlıyken tamir satılmaz: para boşa gitmesin
   oyun.altin = 500
   esit('tam canlı kalede tamir alınmaz', oyun.malzemeAlinabilir('tamir'), false)
-  oyun.kaleCani = KALE_CANI - 20
+  oyun.kaleCani = DUNYALAR[0].kaleCani - 20
   esit('hasarlı kalede tamir alınır', oyun.malzemeAl('tamir'), true)
-  esit('tamir can ekler', oyun.kaleCani, KALE_CANI - 20 + TAMIR_MIKTARI)
+  esit('tamir can ekler', oyun.kaleCani, DUNYALAR[0].kaleCani - 20 + TAMIR_MIKTARI)
 
   // Keskin mızrak hasarı kalıcı arttırır ve bir kez alınır
   const oncekiHasar = oyun.mizrakHasari
@@ -680,6 +687,80 @@ function tohumlu(tohum) {
     ortalamaGuc(geri) > ortalamaGuc(erken),
     `ortalama güç ${ortalamaGuc(erken).toFixed(2)} → ${ortalamaGuc(geri).toFixed(2)}`,
   )
+}
+
+// --- Kale Savunması: dünyalar ---
+{
+  esit('iki dünya tanımlı', DUNYALAR.length >= 2, true)
+  esit('sınır dışı dünya en yakına düşer', dunya(99), DUNYALAR[DUNYALAR.length - 1])
+  esit('eksi dünya ilkine düşer', dunya(-3), DUNYALAR[0])
+
+  // 2. dünya her açıdan daha zorlu olmalı
+  const d1 = DUNYALAR[0]
+  const d2 = DUNYALAR[1]
+  const ortalama = (liste, alan) => liste.reduce((a, t) => a + t[alan], 0) / liste.length
+
+  kontrol('2. dünya canavarları daha canlı', ortalama(d2.canavarlar, 'can') > ortalama(d1.canavarlar, 'can'))
+  kontrol('2. dünya canavarları daha hızlı', ortalama(d2.canavarlar, 'hiz') > ortalama(d1.canavarlar, 'hiz'))
+  kontrol('2. dünya daha çok hasar veriyor', ortalama(d2.canavarlar, 'vurusHasari') > ortalama(d1.canavarlar, 'vurusHasari'))
+  kontrol('2. dünyanın kalesi daha canlı', d2.kaleCani > d1.kaleCani)
+  kontrol('2. dünya daha çok ödül veriyor', d2.odulCarpani > d1.odulCarpani)
+  kontrol(
+    'iki dünyanın canavarları farklı',
+    d2.canavarlar.every((t) => !d1.canavarlar.some((k) => k.ad === t.ad)),
+  )
+  for (const d of DUNYALAR) {
+    kontrol(`${d.kisaAd}: bir şefi var`, d.canavarlar.filter((t) => t.patron).length === 1)
+    kontrol(`${d.kisaAd}: 1. dalgada çıkan tip var`, d.canavarlar.some((t) => t.ilkDalga === 1 && !t.patron))
+  }
+}
+
+{
+  // Oyun seçilen dünyanın tablosuyla oynuyor
+  const oyun = new KaleSavunmasi(tohumlu(71), 1)
+  esit('2. dünya seçildi', oyun.dunyaSira, 1)
+  esit('tablo 2. dünyanınki', oyun.tipler, DUNYALAR[1].canavarlar)
+  esit('kale canı dünyadan geliyor', oyun.kaleCani, DUNYALAR[1].kaleCani)
+
+  oyun.basla()
+  let ornek = null
+  for (let i = 0; i < 4000 && !ornek; i++) {
+    oyun.ilerlet(SIM_ADIM_MS)
+    ornek = oyun.canavarlar[0] ?? null
+  }
+  kontrol('2. dünyada canavar doğdu', ornek !== null)
+  kontrol(
+    '2. dünya canavarı kendi tablosundan',
+    ornek !== null && ornek.can === Math.round(DUNYALAR[1].canavarlar[ornek.tip].can * dalgaCanCarpani(oyun.dalga)),
+  )
+  kontrol(
+    'ödül dünya çarpanıyla büyümüş',
+    ornek !== null && ornek.altin > DUNYALAR[1].canavarlar[ornek.tip].altin - 1,
+  )
+
+  // Dünya değiştirmek turu sıfırlıyor
+  oyun.dunyaSec(0)
+  esit('dünya değişti', oyun.dunyaSira, 0)
+  esit('tur sıfırlandı', oyun.dalga, 0)
+  esit('kale canı yeni dünyanınki', oyun.kaleCani, DUNYALAR[0].kaleCani)
+  esit('canavarlar temizlendi', oyun.canavarlar.length, 0)
+}
+
+{
+  // Açılma eşiği: 1000 canavara kadar ikinci dünya kilitli
+  esit('eşik 1000', DUNYA_ESIGI, 1000)
+  esit('sıfır öldürmede tek dünya açık', acikDunyaSayisi(0), 1)
+  esit('999 öldürmede hâlâ tek dünya', acikDunyaSayisi(DUNYA_ESIGI - 1), 1)
+  esit('1000 öldürmede iki dünya', acikDunyaSayisi(DUNYA_ESIGI), 2)
+  esit('çok öldürmede dünya sayısını aşmaz', acikDunyaSayisi(DUNYA_ESIGI * 50), DUNYALAR.length)
+
+  esit('1. dünya hep açık', dunyaAcikMi(0, 0), true)
+  esit('2. dünya başta kilitli', dunyaAcikMi(1, 0), false)
+  esit('2. dünya eşikte açılıyor', dunyaAcikMi(1, DUNYA_ESIGI), true)
+
+  esit('başta 1000 kaldı', sonrakiDunyayaKalan(0), DUNYA_ESIGI)
+  esit('600 öldürünce 400 kaldı', sonrakiDunyayaKalan(600), DUNYA_ESIGI - 600)
+  esit('hepsi açıksa kalan yok', sonrakiDunyayaKalan(DUNYA_ESIGI * DUNYALAR.length), null)
 }
 
 // --- Kale Savunması: zırh, uçuş ve şef ---
@@ -861,7 +942,7 @@ function tohumlu(tohum) {
 {
   const oyun = new KaleSavunmasi(tohumlu(11))
   esit('başta dalga yok', oyun.dalga, 0)
-  esit('kale tam canlı', oyun.kaleCani, KALE_CANI)
+  esit('kale tam canlı', oyun.kaleCani, DUNYALAR[0].kaleCani)
   oyun.basla()
 
   // Hazırlık payı dolunca ilk dalga başlar
@@ -978,7 +1059,7 @@ function tohumlu(tohum) {
   esit('aşama bitti', oyun.asama, 'bitti')
   esit('kale canı sıfır', oyun.kaleCani, 0)
   esit('bitince atış yapılamaz', oyun.at(), false)
-  esit('sıfırlama kaleyi doldurur', (oyun.reset(), oyun.kaleCani), KALE_CANI)
+  esit('sıfırlama kaleyi doldurur', (oyun.reset(), oyun.kaleCani), DUNYALAR[0].kaleCani)
 }
 
 if (hatalar.length) {

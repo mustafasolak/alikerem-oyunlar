@@ -3,15 +3,15 @@ import * as Phaser from 'phaser'
 import { KATMAN, nisanIzi } from '../../../shared/Gorsel.ts'
 import { TemelSahne } from '../../../shared/TemelSahne.ts'
 import { sesler } from '../../../shared/Sesler.ts'
-import { setChip } from '../../../shared/dom.ts'
+import { butonGrubu, setChip } from '../../../shared/dom.ts'
 import {
   ACI_ADIM,
   COLORS,
   DALGA_BONUSU,
+  DUNYALAR,
   FONT_FAMILY,
   GAME_WIDTH,
   ISABET_EFEKT_MS,
-  KALE_CANI,
   KALE_SARSINTI_GUC,
   KALE_SARSINTI_MS,
   KULE_TIPLERI,
@@ -26,6 +26,7 @@ import {
   ZEMIN_Y,
   patronDalgasiMi,
 } from '../config/constants.ts'
+import { acikDunyaSayisi, dunyaAcikMi, oldurulenEkle, sonrakiDunyayaKalan } from '../systems/Ilerleme.ts'
 import { KaleSavunmasi, type Isabet } from '../systems/KaleSavunmasi.ts'
 import { ArkaPlan } from './ArkaPlan.ts'
 import { CanavarGorunumu } from './CanavarGorunumu.ts'
@@ -56,6 +57,10 @@ export class GameScene extends TemelSahne {
   /** DOM'a her karede yazmamak için son basılan malzeme/skor durumu. */
   private malzemeImza = ''
   private gosterilenSkor = -1
+  /** Kalıcı toplama yazılmış öldürme sayısı (tur içinde artar). */
+  private kaydedilenOldurme = 0
+  private acikDunya = acikDunyaSayisi()
+  private dunyayiIsaretle?: (deger: string) => void
 
   constructor() {
     super('kalesavunmasi')
@@ -99,10 +104,68 @@ export class GameScene extends TemelSahne {
     this.padDugmesi('at', () => this.at())
     this.padDugmesi('duraklat', () => this.duraklatDegistir())
     this.malzemeDugmeleri()
+    this.dunyaDugmeleri()
+  }
+
+  // --- Dünyalar ---
+
+  /**
+   * Dünya seçimi. Kilitli dünyanın düğmesi kapalı durur ve üstünde kaç
+   * canavar kaldığı yazar; oyuncu hedefi görsün.
+   */
+  private dunyaDugmeleri(): void {
+    this.dunyayiIsaretle = butonGrubu('toolbar', 'level', (deger) => {
+      const sira = Number(deger)
+      if (!dunyaAcikMi(sira)) {
+        // Kilitli: seçimi geri al, ne kadar kaldığını söyle.
+        this.dunyayiIsaretle?.(String(this.oyun.dunyaSira))
+        sesler.yanlis()
+        this.bildir(`${sonrakiDunyayaKalan() ?? 0} canavar daha!`)
+        return
+      }
+      this.oyun.dunyaSec(sira)
+      this.yenidenBasla()
+    })
+    this.dunyalariTazele()
+  }
+
+  /** Kilitli dünyaların düğmesini kapatır, kalan sayıyı yazar. */
+  private dunyalariTazele(): void {
+    const kalan = sonrakiDunyayaKalan()
+    for (let sira = 0; sira < DUNYALAR.length; sira++) {
+      const dugme = document.querySelector<HTMLButtonElement>(`#toolbar button[data-level="${sira}"]`)
+      if (!dugme) continue
+      const acik = dunyaAcikMi(sira)
+      dugme.disabled = !acik
+      dugme.textContent = acik ? DUNYALAR[sira].kisaAd : `🔒 ${DUNYALAR[sira].kisaAd} · ${kalan}`
+      dugme.title = acik ? DUNYALAR[sira].ad : `${kalan} canavar daha öldür`
+    }
+    this.dunyayiIsaretle?.(String(this.oyun.dunyaSira))
+  }
+
+  /**
+   * Tur içinde öldürülenleri kalıcı toplama yazar. Dalga sonunda ve oyun
+   * bitince çağrılır: her öldürmede depolamaya yazmaya gerek yok.
+   */
+  private ilerlemeyiKaydet(): void {
+    const yeni = this.oyun.oldurulen - this.kaydedilenOldurme
+    if (yeni <= 0) return
+    this.kaydedilenOldurme = this.oyun.oldurulen
+
+    const oncekiAcik = this.acikDunya
+    const toplam = oldurulenEkle(yeni)
+    this.acikDunya = acikDunyaSayisi(toplam)
+    this.dunyalariTazele()
+
+    if (this.acikDunya <= oncekiAcik) return
+    sesler.zafer()
+    this.bildir(`${DUNYALAR[this.acikDunya - 1].ad} açıldı!`)
   }
 
   protected yeniOyun(): void {
+    this.ilerlemeyiKaydet()
     this.oyun.reset()
+    this.kaydedilenOldurme = 0
     for (const gorunum of this.canavarGorunumleri.values()) gorunum.yok()
     this.canavarGorunumleri.clear()
     for (const gorunum of this.mizrakGorunumleri.values()) gorunum.destroy()
@@ -114,15 +177,15 @@ export class GameScene extends TemelSahne {
     this.malzemeImza = ''
     this.gosterilenSkor = -1
     // Yeniden başlarken bütün tweenler silinir; arka plan ve meşaleler yeniden kurulmalı.
-    this.arkaPlan.sifirla(1)
+    this.arkaPlan.sifirla(1, DUNYALAR[this.oyun.dunyaSira].vakitBaslangic)
     this.kale.sifirla()
-    this.kale.canGoster(KALE_CANI, KALE_CANI)
+    this.kale.canGoster(this.oyun.maxKaleCani, this.oyun.maxKaleCani)
     this.kuleAlani.sifirla()
     this.kuleAlani.tazele(this.oyun.kuleler, this.oyun.altin)
     this.bildirim.setAlpha(0)
 
     setChip('wave', 'Hazır')
-    setChip('castle', KALE_CANI)
+    setChip('castle', this.oyun.maxKaleCani)
     setChip('gold', this.oyun.altin)
     this.skorGoster(0)
     this.nisanCiz()
@@ -159,7 +222,7 @@ export class GameScene extends TemelSahne {
     this.nisanCiz()
     this.kale.nisanAyarla(this.oyun.aci)
     this.kale.hazirGoster(this.oyun.atisHazir)
-    this.kale.canGoster(this.oyun.kaleCani, KALE_CANI)
+    this.kale.canGoster(this.oyun.kaleCani, this.oyun.maxKaleCani)
     setChip('castle', this.oyun.kaleCani)
     setChip('gold', this.oyun.altin)
     if (this.gosterilenSkor === this.oyun.skor) return
@@ -283,7 +346,7 @@ export class GameScene extends TemelSahne {
       yasayan.add(canavar.id)
       let gorunum = this.canavarGorunumleri.get(canavar.id)
       if (!gorunum) {
-        gorunum = new CanavarGorunumu(this, canavar)
+        gorunum = new CanavarGorunumu(this, canavar, this.oyun.tipler[canavar.tip])
         this.canavarKatmani.add(gorunum.kap)
         this.canavarGorunumleri.set(canavar.id, gorunum)
       }
@@ -380,7 +443,7 @@ export class GameScene extends TemelSahne {
 
   private dalgaBasladi(dalga: number): void {
     setChip('wave', dalga)
-    this.arkaPlan.vakitGuncelle(dalga)
+    this.arkaPlan.vakitGuncelle(dalga, DUNYALAR[this.oyun.dunyaSira].vakitBaslangic)
     // Şef dalgası ayrıca duyurulsun: oyuncu hazırlansın.
     this.bildir(patronDalgasiMi(dalga) ? `Dalga ${dalga} · ŞEF geliyor!` : `Dalga ${dalga}`)
     sesler.otur()
@@ -390,6 +453,7 @@ export class GameScene extends TemelSahne {
   }
 
   private dalgaBitti(dalga: number): void {
+    this.ilerlemeyiKaydet()
     this.bildir(`${dalga}. dalga temizlendi  +${DALGA_BONUSU}`)
     this.hud.showGain(DALGA_BONUSU)
     sesler.dogru()
@@ -401,7 +465,8 @@ export class GameScene extends TemelSahne {
   }
 
   private oyunuBitir(): void {
-    const ozet = `${this.oyun.dalga}. dalga · ${this.oyun.oldurulen} canavar · Skor: ${this.oyun.skor}`
+    this.ilerlemeyiKaydet()
+    const ozet = `${DUNYALAR[this.oyun.dunyaSira].ad} · ${this.oyun.dalga}. dalga · ${this.oyun.oldurulen} canavar · Skor: ${this.oyun.skor}`
     this.turuBitir({
       baslik: 'Kale düştü',
       ozet,

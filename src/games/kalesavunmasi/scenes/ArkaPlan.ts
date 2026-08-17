@@ -80,13 +80,16 @@ export class ArkaPlan {
    * Yeni oyun: baştan çizer. Sahne yeniden başlarken bütün tweenler
    * siliniyor, o yüzden ağaç sallanması ve yıldız titremesi burada kurulur.
    */
-  sifirla(dalga: number): void {
-    this.vakteGecir(vakitIndeksi(dalga))
+  sifirla(dalga: number, vakitKaymasi = 0): void {
+    this.vakteGecir(vakitIndeksi(dalga) + vakitKaymasi)
   }
 
-  /** Dalgaya göre vakti seçer; değiştiyse arka planı yeniden çizer. */
-  vakitGuncelle(dalga: number): void {
-    const hedef = vakitIndeksi(dalga)
+  /**
+   * Dalgaya göre vakti seçer; değiştiyse arka planı yeniden çizer.
+   * `vakitKaymasi` dünyadan gelir: 2. dünya akşamda açılıp geceye iner.
+   */
+  vakitGuncelle(dalga: number, vakitKaymasi = 0): void {
+    const hedef = vakitIndeksi(dalga) + vakitKaymasi
     if (hedef !== this.vakit) this.vakteGecir(hedef)
   }
 

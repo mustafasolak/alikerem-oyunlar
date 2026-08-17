@@ -68,10 +68,6 @@ export const MAX_BIRIKIM_MS = 96
 /** Bacakların bir tam yürüme çevrimi kaç pikselde tamamlanır. */
 export const ADIM_UZUNLUK = 17
 
-// --- Kale ---
-
-export const KALE_CANI = 30
-
 // --- Canavarlar ---
 
 export interface CanavarTipi {
@@ -214,8 +210,156 @@ export const CANAVAR_TIPLERI: CanavarTipi[] = [
   },
 ]
 
+/**
+ * İkinci dünyanın canavarları: bambaşka tipler, birinci dünyanın iki katına
+ * yakın güçte. Buz goblini hızlı, taş golem ağır zırhlı, hayalet uçuyor,
+ * alev trolü kaleyi hızlı yıkıyor, kara şef ise dalga sonunda geliyor.
+ */
+export const CANAVAR_TIPLERI_2: CanavarTipi[] = [
+  {
+    ad: 'Buz Goblini',
+    can: 8,
+    hiz: 52,
+    altin: 18,
+    puan: 45,
+    en: 27,
+    boy: 38,
+    renk: 0x38bdf8,
+    vurusHasari: 2,
+    vurusAralikMs: 1300,
+    ilkDalga: 1,
+    zirh: 0,
+    ucar: false,
+    yukseklik: 0,
+    patron: false,
+  },
+  {
+    ad: 'Kurt',
+    can: 14,
+    hiz: 60,
+    altin: 26,
+    puan: 70,
+    en: 34,
+    boy: 34,
+    renk: 0x475569,
+    vurusHasari: 3,
+    vurusAralikMs: 1100,
+    ilkDalga: 2,
+    zirh: 0,
+    ucar: false,
+    yukseklik: 0,
+    patron: false,
+  },
+  {
+    ad: 'Alev Trolü',
+    can: 30,
+    hiz: 24,
+    altin: 55,
+    puan: 150,
+    en: 44,
+    boy: 62,
+    renk: 0xdc2626,
+    vurusHasari: 7,
+    vurusAralikMs: 1900,
+    ilkDalga: 3,
+    zirh: 1,
+    ucar: false,
+    yukseklik: 0,
+    patron: false,
+  },
+  {
+    ad: 'Taş Golem',
+    can: 34,
+    hiz: 18,
+    altin: 70,
+    puan: 190,
+    en: 40,
+    boy: 56,
+    renk: 0x78716c,
+    vurusHasari: 6,
+    vurusAralikMs: 2000,
+    ilkDalga: 4,
+    zirh: 4,
+    ucar: false,
+    yukseklik: 0,
+    patron: false,
+  },
+  {
+    ad: 'Hayalet',
+    can: 18,
+    hiz: 58,
+    altin: 46,
+    puan: 120,
+    en: 32,
+    boy: 30,
+    renk: 0xa78bfa,
+    vurusHasari: 4,
+    vurusAralikMs: 1200,
+    ilkDalga: 5,
+    zirh: 1,
+    ucar: true,
+    yukseklik: 96,
+    patron: false,
+  },
+  {
+    ad: 'Kara Şef',
+    can: 160,
+    hiz: 13,
+    altin: 300,
+    puan: 900,
+    en: 62,
+    boy: 84,
+    renk: 0x1e1b4b,
+    vurusHasari: 10,
+    vurusAralikMs: 2300,
+    ilkDalga: 5,
+    zirh: 5,
+    ucar: false,
+    yukseklik: 0,
+    patron: true,
+  },
+]
+
 /** Şef kaç dalgada bir gelir. */
 export const PATRON_DALGA_ARALIK = 5
+
+export interface Dunya {
+  ad: string
+  /** Araç çubuğu düğmesinde görünen kısa ad. */
+  kisaAd: string
+  canavarlar: CanavarTipi[]
+  kaleCani: number
+  /** Ödül çarpanı: ileri dünya daha çok altın ve puan verir. */
+  odulCarpani: number
+  /** Arka plan bu vakitten başlar (2. dünya akşamda açılır). */
+  vakitBaslangic: number
+}
+
+export const DUNYALAR: Dunya[] = [
+  {
+    ad: 'Yeşil Ovalar',
+    kisaAd: 'Dünya 1',
+    canavarlar: CANAVAR_TIPLERI,
+    kaleCani: 30,
+    odulCarpani: 1,
+    vakitBaslangic: 0,
+  },
+  {
+    ad: 'Karanlık Diyar',
+    kisaAd: 'Dünya 2',
+    canavarlar: CANAVAR_TIPLERI_2,
+    kaleCani: 40,
+    odulCarpani: 1.6,
+    vakitBaslangic: 1,
+  },
+]
+
+/** İkinci dünyayı açmak için toplam kaç canavar öldürmek gerekir. */
+export const DUNYA_ESIGI = 1000
+
+export function dunya(sira: number): Dunya {
+  return DUNYALAR[Math.min(DUNYALAR.length - 1, Math.max(0, sira))]
+}
 
 export function patronDalgasiMi(dalga: number): boolean {
   return dalga > 0 && dalga % PATRON_DALGA_ARALIK === 0

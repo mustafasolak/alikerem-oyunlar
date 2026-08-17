@@ -780,9 +780,19 @@ export const KATALOG: KatalogKaydi[] = [
     "tuval": {
       "genislik": 540,
       "yukseklik": 400,
-      "disPay": 400
+      "disPay": 450
     },
     "arayuz": {
+      "aracCubugu": [
+        {
+          "etiket": "Dünya 1",
+          "deger": "0"
+        },
+        {
+          "etiket": "Dünya 2",
+          "deger": "1"
+        }
+      ],
       "rozetler": [
         {
           "etiket": "Dalga",

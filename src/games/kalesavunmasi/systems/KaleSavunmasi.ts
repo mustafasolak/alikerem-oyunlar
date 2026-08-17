@@ -8,6 +8,7 @@
  */
 
 import { type Uretec } from '../../../shared/rastgele.ts'
+import type { CanavarTipi } from '../config/constants.ts'
 import {
   ACI_BASLANGIC,
   ACI_MAX,
@@ -15,7 +16,6 @@ import {
   ADIM_UZUNLUK,
   ATIS_BEKLEME_MS,
   BASLANGIC_ALTIN,
-  CANAVAR_TIPLERI,
   DALGA_ALTIN_BONUSU,
   DALGA_ARASI_MS,
   DALGA_BONUSU,
@@ -24,11 +24,11 @@ import {
   DOGUS_ARALIK_MIN,
   DOGUS_ARALIK_MS,
   DOGUS_X,
+  DUNYALAR,
   DURAK_X,
   GAME_WIDTH,
   HIZLI_ORAN,
   ILK_ARA_MS,
-  KALE_CANI,
   KESKIN_BONUS,
   KULE_MAX_SEVIYE,
   KULE_TIPLERI,
@@ -53,6 +53,7 @@ import {
   dalgaCanCarpani,
   dalgaCanavarSayisi,
   dalgaOdulCarpani,
+  dunya,
   kuleAtisY,
   patronDalgasiMi,
 } from '../config/constants.ts'
@@ -141,8 +142,10 @@ function bosSonuc(): AdimSonucu {
 }
 
 export class KaleSavunmasi {
+  /** Kaçıncı dünya (0 tabanlı). Canavar tablosu ve kale canı buradan gelir. */
+  dunyaSira: number
   dalga = 0
-  kaleCani = KALE_CANI
+  kaleCani: number
   skor = 0
   /** Oyun parası — kuleler bununla alınır. */
   altin = BASLANGIC_ALTIN
@@ -172,14 +175,32 @@ export class KaleSavunmasi {
   private beklemeBirikim = ATIS_BEKLEME_MS
   private simBirikim = 0
 
-  constructor(random: Uretec = Math.random) {
+  constructor(random: Uretec = Math.random, dunyaSira = 0) {
     this.random = random
+    this.dunyaSira = dunyaSira
+    this.kaleCani = dunya(dunyaSira).kaleCani
+    this.reset()
+  }
+
+  /** Bu dünyanın canavar tablosu. */
+  get tipler(): CanavarTipi[] {
+    return dunya(this.dunyaSira).canavarlar
+  }
+
+  /** Bu dünyanın kale canı (malzeme tamiri de bunu tavan alır). */
+  get maxKaleCani(): number {
+    return dunya(this.dunyaSira).kaleCani
+  }
+
+  /** Dünyayı değiştirir ve turu sıfırlar. */
+  dunyaSec(sira: number): void {
+    this.dunyaSira = Math.max(0, Math.min(DUNYALAR.length - 1, sira))
     this.reset()
   }
 
   reset(): void {
     this.dalga = 0
-    this.kaleCani = KALE_CANI
+    this.kaleCani = this.maxKaleCani
     this.skor = 0
     this.altin = BASLANGIC_ALTIN
     this.oldurulen = 0
@@ -291,7 +312,7 @@ export class KaleSavunmasi {
     if (malzeme.tekSeferlik && this.alinanMalzemeler.has(id)) return false
     if (this.altin < malzeme.fiyat) return false
     // Kale zaten tam canlıysa tamir parası boşa gitmesin.
-    if (id === 'tamir' && this.kaleCani >= KALE_CANI) return false
+    if (id === 'tamir' && this.kaleCani >= this.maxKaleCani) return false
     return true
   }
 
@@ -304,7 +325,7 @@ export class KaleSavunmasi {
     this.altin -= malzeme.fiyat
     if (malzeme.tekSeferlik) this.alinanMalzemeler.add(id)
 
-    if (id === 'tamir') this.kaleCani = Math.min(KALE_CANI, this.kaleCani + TAMIR_MIKTARI)
+    if (id === 'tamir') this.kaleCani = Math.min(this.maxKaleCani, this.kaleCani + TAMIR_MIKTARI)
     else if (id === 'keskin') this.mizrakHasari += KESKIN_BONUS
     else if (id === 'hizli') this.atisBeklemesi = Math.round(this.atisBeklemesi * HIZLI_ORAN)
 
@@ -455,7 +476,7 @@ export class KaleSavunmasi {
   }
 
   private okAt(kuleX: number, seviye: number, hedef: Canavar, hasar: number): void {
-    const bilgi = CANAVAR_TIPLERI[hedef.tip]
+    const bilgi = this.tipler[hedef.tip]
     // Ok mazgal hattından çıkar; kule yükseldikçe başlangıç da yükselir.
     const baslangicY = kuleAtisY(seviye)
     // Gövdenin ortasına nişan al (uçanlarda havadaki gövdeye).
@@ -496,15 +517,15 @@ export class KaleSavunmasi {
 
   /** Şef tipinin sırası; tablo değişirse ilk patron işaretli tip bulunur. */
   private patronTipi(): number {
-    const sira = CANAVAR_TIPLERI.findIndex((t) => t.patron)
+    const sira = this.tipler.findIndex((t) => t.patron)
     return sira >= 0 ? sira : 0
   }
 
   private canavarDogur(tip: number): void {
-    const bilgi = CANAVAR_TIPLERI[tip]
+    const bilgi = this.tipler[tip]
     // Can ve ödül doğduğu dalgaya göre ölçeklenir.
     const can = Math.round(bilgi.can * dalgaCanCarpani(this.dalga))
-    const odul = dalgaOdulCarpani(this.dalga)
+    const odul = dalgaOdulCarpani(this.dalga) * dunya(this.dunyaSira).odulCarpani
 
     this.canavarlar.push({
       id: this.sonrakiId++,
@@ -529,10 +550,10 @@ export class KaleSavunmasi {
    */
   private tipSec(): number {
     const acik: number[] = []
-    for (let i = 0; i < CANAVAR_TIPLERI.length; i++) {
+    for (let i = 0; i < this.tipler.length; i++) {
       // Şef rastgele doğmaz; yalnız dalga sonunda gelir.
-      if (CANAVAR_TIPLERI[i].patron) continue
-      if (this.dalga >= CANAVAR_TIPLERI[i].ilkDalga) acik.push(i)
+      if (this.tipler[i].patron) continue
+      if (this.dalga >= this.tipler[i].ilkDalga) acik.push(i)
     }
     if (acik.length === 0) return 0
 
@@ -582,7 +603,7 @@ export class KaleSavunmasi {
   private carpisan(m: Atis): Canavar | null {
     if (m.y > ZEMIN_Y) return null
     for (const c of this.canavarlar) {
-      const bilgi = CANAVAR_TIPLERI[c.tip]
+      const bilgi = this.tipler[c.tip]
       // Uçana mızrak değmez; yalnız kule oku vurur.
       if (bilgi.ucar && m.tur === 'mizrak') continue
       if (Math.abs(m.x - c.x) > bilgi.en / 2 + MIZRAK_TEMAS) continue
@@ -597,7 +618,7 @@ export class KaleSavunmasi {
 
   private hasarVer(c: Canavar, m: Atis, sonuc: AdimSonucu): void {
     // Zırh her isabetten sabit hasar yutar ama en az 1 hasar hep geçer.
-    c.can -= Math.max(1, m.hasar - CANAVAR_TIPLERI[c.tip].zirh)
+    c.can -= Math.max(1, m.hasar - this.tipler[c.tip].zirh)
     const oldu = c.can <= 0
     sonuc.isabetler.push({ canavarId: c.id, x: m.x, y: m.y, tip: c.tip, oldu, puan: oldu ? c.puan : 0 })
     if (!oldu) return
@@ -613,7 +634,7 @@ export class KaleSavunmasi {
     const carpan = 1 + Math.max(0, this.dalga - 1) * DALGA_HIZ_ARTISI
 
     for (const c of this.canavarlar) {
-      const bilgi = CANAVAR_TIPLERI[c.tip]
+      const bilgi = this.tipler[c.tip]
 
       if (c.durum === 'yuruyor') {
         const yol = bilgi.hiz * carpan * sn

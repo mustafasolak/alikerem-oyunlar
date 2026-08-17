@@ -12,7 +12,6 @@ import * as Phaser from 'phaser'
 import { acikTon, koyuTon, parca, top } from '../../../shared/Gorsel.ts'
 import {
   CANAVAR_BAR_BOY,
-  CANAVAR_TIPLERI,
   COLORS,
   HASAR_PARLAMA_MS,
   KANAT_ACI,
@@ -50,9 +49,10 @@ export class CanavarGorunumu {
   private readonly ayakY: number
   private readonly kanatlar: Phaser.GameObjects.Triangle[] = []
 
-  constructor(scene: Phaser.Scene, canavar: Canavar) {
+  constructor(scene: Phaser.Scene, canavar: Canavar, bilgi: CanavarTipi) {
     this.scene = scene
-    this.bilgi = CANAVAR_TIPLERI[canavar.tip]
+    // Tip bilgisi dışarıdan gelir: her dünyanın kendi canavar tablosu var.
+    this.bilgi = bilgi
     this.ayakY = canavarAyakY(this.bilgi)
     const { en, boy, renk } = this.bilgi
 
