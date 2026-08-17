@@ -168,6 +168,7 @@ Diğer: Mastermind · Labirent · Matematik Bulmacası · Sayı Piramidi
 - [x] Solitaire ailesinde çoklu kart taşıma ve geri alma
 - [x] Kale Savunması: dünyalar (1000 canavar öldürünce 2. dünya açılır, kalıcı)
 - [x] Kale Savunması: mızrakçı yükseltmeleri (element, otomatik ateş, seviyeli hasar/hız/duvar)
+- [x] Kale Savunması: kolay/orta/zor zorluk seviyeleri
 - [ ] Kale Savunması: Mancınık ve Buz Kulesi (alan hasarı / yavaşlatma)
 - [ ] Kale Savunması: 3. dünya (DUNYALAR tablosuna satır eklemek yeterli)
 - [ ] Mahjong tek katmanlı — gerçek kat yapısı yok

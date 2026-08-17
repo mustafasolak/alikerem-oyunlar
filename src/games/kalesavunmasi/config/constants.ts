@@ -7,6 +7,8 @@
  */
 
 export const GAME_WIDTH = 540
+/** Bu genişlikten itibaren paneller açık başlar (tablet ve masaüstü). */
+export const GENIS_EKRAN_ESIGI = 900
 export const GAME_HEIGHT = 400
 
 export const FONT_FAMILY = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
@@ -357,6 +359,65 @@ export const DUNYALAR: Dunya[] = [
 /** İkinci dünyayı açmak için toplam kaç canavar öldürmek gerekir. */
 export const DUNYA_ESIGI = 1000
 
+/**
+ * Zorluk seviyeleri.
+ *
+ * Kolay yalnız canavarı zayıflatmıyor: kale daha canlı, altın daha bol, dalga
+ * daha seyrek — yani çocuk nefes alabiliyor. Zor bunun tersi ve karşılığında
+ * daha çok puan veriyor, skor tablosu adil kalsın.
+ */
+export interface Zorluk {
+  id: string
+  ad: string
+  canCarpani: number
+  hizCarpani: number
+  kaleCarpani: number
+  altinCarpani: number
+  /** Dalga başına canavar sayısı çarpanı. */
+  adetCarpani: number
+  puanCarpani: number
+}
+
+export const ZORLUKLAR: Zorluk[] = [
+  {
+    id: 'kolay',
+    ad: 'Kolay',
+    canCarpani: 0.7,
+    hizCarpani: 0.85,
+    kaleCarpani: 1.5,
+    altinCarpani: 1.6,
+    adetCarpani: 0.75,
+    puanCarpani: 0.7,
+  },
+  {
+    id: 'orta',
+    ad: 'Orta',
+    canCarpani: 1,
+    hizCarpani: 1,
+    kaleCarpani: 1,
+    altinCarpani: 1,
+    adetCarpani: 1,
+    puanCarpani: 1,
+  },
+  {
+    id: 'zor',
+    ad: 'Zor',
+    canCarpani: 1.4,
+    hizCarpani: 1.15,
+    kaleCarpani: 0.8,
+    altinCarpani: 0.8,
+    adetCarpani: 1.3,
+    puanCarpani: 1.5,
+  },
+]
+
+/** Varsayılan zorluk: orta. */
+export const VARSAYILAN_ZORLUK = 1
+
+export function zorluk(sira: number): Zorluk {
+  return ZORLUKLAR[Math.min(ZORLUKLAR.length - 1, Math.max(0, sira))]
+}
+
 export function dunya(sira: number): Dunya {
   return DUNYALAR[Math.min(DUNYALAR.length - 1, Math.max(0, sira))]
 }
@@ -415,15 +476,15 @@ export const BASLANGIC_ALTIN = 45
 export const KULE_TIPLERI: KuleTipi[] = [
   {
     ad: 'Okçu Kulesi',
-    fiyat: [45, 80, 130, 200, 300, 440, 640, 900],
-    hasar: [1, 2, 3, 4, 6, 8, 11, 15],
-    aralikMs: [1200, 950, 750, 600, 470, 400, 340, 290],
-    menzil: [190, 225, 260, 295, 335, 370, 405, 440],
+    fiyat: [45, 80, 130, 200, 300, 440, 640, 900, 1250, 1700, 2300, 3100],
+    hasar: [1, 2, 3, 4, 6, 8, 11, 15, 20, 26, 34, 44],
+    aralikMs: [1200, 950, 750, 600, 470, 400, 340, 290, 250, 220, 196, 176],
+    menzil: [190, 225, 260, 295, 335, 370, 405, 440, 470, 495, 518, 540],
     renk: 0x0ea5e9,
   },
 ]
 
-export const KULE_MAX_SEVIYE = 8
+export const KULE_MAX_SEVIYE = 12
 
 /** Kule yuvalarının x konumları — kalenin sağında, yolun arkasındaki çimde. */
 export const KULE_YUVALARI = [176, 300, 424]
@@ -467,7 +528,11 @@ export const KULE_SEVIYE_GORUNUM: KuleSeviyeGorunum[] = [
   { en: 43, boy: 88, mazgal: 7, cati: 25, bayrak: 19, takviye: true, susleme: true, isik: false, tonOran: 0.32 },
   { en: 47, boy: 99, mazgal: 8, cati: 28, bayrak: 21, takviye: true, susleme: true, isik: false, tonOran: 0.39 },
   { en: 51, boy: 110, mazgal: 9, cati: 31, bayrak: 23, takviye: true, susleme: true, isik: false, tonOran: 0.46 },
-  { en: 55, boy: 121, mazgal: 10, cati: 34, bayrak: 25, takviye: true, susleme: true, isik: true, tonOran: 0.53 },
+  { en: 55, boy: 121, mazgal: 10, cati: 34, bayrak: 25, takviye: true, susleme: true, isik: false, tonOran: 0.53 },
+  { en: 58, boy: 128, mazgal: 11, cati: 35, bayrak: 25, takviye: true, susleme: true, isik: false, tonOran: 0.58 },
+  { en: 61, boy: 134, mazgal: 12, cati: 36, bayrak: 26, takviye: true, susleme: true, isik: false, tonOran: 0.63 },
+  { en: 63, boy: 139, mazgal: 13, cati: 36, bayrak: 26, takviye: true, susleme: true, isik: false, tonOran: 0.67 },
+  { en: 65, boy: 143, mazgal: 14, cati: 37, bayrak: 27, takviye: true, susleme: true, isik: true, tonOran: 0.71 },
 ]
 
 export function kuleGorunum(seviye: number): KuleSeviyeGorunum {
@@ -583,7 +648,7 @@ export const YUKSELTMELER: Yukseltme[] = [
     id: 'hasar',
     etiket: '⚔️ Mızrak hasarı',
     ozet: `her seviyede +${HASAR_BONUSU} hasar`,
-    maxSeviye: 8,
+    maxSeviye: 12,
     fiyat: 70,
     fiyatArtisi: 1.55,
     tur: 'hasar',
@@ -592,7 +657,7 @@ export const YUKSELTMELER: Yukseltme[] = [
     id: 'hiz',
     etiket: '⚡ Atış hızı',
     ozet: 'her seviyede bekleme %12 kısa',
-    maxSeviye: 6,
+    maxSeviye: 10,
     fiyat: 60,
     fiyatArtisi: 1.55,
     tur: 'hiz',
@@ -601,7 +666,7 @@ export const YUKSELTMELER: Yukseltme[] = [
     id: 'kale',
     etiket: '🛡 Kale duvarı',
     ozet: `her seviyede +${KALE_BONUSU} azami can`,
-    maxSeviye: 6,
+    maxSeviye: 10,
     fiyat: 90,
     fiyatArtisi: 1.5,
     tur: 'kale',

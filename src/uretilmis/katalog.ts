@@ -780,17 +780,21 @@ export const KATALOG: KatalogKaydi[] = [
     "tuval": {
       "genislik": 540,
       "yukseklik": 400,
-      "disPay": 470
+      "disPay": 400
     },
     "arayuz": {
       "aracCubugu": [
         {
-          "etiket": "Dünya 1",
-          "deger": "0"
+          "etiket": "Kolay",
+          "deger": "kolay"
         },
         {
-          "etiket": "Dünya 2",
-          "deger": "1"
+          "etiket": "Orta",
+          "deger": "orta"
+        },
+        {
+          "etiket": "Zor",
+          "deger": "zor"
         }
       ],
       "rozetler": [
@@ -835,9 +839,14 @@ export const KATALOG: KatalogKaydi[] = [
       ],
       "paneller": [
         {
+          "id": "dunya",
+          "baslik": "Dünya",
+          "ic": "<details class=\"katlanir\"><summary>Dünya 1 · Dünya 2</summary><div class=\"toolbar\"><button class=\"btn\" type=\"button\" data-dunya=\"0\">Dünya 1</button><button class=\"btn\" type=\"button\" data-dunya=\"1\">Dünya 2</button></div></details>"
+        },
+        {
           "id": "malzeme",
           "baslik": "Yükseltme dükkânı",
-          "ic": "<div class=\"toolbar\"><button class=\"btn\" type=\"button\" data-yukseltme=\"tamir\" title=\"+8 kale canı\">🧱 Duvar tamiri · <b>40</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"hasar\" title=\"her seviyede +1 hasar\">⚔️ Mızrak hasarı · <b>70</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"hiz\" title=\"her seviyede bekleme %12 kısa\">⚡ Atış hızı · <b>60</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"kale\" title=\"her seviyede +8 azami can\">🛡 Kale duvarı · <b>90</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"otomatik\" title=\"mızrakçı kendi nişan alıp atar\">🤖 Otomatik ateş · <b>220</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"alev\" title=\"vurduğunu yakar, zırhı geçer\">🔥 Alev mızrağı · <b>160</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"buz\" title=\"vurduğunu yavaşlatır\">❄️ Buz mızrağı · <b>190</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"simsek\" title=\"yakındaki canavarlara atlar\">⚡ Şimşek mızrağı · <b>260</b></button></div>"
+          "ic": "<details class=\"katlanir\"><summary>8 yükseltme</summary><div class=\"toolbar\"><button class=\"btn\" type=\"button\" data-yukseltme=\"tamir\" title=\"+8 kale canı\">🧱 Duvar tamiri · <b>40</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"hasar\" title=\"her seviyede +1 hasar\">⚔️ Mızrak hasarı · <b>70</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"hiz\" title=\"her seviyede bekleme %12 kısa\">⚡ Atış hızı · <b>60</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"kale\" title=\"her seviyede +8 azami can\">🛡 Kale duvarı · <b>90</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"otomatik\" title=\"mızrakçı kendi nişan alıp atar\">🤖 Otomatik ateş · <b>220</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"alev\" title=\"vurduğunu yakar, zırhı geçer\">🔥 Alev mızrağı · <b>160</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"buz\" title=\"vurduğunu yavaşlatır\">❄️ Buz mızrağı · <b>190</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"simsek\" title=\"yakındaki canavarlara atlar\">⚡ Şimşek mızrağı · <b>260</b></button></div></details>"
         }
       ]
     }

@@ -8,7 +8,7 @@
  */
 
 import { type Uretec } from '../../../shared/rastgele.ts'
-import type { CanavarTipi, Element } from '../config/constants.ts'
+import type { CanavarTipi, Element, Zorluk } from '../config/constants.ts'
 import {
   ACI_BASLANGIC,
   ACI_MAX,
@@ -26,7 +26,9 @@ import {
   SIMSEK_HEDEF,
   SIMSEK_MENZIL,
   TAMIR_MIKTARI,
+  VARSAYILAN_ZORLUK,
   YUKSELTMELER,
+  ZORLUKLAR,
   yukseltmeFiyati,
   ACI_MIN,
   ADIM_UZUNLUK,
@@ -68,6 +70,7 @@ import {
   dunya,
   kuleAtisY,
   patronDalgasiMi,
+  zorluk,
 } from '../config/constants.ts'
 
 export type CanavarDurum = 'yuruyor' | 'vuruyor'
@@ -166,6 +169,8 @@ function bosSonuc(): AdimSonucu {
 export class KaleSavunmasi {
   /** Kaçıncı dünya (0 tabanlı). Canavar tablosu ve kale canı buradan gelir. */
   dunyaSira: number
+  /** Zorluk sırası (0 kolay, 1 orta, 2 zor). */
+  zorlukSira: number
   dalga = 0
   kaleCani: number
   skor = 0
@@ -198,10 +203,22 @@ export class KaleSavunmasi {
   private beklemeBirikim = ATIS_BEKLEME_MS
   private simBirikim = 0
 
-  constructor(random: Uretec = Math.random, dunyaSira = 0) {
+  constructor(random: Uretec = Math.random, dunyaSira = 0, zorlukSira = VARSAYILAN_ZORLUK) {
     this.random = random
     this.dunyaSira = dunyaSira
-    this.kaleCani = dunya(dunyaSira).kaleCani
+    this.zorlukSira = zorlukSira
+    this.kaleCani = 0
+    this.reset()
+  }
+
+  /** Seçili zorluk ayarı. */
+  get zorluk(): Zorluk {
+    return zorluk(this.zorlukSira)
+  }
+
+  /** Zorluğu değiştirir ve turu sıfırlar. */
+  zorlukSec(sira: number): void {
+    this.zorlukSira = Math.max(0, Math.min(ZORLUKLAR.length - 1, sira))
     this.reset()
   }
 
@@ -210,9 +227,10 @@ export class KaleSavunmasi {
     return dunya(this.dunyaSira).canavarlar
   }
 
-  /** Bu dünyanın kale canı + alınan duvar yükseltmeleri. */
+  /** Bu dünyanın kale canı × zorluk + alınan duvar yükseltmeleri. */
   get maxKaleCani(): number {
-    return dunya(this.dunyaSira).kaleCani + this.yukseltmeSeviyesi('kale') * KALE_BONUSU
+    const taban = Math.round(dunya(this.dunyaSira).kaleCani * this.zorluk.kaleCarpani)
+    return taban + this.yukseltmeSeviyesi('kale') * KALE_BONUSU
   }
 
   /** Mızrak hasarı: taban + hasar yükseltmeleri. */
@@ -246,7 +264,7 @@ export class KaleSavunmasi {
     this.dalga = 0
     this.kaleCani = this.maxKaleCani
     this.skor = 0
-    this.altin = BASLANGIC_ALTIN
+    this.altin = Math.round(BASLANGIC_ALTIN * this.zorluk.altinCarpani)
     this.oldurulen = 0
     this.asama = 'hazir'
     this.duraklatildi = false
@@ -615,7 +633,8 @@ export class KaleSavunmasi {
     this.dalga++
     this.asama = 'dalga'
     // Şef dalgalarında bir fazla doğuş: sonuncusu şef olur.
-    this.kalanDogus = dalgaCanavarSayisi(this.dalga) + (patronDalgasiMi(this.dalga) ? 1 : 0)
+    const adet = Math.max(1, Math.round(dalgaCanavarSayisi(this.dalga) * this.zorluk.adetCarpani))
+    this.kalanDogus = adet + (patronDalgasiMi(this.dalga) ? 1 : 0)
     this.dogusBirikim = 0
   }
 
@@ -640,7 +659,7 @@ export class KaleSavunmasi {
   private canavarDogur(tip: number): void {
     const bilgi = this.tipler[tip]
     // Can ve ödül doğduğu dalgaya göre ölçeklenir.
-    const can = Math.round(bilgi.can * dalgaCanCarpani(this.dalga))
+    const can = Math.max(1, Math.round(bilgi.can * dalgaCanCarpani(this.dalga) * this.zorluk.canCarpani))
     const odul = dalgaOdulCarpani(this.dalga) * dunya(this.dunyaSira).odulCarpani
 
     this.canavarlar.push({
@@ -649,8 +668,8 @@ export class KaleSavunmasi {
       x: DOGUS_X,
       can,
       maxCan: can,
-      altin: Math.round(bilgi.altin * odul),
-      puan: Math.round(bilgi.puan * odul),
+      altin: Math.round(bilgi.altin * odul * this.zorluk.altinCarpani),
+      puan: Math.round(bilgi.puan * odul * this.zorluk.puanCarpani),
       durum: 'yuruyor',
       // Faz rastgele başlasın; hepsi aynı anda aynı bacağı atmasın.
       faz: this.random(),
@@ -810,7 +829,7 @@ export class KaleSavunmasi {
   }
 
   private canavarIlerlet(sn: number, dt: number, sonuc: AdimSonucu): void {
-    const carpan = 1 + Math.max(0, this.dalga - 1) * DALGA_HIZ_ARTISI
+    const carpan = (1 + Math.max(0, this.dalga - 1) * DALGA_HIZ_ARTISI) * this.zorluk.hizCarpani
 
     for (const c of this.canavarlar) {
       const bilgi = this.tipler[c.tip]

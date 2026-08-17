@@ -33,8 +33,10 @@ import {
   PATRON_DALGA_ARALIK,
   SIM_ADIM_MS,
   TAMIR_MIKTARI,
+  VARSAYILAN_ZORLUK,
   YUKSELTMELER,
   ZEMIN_Y,
+  ZORLUKLAR,
   canavarAyakY,
   dalgaCanCarpani,
   dalgaCanavarSayisi,
@@ -44,6 +46,7 @@ import {
   kuleGorunum,
   patronDalgasiMi,
   vakitIndeksi,
+  zorluk,
 } from '../src/games/kalesavunmasi/config/constants.ts'
 import { Klondike } from '../src/games/solitaire/systems/Klondike.ts'
 import { Mahjong } from '../src/games/mahjong/systems/Mahjong.ts'
@@ -555,7 +558,7 @@ function tohumlu(tohum) {
 {
   const oyun = new KaleSavunmasi(tohumlu(88))
   oyun.basla()
-  oyun.altin = 100000
+  oyun.altin = 1000000
 
   // Kale tam canlıyken tamir satılmaz: para boşa gitmesin
   esit('tam canlı kalede tamir alınmaz', oyun.yukseltmeAlinabilir('tamir'), false)
@@ -572,7 +575,9 @@ function tohumlu(tohum) {
 
   // Tavana kadar alınır, sonra durur
   const hasarTavan = YUKSELTMELER.find((y) => y.id === 'hasar').maxSeviye
-  while (oyun.yukseltmeSeviyesi('hasar') < hasarTavan) oyun.yukseltmeAl('hasar')
+  for (let adim = 0; adim < hasarTavan && oyun.yukseltmeSeviyesi('hasar') < hasarTavan; adim++) {
+    oyun.yukseltmeAl('hasar')
+  }
   esit('hasar tavanda', oyun.yukseltmeSeviyesi('hasar'), hasarTavan)
   esit('tavanda fiyat yok', oyun.yukseltmeFiyatiSimdi('hasar'), null)
   esit('tavanda alınmaz', oyun.yukseltmeAl('hasar'), false)
@@ -705,7 +710,7 @@ function tohumlu(tohum) {
 {
   const oyun = new KaleSavunmasi(tohumlu(99))
   oyun.basla()
-  oyun.altin = 5000
+  oyun.altin = 1000000
   oyun.kuleAl(0, 0)
   esit('kule Lv1', oyun.kuleler[0].seviye, 1)
 
@@ -715,8 +720,10 @@ function tohumlu(tohum) {
   esit('seviye 2 oldu', oyun.kuleler[0].seviye, 2)
   esit('yükseltme parası düştü', oyun.altin, altinOnce - fiyat)
 
-  // Tavana kadar çık: her basamak bir kez yükselmeli
-  while (oyun.kuleler[0].seviye < KULE_MAX_SEVIYE) {
+  // Tavana kadar çık: her basamak bir kez yükselmeli.
+  // Döngü sınırlı — yükseltme beklenmedik biçimde başarısız olursa test
+  // kilitlenmesin, açıkça patlasın.
+  for (let adim = 0; adim < KULE_MAX_SEVIYE && oyun.kuleler[0].seviye < KULE_MAX_SEVIYE; adim++) {
     const hedef = oyun.kuleler[0].seviye + 1
     esit(`Lv${hedef}'e yükseldi`, oyun.kuleYukselt(0), true)
     esit(`seviye ${hedef} oldu`, oyun.kuleler[0].seviye, hedef)
@@ -810,6 +817,75 @@ function tohumlu(tohum) {
     ortalamaGuc(geri) > ortalamaGuc(erken),
     `ortalama güç ${ortalamaGuc(erken).toFixed(2)} → ${ortalamaGuc(geri).toFixed(2)}`,
   )
+}
+
+// --- Kale Savunması: zorluk seviyeleri ---
+{
+  esit('üç zorluk var', ZORLUKLAR.length, 3)
+  esit('kimlikler kolay/orta/zor', ZORLUKLAR.map((z) => z.id), ['kolay', 'orta', 'zor'])
+  esit('varsayılan orta', ZORLUKLAR[VARSAYILAN_ZORLUK].id, 'orta')
+  esit('sınır dışı zorluk en yakına düşer', zorluk(99), ZORLUKLAR[2])
+  esit('eksi zorluk kolaya düşer', zorluk(-2), ZORLUKLAR[0])
+
+  const [kolay, orta, zor] = ZORLUKLAR
+  esit('orta hiçbir şeyi çarpmıyor', [orta.canCarpani, orta.hizCarpani, orta.kaleCarpani, orta.puanCarpani], [1, 1, 1, 1])
+
+  // Kolay her yönden yumuşak, zor her yönden sert olmalı
+  kontrol('kolayda canavar daha zayıf', kolay.canCarpani < orta.canCarpani && orta.canCarpani < zor.canCarpani)
+  kontrol('kolayda canavar daha yavaş', kolay.hizCarpani < orta.hizCarpani && orta.hizCarpani < zor.hizCarpani)
+  kontrol('kolayda kale daha canlı', kolay.kaleCarpani > orta.kaleCarpani && orta.kaleCarpani > zor.kaleCarpani)
+  kontrol('kolayda altın daha bol', kolay.altinCarpani > zor.altinCarpani)
+  kontrol('kolayda dalga daha seyrek', kolay.adetCarpani < zor.adetCarpani)
+  kontrol('zor daha çok puan veriyor', zor.puanCarpani > orta.puanCarpani && orta.puanCarpani > kolay.puanCarpani)
+}
+
+{
+  // Zorluk kale canını, altını ve canavarı gerçekten değiştiriyor
+  const kolayOyun = new KaleSavunmasi(tohumlu(51), 0, 0)
+  const zorOyun = new KaleSavunmasi(tohumlu(51), 0, 2)
+
+  esit('kolay seçildi', kolayOyun.zorluk.id, 'kolay')
+  esit('zor seçildi', zorOyun.zorluk.id, 'zor')
+  kontrol(
+    'kolayda kale daha canlı başlıyor',
+    kolayOyun.maxKaleCani > zorOyun.maxKaleCani,
+    `${kolayOyun.maxKaleCani} > ${zorOyun.maxKaleCani}`,
+  )
+  kontrol(
+    'kolayda başlangıç altını daha çok',
+    kolayOyun.altin > zorOyun.altin,
+    `${kolayOyun.altin} > ${zorOyun.altin}`,
+  )
+
+  // Aynı tohum, aynı dünya: yalnız zorluk farkı
+  const ilkCanavar = (oyun) => {
+    oyun.basla()
+    for (let i = 0; i < 4000; i++) {
+      oyun.ilerlet(SIM_ADIM_MS)
+      if (oyun.canavarlar.length > 0) return oyun.canavarlar[0]
+    }
+    return null
+  }
+  const kolayCanavar = ilkCanavar(kolayOyun)
+  const zorCanavar = ilkCanavar(zorOyun)
+  kontrol('iki oyunda da canavar doğdu', kolayCanavar !== null && zorCanavar !== null)
+  kontrol(
+    'zorda canavar daha canlı',
+    zorCanavar.maxCan > kolayCanavar.maxCan,
+    `kolay ${kolayCanavar.maxCan}, zor ${zorCanavar.maxCan}`,
+  )
+  kontrol(
+    'zorda puan daha yüksek',
+    zorCanavar.puan > kolayCanavar.puan,
+    `kolay ${kolayCanavar.puan}, zor ${zorCanavar.puan}`,
+  )
+
+  // Zorluk değiştirmek turu sıfırlıyor
+  zorOyun.zorlukSec(0)
+  esit('zorluk değişti', zorOyun.zorluk.id, 'kolay')
+  esit('tur sıfırlandı', zorOyun.dalga, 0)
+  esit('canavarlar temizlendi', zorOyun.canavarlar.length, 0)
+  esit('kale yeni zorluğun canıyla doldu', zorOyun.kaleCani, zorOyun.maxKaleCani)
 }
 
 // --- Kale Savunması: dünyalar ---

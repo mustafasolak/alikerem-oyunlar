@@ -14,6 +14,7 @@ import {
   ELEMENT_SIMGE,
   FONT_FAMILY,
   GAME_WIDTH,
+  GENIS_EKRAN_ESIGI,
   ISABET_EFEKT_MS,
   KALE_SARSINTI_GUC,
   KALE_SARSINTI_MS,
@@ -28,6 +29,7 @@ import {
   YUKSELTMELER,
   ZEMIN_Y,
   ZINCIR_EFEKT_MS,
+  ZORLUKLAR,
   patronDalgasiMi,
 } from '../config/constants.ts'
 import { acikDunyaSayisi, dunyaAcikMi, oldurulenEkle, sonrakiDunyayaKalan } from '../systems/Ilerleme.ts'
@@ -112,6 +114,29 @@ export class GameScene extends TemelSahne {
     this.padDugmesi('duraklat', () => this.duraklatDegistir())
     this.malzemeDugmeleri()
     this.dunyaDugmeleri()
+    this.zorlukDugmeleri()
+    this.panelleriAc()
+  }
+
+  /**
+   * Geniş ekranda paneller açık başlar; telefonda kapalı kalır ki tahta
+   * ekranın çoğunu alsın.
+   */
+  private panelleriAc(): void {
+    if (window.innerWidth < GENIS_EKRAN_ESIGI) return
+    for (const kutu of document.querySelectorAll<HTMLDetailsElement>('details.katlanir')) kutu.open = true
+  }
+
+  /** Zorluk seçimi: seçim değişince tur baştan başlar. */
+  private zorlukDugmeleri(): void {
+    const isaretle = butonGrubu('toolbar', 'level', (deger) => {
+      const sira = ZORLUKLAR.findIndex((z) => z.id === deger)
+      if (sira < 0 || sira === this.oyun.zorlukSira) return
+      this.oyun.zorlukSec(sira)
+      this.yenidenBasla()
+      this.bildir(`${ZORLUKLAR[sira].ad} seviye`)
+    })
+    isaretle(this.oyun.zorluk.id)
   }
 
   // --- Dünyalar ---
@@ -121,7 +146,7 @@ export class GameScene extends TemelSahne {
    * canavar kaldığı yazar; oyuncu hedefi görsün.
    */
   private dunyaDugmeleri(): void {
-    this.dunyayiIsaretle = butonGrubu('toolbar', 'level', (deger) => {
+    this.dunyayiIsaretle = butonGrubu('dunya', 'dunya', (deger) => {
       const sira = Number(deger)
       if (!dunyaAcikMi(sira)) {
         // Kilitli: seçimi geri al, ne kadar kaldığını söyle.
@@ -140,7 +165,7 @@ export class GameScene extends TemelSahne {
   private dunyalariTazele(): void {
     const kalan = sonrakiDunyayaKalan()
     for (let sira = 0; sira < DUNYALAR.length; sira++) {
-      const dugme = document.querySelector<HTMLButtonElement>(`#toolbar button[data-level="${sira}"]`)
+      const dugme = document.querySelector<HTMLButtonElement>(`#dunya button[data-dunya="${sira}"]`)
       if (!dugme) continue
       const acik = dunyaAcikMi(sira)
       dugme.disabled = !acik

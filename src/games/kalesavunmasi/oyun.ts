@@ -1,14 +1,39 @@
 import { tanim } from '../../cekirdek/tanim.ts'
-import { BASLANGIC_ALTIN, DUNYALAR, ELEMENT_ADI, ELEMENT_SIMGE, YUKSELTMELER } from './config/constants.ts'
+import {
+  BASLANGIC_ALTIN,
+  DUNYALAR,
+  ELEMENT_ADI,
+  ELEMENT_SIMGE,
+  VARSAYILAN_ZORLUK,
+  YUKSELTMELER,
+  ZORLUKLAR,
+} from './config/constants.ts'
 
 /**
- * Yükseltme düğmeleri tablodan üretilir; fiyat ve seviye yazısını sahne
- * doldurur. Böylece fiyatlar tek yerde (sabitlerde) durur.
+ * Paneller katlanabilir.
+ *
+ * Zorluk çubuğu, rozetler, dükkân ve tuş takımı birikince telefonda tahtaya
+ * yer kalmıyordu (198px'e kadar düşüyordu). `details` ile kapalı duruyorlar;
+ * sahne geniş ekranda kendiliğinden açıyor.
  */
-const yukseltmePaneli = `<div class="toolbar">${YUKSELTMELER.map(
-  (y) =>
-    `<button class="btn" type="button" data-yukseltme="${y.id}" title="${y.ozet}">${y.etiket} · <b>${y.fiyat}</b></button>`,
-).join('')}</div>`
+const katlanir = (ozet: string, ic: string): string =>
+  `<details class="katlanir"><summary>${ozet}</summary>${ic}</details>`
+
+const yukseltmePaneli = katlanir(
+  `${YUKSELTMELER.length} yükseltme`,
+  `<div class="toolbar">${YUKSELTMELER.map(
+    (y) =>
+      `<button class="btn" type="button" data-yukseltme="${y.id}" title="${y.ozet}">${y.etiket} · <b>${y.fiyat}</b></button>`,
+  ).join('')}</div>`,
+)
+
+/** Dünya seçimi: kilitli olanı sahne kapatır ve kalan sayıyı yazar. */
+const dunyaPaneli = katlanir(
+  DUNYALAR.map((d) => d.kisaAd).join(' · '),
+  `<div class="toolbar">${DUNYALAR.map(
+    (d, i) => `<button class="btn" type="button" data-dunya="${i}">${d.kisaAd}</button>`,
+  ).join('')}</div>`,
+)
 
 export default tanim({
   id: 'kalesavunmasi',
@@ -21,13 +46,13 @@ export default tanim({
   kategori: 'arcade',
   etiketler: ['Arcade', 'Nişan', 'Savunma'],
   renk: ['#f59e0b', '#7c2d12'],
-  tuval: { genislik: 540, yukseklik: 400, disPay: 470 },
+  tuval: { genislik: 540, yukseklik: 400, disPay: 400 },
   arayuz: {
-    // Dünya seçimi: kilitli dünyanın düğmesi sahne tarafından kapatılır.
-    aracCubugu: DUNYALAR.map((d, i) => ({ etiket: d.kisaAd, deger: String(i) })),
+    // Zorluk üstte: sitedeki diğer oyunlarda da bu yerde duruyor.
+    aracCubugu: ZORLUKLAR.map((z) => ({ etiket: z.ad, deger: z.id })),
     rozetler: [
       { etiket: 'Dalga', id: 'wave', baslangic: 'Hazır' },
-      { etiket: 'Kale', id: 'castle', baslangic: String(DUNYALAR[0].kaleCani) },
+      { etiket: 'Kale', id: 'castle', baslangic: String(Math.round(DUNYALAR[0].kaleCani * ZORLUKLAR[VARSAYILAN_ZORLUK].kaleCarpani)) },
       { etiket: 'Altın', id: 'gold', baslangic: String(BASLANGIC_ALTIN) },
       { etiket: 'Süre', id: 'timer', baslangic: '0:00' },
     ],
@@ -37,7 +62,10 @@ export default tanim({
       { etiket: '🤖 Otomatik', deger: 'otomatik' },
       { etiket: '⏸ Duraklat', deger: 'duraklat' },
     ],
-    paneller: [{ id: 'malzeme', baslik: 'Yükseltme dükkânı', ic: yukseltmePaneli }],
+    paneller: [
+      { id: 'dunya', baslik: 'Dünya', ic: dunyaPaneli },
+      { id: 'malzeme', baslik: 'Yükseltme dükkânı', ic: yukseltmePaneli },
+    ],
   },
   sahne: () => import('./scenes/GameScene.ts'),
 })
