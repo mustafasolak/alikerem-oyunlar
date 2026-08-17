@@ -42,6 +42,7 @@ export class GameHud {
   private readonly gainEl = required<HTMLElement>('#score-gain')
   private readonly restartBtn = required<HTMLButtonElement>('#restart')
   private readonly soundBtn = document.querySelector<HTMLButtonElement>('#sound')
+  private readonly tamEkranBtn = document.querySelector<HTMLButtonElement>('#tamekran')
 
   private readonly board = required<HTMLElement>('#scoreboard')
   private readonly boardList = required<HTMLOListElement>('#scoreboard-list')
@@ -65,6 +66,7 @@ export class GameHud {
   constructor(callbacks: GameHudCallbacks) {
     this.nameInput.maxLength = MAX_NAME_LENGTH
     this.kurSesButonu()
+    this.kurTamEkranButonu()
     this.restartBtn.addEventListener('click', () => callbacks.onRestart())
     // Katman butonlarının davranışı her showOverlay çağrısında yeniden bağlanır.
     this.primaryBtn.addEventListener('click', () => this.primaryAction())
@@ -90,6 +92,46 @@ export class GameHud {
       goster()
     })
     sesler.ilkDokunustaUyandir()
+  }
+
+  /**
+   * Tam ekran düğmesi.
+   *
+   * Tuval değil **sayfanın tamamı** tam ekrana geçer; böylece skor kutuları,
+   * rozetler, tuş takımı ve paneller görünür kalır. Tarayıcı desteklemiyorsa
+   * (iPhone Safari'de yok) düğme gizlenir.
+   */
+  private kurTamEkranButonu(): void {
+    const button = this.tamEkranBtn
+    if (!button) return
+    const kok = document.documentElement
+    if (typeof kok.requestFullscreen !== 'function') {
+      button.hidden = true
+      return
+    }
+
+    const goster = (): void => {
+      const acik = document.fullscreenElement !== null
+      button.setAttribute('aria-pressed', String(acik))
+      button.setAttribute('aria-label', acik ? 'Tam ekrandan çık' : 'Tam ekran')
+    }
+    goster()
+
+    button.addEventListener('click', () => {
+      // Tarayıcı reddederse sessizce geç: oyun normal boyutta sürsün.
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => {})
+      else void kok.requestFullscreen().catch(() => {})
+    })
+
+    // Esc ile çıkışta da etiket tazelensin. Sayfa değişince kendini söker.
+    const dinle = (): void => {
+      if (!button.isConnected) {
+        document.removeEventListener('fullscreenchange', dinle)
+        return
+      }
+      goster()
+    }
+    document.addEventListener('fullscreenchange', dinle)
   }
 
   setScore(score: number): void {

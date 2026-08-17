@@ -569,7 +569,7 @@ function tohumlu(tohum) {
 {
   const oyun = new KaleSavunmasi(tohumlu(99))
   oyun.basla()
-  oyun.altin = 1000
+  oyun.altin = 5000
   oyun.kuleAl(0, 0)
   esit('kule Lv1', oyun.kuleler[0].seviye, 1)
 
@@ -579,9 +579,15 @@ function tohumlu(tohum) {
   esit('seviye 2 oldu', oyun.kuleler[0].seviye, 2)
   esit('yükseltme parası düştü', oyun.altin, altinOnce - fiyat)
 
-  esit('bir kez daha yükselir', oyun.kuleYukselt(0), true)
+  // Tavana kadar çık: her basamak bir kez yükselmeli
+  while (oyun.kuleler[0].seviye < KULE_MAX_SEVIYE) {
+    const hedef = oyun.kuleler[0].seviye + 1
+    esit(`Lv${hedef}'e yükseldi`, oyun.kuleYukselt(0), true)
+    esit(`seviye ${hedef} oldu`, oyun.kuleler[0].seviye, hedef)
+  }
   esit('en üst seviyede durur', oyun.kuleler[0].seviye, KULE_MAX_SEVIYE)
   esit('en üstte yükseltme olmaz', oyun.kuleYukselt(0), false)
+  esit('en üstte fiyat yok', oyun.kuleFiyati(0, 0), null)
   esit('boş yuva yükseltilmez', oyun.kuleYukselt(1), false)
 
   oyun.altin = 0
@@ -589,31 +595,46 @@ function tohumlu(tohum) {
   esit('parasızken kule kurulmaz', oyun.kuleler[1], null)
 }
 
-// --- Kale Savunması: seviye görünümü ---
+// --- Kale Savunması: seviye görünümü (seviye sayısından bağımsız) ---
 {
-  const boylar = [1, 2, 3].map((s) => kuleGorunum(s).boy)
-  kontrol('kule seviyeyle büyüyor', boylar[0] < boylar[1] && boylar[1] < boylar[2], boylar.join(' → '))
+  const seviyeler = Array.from({ length: KULE_MAX_SEVIYE }, (_, i) => i + 1)
+  const g = seviyeler.map(kuleGorunum)
+  const artan = (al) => g.every((k, i) => i === 0 || al(k) > al(g[i - 1]))
 
-  const enler = [1, 2, 3].map((s) => kuleGorunum(s).en)
-  kontrol('kule seviyeyle genişliyor', enler[0] < enler[1] && enler[1] < enler[2], enler.join(' → '))
+  esit('her seviyenin görünümü tanımlı', g.length, KULE_MAX_SEVIYE)
+  kontrol('kule her seviyede büyüyor', artan((k) => k.boy), g.map((k) => k.boy).join(' → '))
+  kontrol('kule her seviyede genişliyor', artan((k) => k.en), g.map((k) => k.en).join(' → '))
+  kontrol('mazgal sayısı her seviyede artıyor', artan((k) => k.mazgal), g.map((k) => k.mazgal).join(' → '))
 
-  const mazgallar = [1, 2, 3].map((s) => kuleGorunum(s).mazgal)
-  kontrol('mazgal sayısı artıyor', mazgallar[0] < mazgallar[1] && mazgallar[1] < mazgallar[2], mazgallar.join(' → '))
-
-  esit('Lv1 çatısız', kuleGorunum(1).cati, 0)
-  kontrol('Lv2 çatılı', kuleGorunum(2).cati > 0)
-  esit('Lv2 bayraksız', kuleGorunum(2).bayrak, 0)
-  kontrol('Lv3 bayraklı', kuleGorunum(3).bayrak > 0)
-  kontrol('Lv3 süslemeli ve takviyeli', kuleGorunum(3).susleme && kuleGorunum(3).takviye)
+  esit('ilk seviye çatısız', g[0].cati, 0)
+  kontrol('sonraki seviyeler çatılı', g.slice(1).every((k) => k.cati > 0))
+  esit('ilk seviye bayraksız', g[0].bayrak, 0)
+  kontrol('en üst seviye bayraklı', g.at(-1).bayrak > 0)
+  kontrol('en üst seviye süslemeli ve takviyeli', g.at(-1).susleme && g.at(-1).takviye)
+  esit('tepe ışığı yalnız en üst seviyede', g.filter((k) => k.isik).length, 1)
+  kontrol('tepe ışığı en üst seviyede', g.at(-1).isik)
 
   // Ok mazgal hattından çıkar: kule yükseldikçe başlangıç yükselir
   kontrol(
-    'ok daha tepeden çıkıyor',
-    kuleAtisY(3) < kuleAtisY(2) && kuleAtisY(2) < kuleAtisY(1),
-    [1, 2, 3].map(kuleAtisY).join(' → '),
+    'ok her seviyede daha tepeden çıkıyor',
+    seviyeler.every((s, i) => i === 0 || kuleAtisY(s) < kuleAtisY(s - 1)),
+    seviyeler.map(kuleAtisY).join(' → '),
   )
-  esit('sınır dışı seviye en yakın basamağa düşer', kuleGorunum(99), kuleGorunum(3))
+  esit('sınır dışı seviye en üst basamağa düşer', kuleGorunum(99), kuleGorunum(KULE_MAX_SEVIYE))
   esit('sıfır seviye ilk basamağa düşer', kuleGorunum(0), kuleGorunum(1))
+
+  // Kule tablolarında her seviye için değer olmalı; biri eksik kalırsa
+  // yükseltme undefined okur ve kule sessizce bozulur.
+  for (const tip of KULE_TIPLERI) {
+    esit(`${tip.ad}: fiyat tablosu tam`, tip.fiyat.length, KULE_MAX_SEVIYE)
+    esit(`${tip.ad}: hasar tablosu tam`, tip.hasar.length, KULE_MAX_SEVIYE)
+    esit(`${tip.ad}: aralık tablosu tam`, tip.aralikMs.length, KULE_MAX_SEVIYE)
+    esit(`${tip.ad}: menzil tablosu tam`, tip.menzil.length, KULE_MAX_SEVIYE)
+    kontrol(`${tip.ad}: hasar seviyeyle artıyor`, tip.hasar.every((h, i) => i === 0 || h > tip.hasar[i - 1]))
+    kontrol(`${tip.ad}: menzil seviyeyle artıyor`, tip.menzil.every((m, i) => i === 0 || m > tip.menzil[i - 1]))
+    kontrol(`${tip.ad}: atış aralığı kısalıyor`, tip.aralikMs.every((a, i) => i === 0 || a < tip.aralikMs[i - 1]))
+    kontrol(`${tip.ad}: yükseltme pahalanıyor`, tip.fiyat.every((f, i) => i === 0 || f > tip.fiyat[i - 1]))
+  }
 }
 
 // --- Kale Savunması: nişan duvarın dibine ulaşır ---

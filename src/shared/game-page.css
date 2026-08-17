@@ -156,6 +156,19 @@
   touch-action: none;
 }
 
+/*
+ * Tam ekran: kabuğun 560px sınırı kalksın, yoksa tam ekrana geçmek yalnız
+ * tarayıcı çubuklarını gizler, tahta aynı boyutta kalır. Yükseklik sınırı
+ * (--chrome) yine geçerli; tahta ekranı taşmaz.
+ */
+:fullscreen .game-shell {
+  width: min(100% - 1.5rem, 960px);
+}
+
+:-webkit-full-screen .game-shell {
+  width: min(100% - 1.5rem, 960px);
+}
+
 .game-canvas {
   width: 100%;
   height: 100%;

@@ -56,6 +56,7 @@ export function kabukHtml(oyun: KatalogKaydi): string {
         <div class="left">
           <a class="btn" href="#/">←&nbsp;<span class="uzun">Ana sayfa</span></a>
           <button class="btn btn--icon" id="sound" type="button" aria-label="Sesi aç veya kapat" aria-pressed="true">🔊</button>
+          <button class="btn" id="tamekran" type="button" aria-label="Tam ekran" aria-pressed="false"><span aria-hidden="true">⛶</span><span class="uzun">&nbsp;Tam ekran</span></button>
         </div>
         <div class="scores">
           <div class="score-box" id="score-box">

@@ -156,15 +156,15 @@ export const BASLANGIC_ALTIN = 45
 export const KULE_TIPLERI: KuleTipi[] = [
   {
     ad: 'Okçu Kulesi',
-    fiyat: [45, 80, 130],
-    hasar: [1, 2, 3],
-    aralikMs: [1200, 950, 750],
-    menzil: [190, 230, 270],
+    fiyat: [45, 80, 130, 200, 300],
+    hasar: [1, 2, 3, 4, 6],
+    aralikMs: [1200, 950, 750, 600, 470],
+    menzil: [190, 225, 260, 295, 335],
     renk: 0x0ea5e9,
   },
 ]
 
-export const KULE_MAX_SEVIYE = 3
+export const KULE_MAX_SEVIYE = 5
 
 /** Kule yuvalarının x konumları — kalenin sağında, yolun arkasındaki çimde. */
 export const KULE_YUVALARI = [176, 300, 424]
@@ -178,8 +178,8 @@ export const YUVA_BOY = 9
  * Seviyeye göre kule görünümü.
  *
  * Yükseltme yalnız sayı değiştirmesin: kule büyüyor, mazgalı çoğalıyor,
- * çatı çıkıyor, en üstte bayrak ve altın süsleme geliyor. Oyuncu tahtaya
- * bakınca hangi kulenin güçlü olduğunu okuyabilsin.
+ * çatı çıkıyor, bayrak ve altın süsleme geliyor, en üstte tepe ışığı yanıyor.
+ * Oyuncu tahtaya bakınca hangi kulenin güçlü olduğunu okuyabilsin.
  */
 export interface KuleSeviyeGorunum {
   en: number
@@ -194,14 +194,18 @@ export interface KuleSeviyeGorunum {
   takviye: boolean
   /** Gövdeyi saran altın şerit. */
   susleme: boolean
+  /** Tepede yanıp sönen ışık (en üst seviye). */
+  isik: boolean
   /** Gövde renginin açılma oranı: üst seviye daha parlak. */
   tonOran: number
 }
 
 export const KULE_SEVIYE_GORUNUM: KuleSeviyeGorunum[] = [
-  { en: 26, boy: 44, mazgal: 3, cati: 0, bayrak: 0, takviye: false, susleme: false, tonOran: 0 },
-  { en: 31, boy: 58, mazgal: 4, cati: 15, bayrak: 0, takviye: false, susleme: false, tonOran: 0.12 },
-  { en: 37, boy: 74, mazgal: 5, cati: 21, bayrak: 17, takviye: true, susleme: true, tonOran: 0.24 },
+  { en: 26, boy: 42, mazgal: 3, cati: 0, bayrak: 0, takviye: false, susleme: false, isik: false, tonOran: 0 },
+  { en: 30, boy: 54, mazgal: 4, cati: 14, bayrak: 0, takviye: false, susleme: false, isik: false, tonOran: 0.1 },
+  { en: 34, boy: 66, mazgal: 5, cati: 18, bayrak: 15, takviye: true, susleme: false, isik: false, tonOran: 0.17 },
+  { en: 38, boy: 77, mazgal: 6, cati: 22, bayrak: 17, takviye: true, susleme: true, isik: false, tonOran: 0.24 },
+  { en: 43, boy: 88, mazgal: 7, cati: 25, bayrak: 19, takviye: true, susleme: true, isik: true, tonOran: 0.32 },
 ]
 
 export function kuleGorunum(seviye: number): KuleSeviyeGorunum {
@@ -454,6 +458,8 @@ export const MESALE_MS = 620
 export const ISABET_EFEKT_MS = 220
 /** Kule yükselince yeni görünümün zıplama süresi. */
 export const KULE_POP_MS = 320
+/** En üst seviye kulenin tepe ışığı yanıp sönme süresi. */
+export const KULE_ISIK_MS = 780
 export const OLUM_EFEKT_MS = 380
 export const KALE_SARSINTI_MS = 180
 export const KALE_SARSINTI_GUC = 0.006

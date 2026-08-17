@@ -19,6 +19,7 @@ import {
   GAME_HEIGHT,
   GAME_WIDTH,
   KALE_GENISLIK,
+  KULE_ISIK_MS,
   KULE_MAX_SEVIYE,
   KULE_POP_MS,
   KULE_TABAN_Y,
@@ -298,6 +299,20 @@ export class KuleAlani {
       kule3.add(
         this.scene.add.triangle(x + 1, direkAlt - g.bayrak + 4, 0, -4, 13, 1, 0, 6, COLORS.ALTIN),
       )
+      if (g.isik) {
+        // En üst seviye: bayrağın ucunda yanıp sönen ışık
+        const isik = this.scene.add.circle(x, direkAlt - g.bayrak - 2, 4, COLORS.ALTIN)
+        kule3.add(isik)
+        this.scene.tweens.add({
+          targets: isik,
+          scale: 1.7,
+          alpha: 0.35,
+          duration: KULE_ISIK_MS,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+        })
+      }
     }
 
     kule3.add(
