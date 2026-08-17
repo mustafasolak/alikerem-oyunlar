@@ -117,8 +117,9 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* Aynı anda iki buçuk kart görünsün: şerit olduğu anlaşılsın, yer kaplamasın */
 .grid--vitrin > * {
-  flex: 0 0 78%;
+  flex: 0 0 41%;
   scroll-snap-align: start;
 }
 
@@ -128,22 +129,52 @@
   background: linear-gradient(170deg, var(--surface-hi) 0%, var(--surface) 100%);
 }
 
-/* Vitrinde kartlar daha iri: burası bir vitrin, minik kart listesi değil */
+/*
+ * Vitrin kartı kompakt: görsel + ad + rekor. Özet ve etiketler burada yok —
+ * şerit ekranın yarısını kaplamamalı, ayrıcalığını bandın kendisi veriyor.
+ */
+.grid--vitrin .card {
+  gap: 0.4rem;
+  padding: 0.55rem;
+}
+
 .grid--vitrin .card-art {
-  height: 104px;
-  font-size: 2.9rem;
+  height: 62px;
+  font-size: 1.9rem;
 }
 
 .grid--vitrin .card h2 {
-  font-size: 1.12rem;
+  overflow: hidden;
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.grid--vitrin .card p {
+.grid--vitrin .card p,
+.grid--vitrin .tags {
+  display: none;
+}
+
+.grid--vitrin .card-foot {
+  font-size: 0.68rem;
+}
+
+/* Şeritte "Oyna →" yer kaplıyor; rekor bilgisi daha değerli */
+.grid--vitrin .card-foot .go {
+  display: none;
+}
+
+.grid--vitrin .favori {
+  width: 24px;
+  height: 24px;
   font-size: 0.85rem;
 }
 
-.grid--vitrin .tags {
-  display: flex;
+@media (min-width: 700px) {
+  .grid--vitrin .card-art {
+    height: 76px;
+    font-size: 2.2rem;
+  }
 }
 
 /* Geniş ekranda şeride gerek yok: normal ızgara */
@@ -162,8 +193,8 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem;
+  gap: 0.4rem;
+  padding: 0.6rem;
   border-radius: var(--radius);
   background: linear-gradient(170deg, var(--surface) 0%, var(--bg-soft) 100%);
   border: 1px solid var(--line);
@@ -179,29 +210,43 @@ a.card:hover {
 .card-art {
   display: grid;
   place-items: center;
-  height: 74px;
+  height: 64px;
   border-radius: var(--radius-sm);
   background: repeating-linear-gradient(135deg, #201c3c 0 12px, #262048 12px 24px);
-  font-size: 2.1rem;
+  font-size: 1.85rem;
 }
 
 .card h2 {
-  margin: 0;
-  font-size: 0.98rem;
-  line-height: 1.25;
-}
-
-/* Özet iki satırla sınırlı: kartlar aynı boyda kalsın */
-.card p {
   display: -webkit-box;
   overflow: hidden;
   margin: 0;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+/*
+ * Telefonda özet gizli: kart görsel + ad + rekordan ibaret kalınca ekrana
+ * dört kat fazla oyun sığıyor. Geniş ekranda iki satırla geri geliyor.
+ */
+.card p {
+  display: none;
+  overflow: hidden;
+  margin: 0;
   color: var(--text-dim);
   font-size: 0.78rem;
   line-height: 1.35;
+}
+
+@media (min-width: 700px) {
+  .card p {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
 }
 
 .tags {
