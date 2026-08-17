@@ -765,7 +765,7 @@ export const KATALOG: KatalogKaydi[] = [
     "ad": "Kale Savunması",
     "ozet": "Kaleye yürüyen canavarları mızrakla durdur.",
     "aciklama": "Dalga dalga gelen canavarları mızrakla vur, kaleyi ayakta tut.",
-    "ipucu": "<kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · ekrana dokun = mızrak at · <b>+</b> yuvasına dokun = kule kur, kuleye dokun = yükselt · <b>uçan canavara mızrak değmez, yalnız kuleler vurur</b>",
+    "ipucu": "<kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · <kbd>E</kbd> element değiştir · <b>+</b> yuvasına dokun = kule kur, kuleye dokun = yükselt · <b>uçan canavara mızrak değmez, yalnız kuleler vurur</b>",
     "emoji": "🏰",
     "kategori": "arcade",
     "etiketler": [
@@ -780,7 +780,7 @@ export const KATALOG: KatalogKaydi[] = [
     "tuval": {
       "genislik": 540,
       "yukseklik": 400,
-      "disPay": 450
+      "disPay": 470
     },
     "arayuz": {
       "aracCubugu": [
@@ -821,6 +821,14 @@ export const KATALOG: KatalogKaydi[] = [
           "deger": "at"
         },
         {
+          "etiket": "🗡 Mızrak",
+          "deger": "element"
+        },
+        {
+          "etiket": "🤖 Otomatik",
+          "deger": "otomatik"
+        },
+        {
           "etiket": "⏸ Duraklat",
           "deger": "duraklat"
         }
@@ -828,8 +836,8 @@ export const KATALOG: KatalogKaydi[] = [
       "paneller": [
         {
           "id": "malzeme",
-          "baslik": "Malzeme dükkânı",
-          "ic": "<div class=\"toolbar\"><button class=\"btn\" type=\"button\" data-malzeme=\"tamir\" title=\"+8 kale canı\">🧱 Duvar tamiri · <b>40</b></button><button class=\"btn\" type=\"button\" data-malzeme=\"keskin\" title=\"mızrak hasarı +1\">⚔️ Keskin mızrak · <b>70</b></button><button class=\"btn\" type=\"button\" data-malzeme=\"hizli\" title=\"bekleme %30 kısa\">⚡ Hızlı atış · <b>60</b></button></div>"
+          "baslik": "Yükseltme dükkânı",
+          "ic": "<div class=\"toolbar\"><button class=\"btn\" type=\"button\" data-yukseltme=\"tamir\" title=\"+8 kale canı\">🧱 Duvar tamiri · <b>40</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"hasar\" title=\"her seviyede +1 hasar\">⚔️ Mızrak hasarı · <b>70</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"hiz\" title=\"her seviyede bekleme %12 kısa\">⚡ Atış hızı · <b>60</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"kale\" title=\"her seviyede +8 azami can\">🛡 Kale duvarı · <b>90</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"otomatik\" title=\"mızrakçı kendi nişan alıp atar\">🤖 Otomatik ateş · <b>220</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"alev\" title=\"vurduğunu yakar, zırhı geçer\">🔥 Alev mızrağı · <b>160</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"buz\" title=\"vurduğunu yavaşlatır\">❄️ Buz mızrağı · <b>190</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"simsek\" title=\"yakındaki canavarlara atlar\">⚡ Şimşek mızrağı · <b>260</b></button></div>"
         }
       ]
     }

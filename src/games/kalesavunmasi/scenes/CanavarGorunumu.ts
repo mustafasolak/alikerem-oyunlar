@@ -13,6 +13,7 @@ import { acikTon, koyuTon, parca, top } from '../../../shared/Gorsel.ts'
 import {
   CANAVAR_BAR_BOY,
   COLORS,
+  ELEMENT_RENGI,
   HASAR_PARLAMA_MS,
   KANAT_ACI,
   OLUM_EFEKT_MS,
@@ -42,6 +43,7 @@ export class CanavarGorunumu {
   private readonly arkaKol: Phaser.GameObjects.Rectangle
   private readonly onKol: Phaser.GameObjects.Container
   private readonly parlama: Phaser.GameObjects.Rectangle
+  private readonly durumOrtusu: Phaser.GameObjects.Rectangle
   private readonly barArka: Phaser.GameObjects.Rectangle
   private readonly barDolu: Phaser.GameObjects.Rectangle
   private readonly barEn: number
@@ -109,6 +111,12 @@ export class CanavarGorunumu {
       .setRounded(en * 0.3)
       .setAlpha(0)
 
+    // Alev/buz örtüsü: durum sürdükçe açık kalır.
+    this.durumOrtusu = scene.add
+      .rectangle(0, govdeY, en + 7, boy * 0.72, ELEMENT_RENGI.alev)
+      .setRounded(en * 0.3)
+      .setAlpha(0)
+
     this.barEn = en + 8
     const barY = kafaY - kafaR - 7
     this.barArka = scene.add.rectangle(0, barY, this.barEn, CANAVAR_BAR_BOY, COLORS.CAN_BAR_ARKA).setRounded(2)
@@ -159,6 +167,7 @@ export class CanavarGorunumu {
       kafa,
       boynuz,
       ...gozler,
+      this.durumOrtusu,
       this.parlama,
       this.barArka,
       this.barDolu,
@@ -204,7 +213,21 @@ export class CanavarGorunumu {
     this.canBariniTazele(canavar)
   }
 
+  /** Yanıyorsa turuncu, donmuşsa mavi bir örtü: durum tahtadan okunsun. */
+  private durumGoster(canavar: Canavar): void {
+    if (canavar.yanmaKalan > 0) {
+      this.durumOrtusu.setFillStyle(ELEMENT_RENGI.alev).setAlpha(0.34)
+      return
+    }
+    if (canavar.yavaslikKalan > 0) {
+      this.durumOrtusu.setFillStyle(ELEMENT_RENGI.buz).setAlpha(0.38)
+      return
+    }
+    this.durumOrtusu.setAlpha(0)
+  }
+
   private canBariniTazele(canavar: Canavar): void {
+    this.durumGoster(canavar)
     const oran = Math.max(0, canavar.can) / canavar.maxCan
     const yarali = oran < 1
     this.barArka.setVisible(yarali)

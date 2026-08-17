@@ -9,13 +9,15 @@ import {
   COLORS,
   DALGA_BONUSU,
   DUNYALAR,
+  ELEMENT_ADI,
+  ELEMENT_RENGI,
+  ELEMENT_SIMGE,
   FONT_FAMILY,
   GAME_WIDTH,
   ISABET_EFEKT_MS,
   KALE_SARSINTI_GUC,
   KALE_SARSINTI_MS,
   KULE_TIPLERI,
-  MALZEMELER,
   MIZRAK_BOY,
   MIZRAK_KALINLIK,
   NISAN_NOKTA_ARALIK,
@@ -23,7 +25,9 @@ import {
   OK_KALINLIK,
   OVERLAY_GECIKME_MS,
   SAPLANAN_OMUR_MS,
+  YUKSELTMELER,
   ZEMIN_Y,
+  ZINCIR_EFEKT_MS,
   patronDalgasiMi,
 } from '../config/constants.ts'
 import { acikDunyaSayisi, dunyaAcikMi, oldurulenEkle, sonrakiDunyayaKalan } from '../systems/Ilerleme.ts'
@@ -101,7 +105,10 @@ export class GameScene extends TemelSahne {
     for (const tus of ['keydown-P', 'keydown-ESC']) klavye?.on(tus, () => this.duraklatDegistir())
     this.tuslariYakala(['SPACE', 'UP', 'DOWN'])
 
+    klavye?.on('keydown-E', () => this.elementDegistir())
     this.padDugmesi('at', () => this.at())
+    this.padDugmesi('element', () => this.elementDegistir())
+    this.padDugmesi('otomatik', () => this.otomatikDegistir())
     this.padDugmesi('duraklat', () => this.duraklatDegistir())
     this.malzemeDugmeleri()
     this.dunyaDugmeleri()
@@ -190,6 +197,7 @@ export class GameScene extends TemelSahne {
     this.skorGoster(0)
     this.nisanCiz()
     this.malzemeleriTazele()
+    this.padYazilariniTazele()
     // Oyun kendiliğinden başlamaz: Başlat ekranı bekler.
     this.baslatEkrani()
   }
@@ -206,6 +214,7 @@ export class GameScene extends TemelSahne {
 
     this.isabetleriIsle(sonuc.isabetler)
     for (const saplanan of sonuc.saplananlar) this.saplananCiz(saplanan.x, saplanan.aci)
+    for (const zincir of sonuc.zincirler) this.zincirCiz(zincir)
     if (sonuc.kaleVuruldu) this.kaleHasari()
     if (sonuc.kuleAtti) sesler.tik()
     if (sonuc.bitenDalga !== null) this.dalgaBitti(sonuc.bitenDalga)
@@ -241,43 +250,95 @@ export class GameScene extends TemelSahne {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => dugme.removeEventListener('click', bas))
   }
 
-  /** Malzeme panelindeki düğmeler; yazıları ve pasifliği her karede tazelenir. */
+  /** Yükseltme panelindeki düğmeler; fiyat ve seviye yazısı sonra tazelenir. */
   private malzemeDugmeleri(): void {
-    for (const malzeme of MALZEMELER) {
-      const dugme = document.querySelector<HTMLButtonElement>(`#malzeme button[data-malzeme="${malzeme.id}"]`)
+    for (const y of YUKSELTMELER) {
+      const dugme = document.querySelector<HTMLButtonElement>(`#malzeme button[data-yukseltme="${y.id}"]`)
       if (!dugme) continue
-      this.malzemeButonlari.set(malzeme.id, dugme)
-      const bas = (): void => this.malzemeAl(malzeme.id)
+      this.malzemeButonlari.set(y.id, dugme)
+      const bas = (): void => this.yukseltmeAl(y.id)
       dugme.addEventListener('click', bas)
       this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => dugme.removeEventListener('click', bas))
     }
   }
 
-  private malzemeAl(id: string): void {
-    if (!this.oyun.malzemeAl(id)) {
+  private yukseltmeAl(id: string): void {
+    if (!this.oyun.yukseltmeAl(id)) {
       sesler.yanlis()
       return
     }
-    const malzeme = MALZEMELER.find((m) => m.id === id)
+    const y = YUKSELTMELER.find((k) => k.id === id)
     sesler.dogru()
-    this.bildir(malzeme?.ozet ?? 'Malzeme alındı')
+    const seviye = this.oyun.yukseltmeSeviyesi(id)
+    // Seviyeli yükseltmede kaçıncı seviyeye çıktığı da görünsün.
+    const ek = y && y.maxSeviye > 1 ? ` · Lv${seviye}` : ''
+    this.bildir(`${y?.ozet ?? 'Yükseltme alındı'}${ek}`)
+    this.padYazilariniTazele()
   }
 
-  /** Parası yetmeyen ya da alınmış malzemenin düğmesi kapansın. */
+  /**
+   * Fiyat, seviye ve pasiflik durumunu düğmelere yazar.
+   * Her karede DOM'a yazmamak için imzayla korunuyor.
+   */
   private malzemeleriTazele(): void {
-    const imza = `${this.oyun.altin}|${this.oyun.kaleCani}|${this.oyun.asama}|${[...this.oyun.alinanMalzemeler].sort().join(',')}`
+    const seviyeler = YUKSELTMELER.map((y) => this.oyun.yukseltmeSeviyesi(y.id)).join(',')
+    const imza = `${this.oyun.altin}|${this.oyun.kaleCani}|${this.oyun.asama}|${seviyeler}`
     if (imza === this.malzemeImza) return
     this.malzemeImza = imza
 
-    for (const malzeme of MALZEMELER) {
-      const dugme = this.malzemeButonlari.get(malzeme.id)
+    for (const y of YUKSELTMELER) {
+      const dugme = this.malzemeButonlari.get(y.id)
       if (!dugme) continue
-      const alindi = malzeme.tekSeferlik && this.oyun.alinanMalzemeler.has(malzeme.id)
-      dugme.disabled = !this.oyun.malzemeAlinabilir(malzeme.id)
-      dugme.setAttribute('aria-pressed', String(alindi))
+      const seviye = this.oyun.yukseltmeSeviyesi(y.id)
+      const fiyat = this.oyun.yukseltmeFiyatiSimdi(y.id)
+      dugme.disabled = !this.oyun.yukseltmeAlinabilir(y.id)
+      dugme.setAttribute('aria-pressed', String(seviye > 0))
+
       const durum = dugme.querySelector('b')
-      if (durum) durum.textContent = alindi ? 'alındı' : String(malzeme.fiyat)
+      if (!durum) continue
+      if (fiyat === null) durum.textContent = y.maxSeviye === 1 ? 'alındı' : 'tam'
+      else if (y.maxSeviye > 1) durum.textContent = `Lv${seviye}/${y.maxSeviye} · ${fiyat}`
+      else durum.textContent = String(fiyat)
     }
+  }
+
+  // --- Element ve otomatik ateş ---
+
+  /** Element düğmesi açık elementler arasında sırayla geçer. */
+  private elementDegistir(): void {
+    const acik = this.oyun.acikElementler
+    if (acik.length < 2) {
+      sesler.yanlis()
+      this.bildir('Önce element mızrağı al')
+      return
+    }
+    const sonraki = acik[(acik.indexOf(this.oyun.element) + 1) % acik.length]
+    this.oyun.elementSec(sonraki)
+    sesler.tik()
+    this.padYazilariniTazele()
+    this.bildir(`${ELEMENT_SIMGE[sonraki]} ${ELEMENT_ADI[sonraki]}`)
+  }
+
+  private otomatikDegistir(): void {
+    if (!this.oyun.otomatikDegistir()) {
+      sesler.yanlis()
+      this.bildir('Önce otomatik ateşi al')
+      return
+    }
+    sesler.tik()
+    this.padYazilariniTazele()
+    this.bildir(this.oyun.otomatik ? 'Otomatik ateş açık' : 'Otomatik ateş kapalı')
+  }
+
+  /** Element ve otomatik düğmelerinin yazısını güncel duruma çeker. */
+  private padYazilariniTazele(): void {
+    const element = document.querySelector<HTMLButtonElement>('#pad button[data-move="element"]')
+    if (element) {
+      element.textContent = `${ELEMENT_SIMGE[this.oyun.element]} ${ELEMENT_ADI[this.oyun.element]}`
+      element.setAttribute('aria-pressed', String(this.oyun.element !== 'normal'))
+    }
+    const otomatik = document.querySelector<HTMLButtonElement>('#pad button[data-move="otomatik"]')
+    if (otomatik) otomatik.setAttribute('aria-pressed', String(this.oyun.otomatik))
   }
 
   // --- Başlat / duraklat ---
@@ -368,7 +429,7 @@ export class GameScene extends TemelSahne {
       ucan.add(atis.id)
       let gorunum = this.mizrakGorunumleri.get(atis.id)
       if (!gorunum) {
-        gorunum = atis.tur === 'ok' ? this.okYap() : this.mizrakYap()
+        gorunum = atis.tur === 'ok' ? this.okYap() : this.mizrakYap(ELEMENT_RENGI[atis.element])
         this.mizrakKatmani.add(gorunum)
         this.mizrakGorunumleri.set(atis.id, gorunum)
       }
@@ -384,10 +445,10 @@ export class GameScene extends TemelSahne {
     }
   }
 
-  private mizrakYap(): Phaser.GameObjects.Container {
+  private mizrakYap(ucRengi: number = COLORS.MIZRAK_UC): Phaser.GameObjects.Container {
     return this.add.container(0, 0, [
       this.add.rectangle(-MIZRAK_BOY / 2, 0, MIZRAK_BOY, MIZRAK_KALINLIK, COLORS.MIZRAK_SAP).setOrigin(0, 0.5),
-      this.add.triangle(MIZRAK_BOY / 2, 0, 0, -4, 9, 0, 0, 4, COLORS.MIZRAK_UC),
+      this.add.triangle(MIZRAK_BOY / 2, 0, 0, -4, 9, 0, 0, 4, ucRengi),
     ])
   }
 
@@ -489,6 +550,19 @@ export class GameScene extends TemelSahne {
     const son = yol[yol.length - 1]
     this.nisanCizim.lineStyle(2, COLORS.NISAN, 0.8)
     this.nisanCizim.strokeCircle(son.x, son.y, 7)
+  }
+
+  /** Şimşeğin atladığı yol: kısa süre görünen sarı çizgi. */
+  private zincirCiz(zincir: { x1: number; y1: number; x2: number; y2: number }): void {
+    const cizim = this.add.graphics().setDepth(KATMAN.EFEKT)
+    cizim.lineStyle(3, ELEMENT_RENGI.simsek, 0.95)
+    cizim.lineBetween(zincir.x1, zincir.y1, zincir.x2, zincir.y2)
+    this.tweens.add({
+      targets: cizim,
+      alpha: 0,
+      duration: ZINCIR_EFEKT_MS,
+      onComplete: () => cizim.destroy(),
+    })
   }
 
   private isabetEfekti(x: number, y: number): void {

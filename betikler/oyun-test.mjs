@@ -17,6 +17,7 @@ import {
 import {
   ACI_MAX,
   ACI_MIN,
+  ALEV_ARALIK_MS,
   ATIS_BEKLEME_MS,
   BASLANGIC_ALTIN,
   CANAVAR_TIPLERI,
@@ -25,12 +26,14 @@ import {
   DUNYALAR,
   DUNYA_ESIGI,
   DURAK_X,
-  KESKIN_BONUS,
+  HASAR_BONUSU,
+  KALE_BONUSU,
   KULE_MAX_SEVIYE,
   KULE_TIPLERI,
   PATRON_DALGA_ARALIK,
   SIM_ADIM_MS,
   TAMIR_MIKTARI,
+  YUKSELTMELER,
   ZEMIN_Y,
   canavarAyakY,
   dalgaCanCarpani,
@@ -548,34 +551,154 @@ function tohumlu(tohum) {
   esit('dalga kaybolmadı', oyun.dalga, dalgaOnce)
 }
 
-// --- Kale Savunması: malzeme dükkânı ---
+// --- Kale Savunması: yükseltme dükkânı ---
 {
   const oyun = new KaleSavunmasi(tohumlu(88))
   oyun.basla()
+  oyun.altin = 100000
 
   // Kale tam canlıyken tamir satılmaz: para boşa gitmesin
-  oyun.altin = 500
-  esit('tam canlı kalede tamir alınmaz', oyun.malzemeAlinabilir('tamir'), false)
-  oyun.kaleCani = DUNYALAR[0].kaleCani - 20
-  esit('hasarlı kalede tamir alınır', oyun.malzemeAl('tamir'), true)
-  esit('tamir can ekler', oyun.kaleCani, DUNYALAR[0].kaleCani - 20 + TAMIR_MIKTARI)
+  esit('tam canlı kalede tamir alınmaz', oyun.yukseltmeAlinabilir('tamir'), false)
+  oyun.kaleCani = oyun.maxKaleCani - 20
+  esit('hasarlı kalede tamir alınır', oyun.yukseltmeAl('tamir'), true)
 
-  // Keskin mızrak hasarı kalıcı arttırır ve bir kez alınır
-  const oncekiHasar = oyun.mizrakHasari
-  esit('keskin mızrak alınır', oyun.malzemeAl('keskin'), true)
-  esit('mızrak hasarı arttı', oyun.mizrakHasari, oncekiHasar + KESKIN_BONUS)
-  esit('keskin mızrak ikinci kez alınmaz', oyun.malzemeAl('keskin'), false)
+  // Hasar yükseltmesi seviyeli ve her seviyede pahalanıyor
+  const ilkFiyat = oyun.yukseltmeFiyatiSimdi('hasar')
+  const ilkHasar = oyun.mizrakHasari
+  esit('hasar yükseltmesi alındı', oyun.yukseltmeAl('hasar'), true)
+  esit('seviye 1 oldu', oyun.yukseltmeSeviyesi('hasar'), 1)
+  esit('mızrak hasarı arttı', oyun.mizrakHasari, ilkHasar + HASAR_BONUSU)
+  kontrol('sonraki seviye daha pahalı', oyun.yukseltmeFiyatiSimdi('hasar') > ilkFiyat)
 
-  // Hızlı atış beklemeyi kısaltır
+  // Tavana kadar alınır, sonra durur
+  const hasarTavan = YUKSELTMELER.find((y) => y.id === 'hasar').maxSeviye
+  while (oyun.yukseltmeSeviyesi('hasar') < hasarTavan) oyun.yukseltmeAl('hasar')
+  esit('hasar tavanda', oyun.yukseltmeSeviyesi('hasar'), hasarTavan)
+  esit('tavanda fiyat yok', oyun.yukseltmeFiyatiSimdi('hasar'), null)
+  esit('tavanda alınmaz', oyun.yukseltmeAl('hasar'), false)
+
+  // Hız beklemeyi kısaltıyor, kale azami canı arttırıyor
   const oncekiBekleme = oyun.atisBeklemesi
-  esit('hızlı atış alınır', oyun.malzemeAl('hizli'), true)
+  esit('hız yükseltmesi alındı', oyun.yukseltmeAl('hiz'), true)
   kontrol('bekleme kısaldı', oyun.atisBeklemesi < oncekiBekleme, `${oncekiBekleme} → ${oyun.atisBeklemesi}`)
 
-  esit('parasızken malzeme alınmaz', (oyun.altin = 0, oyun.malzemeAl('tamir')), false)
-  esit('olmayan malzeme alınmaz', oyun.malzemeAl('yok'), false)
+  const oncekiMax = oyun.maxKaleCani
+  const oncekiCan = oyun.kaleCani
+  esit('kale yükseltmesi alındı', oyun.yukseltmeAl('kale'), true)
+  esit('azami can arttı', oyun.maxKaleCani, oncekiMax + KALE_BONUSU)
+  esit('kazanılan can hemen verildi', oyun.kaleCani, oncekiCan + KALE_BONUSU)
+
+  esit('parasızken alınmaz', (oyun.altin = 0, oyun.yukseltmeAl('hiz')), false)
+  esit('olmayan yükseltme alınmaz', oyun.yukseltmeAl('yok'), false)
 
   oyun.reset()
-  esit('sıfırlama malzemeleri geri alır', oyun.alinanMalzemeler.size, 0)
+  esit('sıfırlama yükseltmeleri geri alır', oyun.yukseltmeler.size, 0)
+  esit('sıfırlamada element normale döner', oyun.element, 'normal')
+}
+
+{
+  // Elementler: alınmadan seçilemez, alınınca etkin olur
+  const oyun = new KaleSavunmasi(tohumlu(89))
+  oyun.basla()
+  esit('başta yalnız normal açık', oyun.acikElementler, ['normal'])
+  esit('alınmayan element seçilemez', oyun.elementSec('alev'), false)
+
+  oyun.altin = 100000
+  esit('alev alındı', oyun.yukseltmeAl('alev'), true)
+  esit('alınan element hemen etkin', oyun.element, 'alev')
+  esit('alev listede', oyun.acikElementler.includes('alev'), true)
+  esit('normale dönülebilir', oyun.elementSec('normal'), true)
+  esit('alev yeniden seçilebilir', oyun.elementSec('alev'), true)
+  esit('element ikinci kez alınmaz', oyun.yukseltmeAl('alev'), false)
+
+  // Otomatik ateş: alınmadan açılamaz, alınınca bekleme uzar
+  const oyun2 = new KaleSavunmasi(tohumlu(90))
+  oyun2.basla()
+  esit('alınmadan otomatik açılmaz', oyun2.otomatikDegistir(), false)
+  esit('otomatik kapalı', oyun2.otomatik, false)
+  oyun2.altin = 100000
+  const elleBekleme = oyun2.atisBeklemesi
+  esit('otomatik alındı', oyun2.yukseltmeAl('otomatik'), true)
+  esit('alınca açıldı', oyun2.otomatik, true)
+  kontrol('otomatik bekleme daha uzun', oyun2.atisBeklemesi > elleBekleme, `${elleBekleme} → ${oyun2.atisBeklemesi}`)
+  esit('kapatılabiliyor', (oyun2.otomatikDegistir(), oyun2.otomatik), false)
+}
+
+{
+  // Otomatik ateş kendi nişan alıp vuruyor
+  const oyun = new KaleSavunmasi(tohumlu(91))
+  oyun.basla()
+  oyun.altin = 100000
+  oyun.yukseltmeAl('otomatik')
+
+  let isabet = false
+  for (let i = 0; i < 60000 / SIM_ADIM_MS && !isabet; i++) {
+    isabet = oyun.ilerlet(SIM_ADIM_MS).isabetler.length > 0
+  }
+  esit('otomatik ateş canavarı vurdu', isabet, true)
+  kontrol('otomatik nişan mızrak attı', oyun.oldurulen > 0 || oyun.atislar.length > 0)
+}
+
+{
+  // Element etkileri
+  const oyun = new KaleSavunmasi(tohumlu(92))
+  oyun.basla()
+  const tip = oyun.tipler.findIndex((t) => !t.patron && !t.ucar && t.zirh === 0)
+  const koy = (x, can) => {
+    oyun.canavarlar.push({
+      id: 900 + Math.round(x), tip, x, can, maxCan: can, altin: 0, puan: 0,
+      durum: 'yuruyor', faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
+    })
+  }
+  const vur = (element, hasar = 1) => {
+    oyun.atislar.push({
+      id: 1, x: oyun.canavarlar[0].x, y: ZEMIN_Y - 10, vx: 0, vy: 1,
+      hasar, agir: false, tur: 'mizrak', element,
+    })
+    oyun.ilerlet(SIM_ADIM_MS)
+  }
+
+  // Alev: vuruş sonrası zamanla hasar veriyor
+  oyun.canavarlar.length = 0
+  koy(300, 100)
+  vur('alev')
+  kontrol('alev canavarı yaktı', oyun.canavarlar[0].yanmaKalan > 0)
+  const yanmaOncesi = oyun.canavarlar[0].can
+  for (let i = 0; i < ALEV_ARALIK_MS / SIM_ADIM_MS + 2; i++) oyun.ilerlet(SIM_ADIM_MS)
+  kontrol('yanma hasar verdi', oyun.canavarlar[0].can < yanmaOncesi, `${yanmaOncesi} → ${oyun.canavarlar[0].can}`)
+
+  // Buz: yavaşlatıyor
+  oyun.canavarlar.length = 0
+  oyun.atislar.length = 0
+  koy(300, 100)
+  vur('buz')
+  kontrol('buz yavaşlattı', oyun.canavarlar[0].yavaslikKalan > 0)
+  const buzluX = oyun.canavarlar[0].x
+  for (let i = 0; i < 30; i++) oyun.ilerlet(SIM_ADIM_MS)
+  const buzluYol = buzluX - oyun.canavarlar[0].x
+
+  oyun.canavarlar.length = 0
+  oyun.atislar.length = 0
+  koy(300, 100)
+  const normalX = oyun.canavarlar[0].x
+  for (let i = 0; i < 30; i++) oyun.ilerlet(SIM_ADIM_MS)
+  const normalYol = normalX - oyun.canavarlar[0].x
+  kontrol('buzlu canavar daha az yol aldı', buzluYol < normalYol, `${buzluYol.toFixed(1)} < ${normalYol.toFixed(1)}`)
+
+  // Şimşek: komşuya atlıyor
+  oyun.canavarlar.length = 0
+  oyun.atislar.length = 0
+  koy(300, 100)
+  koy(340, 100)
+  const komsuOncesi = oyun.canavarlar[1].can
+  const sonuc2 = (() => {
+    oyun.atislar.push({
+      id: 5, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 1, agir: false, tur: 'mizrak', element: 'simsek',
+    })
+    return oyun.ilerlet(SIM_ADIM_MS)
+  })()
+  kontrol('şimşek komşuya hasar verdi', oyun.canavarlar[1].can < komsuOncesi, `${komsuOncesi} → ${oyun.canavarlar[1].can}`)
+  kontrol('zincir çizgisi bildirildi', sonuc2.zincirler.length > 0)
 }
 
 // --- Kale Savunması: kule yükseltme ---
@@ -789,21 +912,22 @@ function tohumlu(tohum) {
     oyun.canavarlar.push({
       id: 999, tip, x: 300, can, maxCan: can, altin: 0, puan: 0,
       durum: 'yuruyor', faz: 0, vurusBirikim: 0,
+      yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
     })
   }
 
   koy(zirhliTip, 100)
-  oyun.mizrakHasari = zirh + 3
+  const testHasari = zirh + 3
   oyun.aciAyarla(0)
   const oncekiCan = oyun.canavarlar[0].can
   // Mızrağı doğrudan canavarın üstüne koyup bir adım ilerlet
-  oyun.atislar.push({ id: 1, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: oyun.mizrakHasari, agir: false, tur: 'mizrak' })
+  oyun.atislar.push({ id: 1, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: testHasari, agir: false, tur: 'mizrak', element: 'normal' })
   oyun.ilerlet(SIM_ADIM_MS)
   esit('zırh hasarı azaltıyor', oncekiCan - oyun.canavarlar[0].can, 3)
 
   // Zırhtan zayıf vuruş bile 1 hasar geçirir
   koy(zirhliTip, 100)
-  oyun.atislar.push({ id: 2, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 1, agir: false, tur: 'ok' })
+  oyun.atislar.push({ id: 2, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 1, agir: false, tur: 'ok', element: 'normal' })
   oyun.ilerlet(SIM_ADIM_MS)
   esit('zayıf vuruş en az 1 hasar geçirir', 100 - oyun.canavarlar[0].can, 1)
 }
@@ -821,16 +945,17 @@ function tohumlu(tohum) {
     oyun.canavarlar.push({
       id: 998, tip: ucanTip, x: 300, can: 50, maxCan: 50, altin: 0, puan: 0,
       durum: 'yuruyor', faz: 0, vurusBirikim: 0,
+      yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
     })
   }
 
   koyUcan()
-  oyun.atislar.push({ id: 1, x: 300, y: ucanY, vx: 0, vy: 1, hasar: 5, agir: false, tur: 'mizrak' })
+  oyun.atislar.push({ id: 1, x: 300, y: ucanY, vx: 0, vy: 1, hasar: 5, agir: false, tur: 'mizrak', element: 'normal' })
   oyun.ilerlet(SIM_ADIM_MS)
   esit('mızrak uçana değmiyor', oyun.canavarlar[0].can, 50)
 
   koyUcan()
-  oyun.atislar.push({ id: 2, x: 300, y: ucanY, vx: 0, vy: 1, hasar: 5, agir: false, tur: 'ok' })
+  oyun.atislar.push({ id: 2, x: 300, y: ucanY, vx: 0, vy: 1, hasar: 5, agir: false, tur: 'ok', element: 'normal' })
   oyun.ilerlet(SIM_ADIM_MS)
   esit('kule oku uçanı vuruyor', oyun.canavarlar[0].can, 45)
 }

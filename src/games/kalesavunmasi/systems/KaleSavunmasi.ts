@@ -8,10 +8,26 @@
  */
 
 import { type Uretec } from '../../../shared/rastgele.ts'
-import type { CanavarTipi } from '../config/constants.ts'
+import type { CanavarTipi, Element } from '../config/constants.ts'
 import {
   ACI_BASLANGIC,
   ACI_MAX,
+  ALEV_ARALIK_MS,
+  ALEV_HASAR,
+  ALEV_SURE_MS,
+  BUZ_ORAN,
+  BUZ_SURE_MS,
+  HASAR_BONUSU,
+  HIZ_ORANI,
+  KALE_BONUSU,
+  OTOMATIK_ACI_ADIMI,
+  OTOMATIK_BEKLEME_ORANI,
+  SIMSEK_HASAR,
+  SIMSEK_HEDEF,
+  SIMSEK_MENZIL,
+  TAMIR_MIKTARI,
+  YUKSELTMELER,
+  yukseltmeFiyati,
   ACI_MIN,
   ADIM_UZUNLUK,
   ATIS_BEKLEME_MS,
@@ -27,13 +43,10 @@ import {
   DUNYALAR,
   DURAK_X,
   GAME_WIDTH,
-  HIZLI_ORAN,
   ILK_ARA_MS,
-  KESKIN_BONUS,
   KULE_MAX_SEVIYE,
   KULE_TIPLERI,
   KULE_YUVALARI,
-  MALZEMELER,
   MAX_BIRIKIM_MS,
   MIZRAK_CIKIS_X,
   MIZRAK_CIKIS_Y,
@@ -45,7 +58,6 @@ import {
   NISAN_MAX_ADIM,
   OK_HIZI,
   SIM_ADIM_MS,
-  TAMIR_MIKTARI,
   TIP_KAYMA_DALGA,
   YERCEKIMI,
   ZEMIN_Y,
@@ -74,6 +86,11 @@ export interface Canavar {
   /** Yürüme/vuruş animasyon fazı (0..1) — sahne bacakları buna göre çizer. */
   faz: number
   vurusBirikim: number
+  /** Alev: kalan yanma süresi (ms) ve tik birikimi. */
+  yanmaKalan: number
+  yanmaTik: number
+  /** Buz: kalan yavaşlama süresi (ms). */
+  yavaslikKalan: number
 }
 
 /** Havadaki cisim: oyuncunun mızrağı ya da kulenin oku. */
@@ -88,6 +105,8 @@ export interface Atis {
   agir: boolean
   /** Sahne buna göre çizer. */
   tur: 'mizrak' | 'ok'
+  /** Mızrağın elementi; ok her zaman 'normal'. */
+  element: Element
 }
 
 /** Yuvaya kurulmuş kule. */
@@ -119,6 +138,8 @@ export interface AdimSonucu {
   kaleVuruldu: boolean
   /** Bu adımda kule ok attı mı? */
   kuleAtti: boolean
+  /** Şimşeğin atladığı yollar; sahne çizgi çizer. */
+  zincirler: { x1: number; y1: number; x2: number; y2: number }[]
   /** Bu adımda başlayan dalganın numarası (yoksa null). */
   yeniDalga: number | null
   /** Bu adımda tamamlanan dalganın numarası (yoksa null). */
@@ -135,6 +156,7 @@ function bosSonuc(): AdimSonucu {
     saplananlar: [],
     kaleVuruldu: false,
     kuleAtti: false,
+    zincirler: [],
     yeniDalga: null,
     bitenDalga: null,
     oyunBitti: false,
@@ -155,11 +177,12 @@ export class KaleSavunmasi {
   /** Nişan açısı (derece; 0 = sağa yatay, eksi = yukarı). */
   aci = ACI_BASLANGIC
 
-  /** Malzemeyle yükselen değerler. */
-  mizrakHasari = MIZRAK_HASARI
-  atisBeklemesi = ATIS_BEKLEME_MS
-  /** Bir kez alınan malzemelerin kimlikleri. */
-  readonly alinanMalzemeler = new Set<string>()
+  /** Yükseltme kimliği → alınan seviye. */
+  readonly yukseltmeler = new Map<string, number>()
+  /** Etkin element; satın alınmayan seçilemez. */
+  element: Element = 'normal'
+  /** Otomatik ateş açık mı? (yükseltme alınmadan açılamaz) */
+  otomatik = false
 
   readonly canavarlar: Canavar[] = []
   readonly atislar: Atis[] = []
@@ -187,9 +210,30 @@ export class KaleSavunmasi {
     return dunya(this.dunyaSira).canavarlar
   }
 
-  /** Bu dünyanın kale canı (malzeme tamiri de bunu tavan alır). */
+  /** Bu dünyanın kale canı + alınan duvar yükseltmeleri. */
   get maxKaleCani(): number {
-    return dunya(this.dunyaSira).kaleCani
+    return dunya(this.dunyaSira).kaleCani + this.yukseltmeSeviyesi('kale') * KALE_BONUSU
+  }
+
+  /** Mızrak hasarı: taban + hasar yükseltmeleri. */
+  get mizrakHasari(): number {
+    return MIZRAK_HASARI + this.yukseltmeSeviyesi('hasar') * HASAR_BONUSU
+  }
+
+  /** Atış beklemesi (ms): her hız seviyesi kısaltır. */
+  get atisBeklemesi(): number {
+    const temel = ATIS_BEKLEME_MS * Math.pow(HIZ_ORANI, this.yukseltmeSeviyesi('hiz'))
+    // Otomatik ateş elle atıştan yavaş olsun.
+    return Math.round(temel * (this.otomatik ? OTOMATIK_BEKLEME_ORANI : 1))
+  }
+
+  /** Satın alınmış elementler; normal her zaman var. */
+  get acikElementler(): Element[] {
+    const liste: Element[] = ['normal']
+    for (const y of YUKSELTMELER) {
+      if (y.tur === 'element' && y.element && this.yukseltmeSeviyesi(y.id) > 0) liste.push(y.element)
+    }
+    return liste
   }
 
   /** Dünyayı değiştirir ve turu sıfırlar. */
@@ -207,9 +251,9 @@ export class KaleSavunmasi {
     this.asama = 'hazir'
     this.duraklatildi = false
     this.aci = ACI_BASLANGIC
-    this.mizrakHasari = MIZRAK_HASARI
-    this.atisBeklemesi = ATIS_BEKLEME_MS
-    this.alinanMalzemeler.clear()
+    this.yukseltmeler.clear()
+    this.element = 'normal'
+    this.otomatik = false
     this.canavarlar.length = 0
     this.atislar.length = 0
     this.kuleler.fill(null)
@@ -299,37 +343,90 @@ export class KaleSavunmasi {
       hasar: this.mizrakHasari,
       agir: true,
       tur: 'mizrak',
+      element: this.element,
     })
     return true
   }
 
-  // --- Malzeme dükkânı ---
+  // --- Yükseltme dükkânı ---
 
-  /** Bu malzeme şu an alınabilir mi? (para, tekrar, kale canı dolu mu) */
-  malzemeAlinabilir(id: string): boolean {
-    const malzeme = MALZEMELER.find((m) => m.id === id)
-    if (!malzeme || this.asama === 'bitti') return false
-    if (malzeme.tekSeferlik && this.alinanMalzemeler.has(id)) return false
-    if (this.altin < malzeme.fiyat) return false
-    // Kale zaten tam canlıysa tamir parası boşa gitmesin.
+  yukseltmeSeviyesi(id: string): number {
+    return this.yukseltmeler.get(id) ?? 0
+  }
+
+  /** Bu yükseltmenin sıradaki seviyesinin fiyatı; tavan dolduysa null. */
+  yukseltmeFiyatiSimdi(id: string): number | null {
+    const y = YUKSELTMELER.find((k) => k.id === id)
+    if (!y) return null
+    const seviye = this.yukseltmeSeviyesi(id)
+    if (y.maxSeviye > 0 && seviye >= y.maxSeviye) return null
+    return yukseltmeFiyati(y, seviye)
+  }
+
+  /** Şu an alınabilir mi? (para, tavan, kale canı dolu mu) */
+  yukseltmeAlinabilir(id: string): boolean {
+    if (this.asama === 'bitti') return false
+    const fiyat = this.yukseltmeFiyatiSimdi(id)
+    if (fiyat === null || this.altin < fiyat) return false
+    // Kale tam canlıysa tamir parası boşa gitmesin.
     if (id === 'tamir' && this.kaleCani >= this.maxKaleCani) return false
     return true
   }
 
-  /** Malzemeyi satın alıp etkisini uygular. */
-  malzemeAl(id: string): boolean {
-    if (!this.malzemeAlinabilir(id)) return false
-    const malzeme = MALZEMELER.find((m) => m.id === id)
-    if (!malzeme) return false
+  /** Yükseltmeyi alıp etkisini uygular. */
+  yukseltmeAl(id: string): boolean {
+    if (!this.yukseltmeAlinabilir(id)) return false
+    const y = YUKSELTMELER.find((k) => k.id === id)
+    const fiyat = this.yukseltmeFiyatiSimdi(id)
+    if (!y || fiyat === null) return false
 
-    this.altin -= malzeme.fiyat
-    if (malzeme.tekSeferlik) this.alinanMalzemeler.add(id)
+    this.altin -= fiyat
+    this.yukseltmeler.set(id, this.yukseltmeSeviyesi(id) + 1)
 
-    if (id === 'tamir') this.kaleCani = Math.min(this.maxKaleCani, this.kaleCani + TAMIR_MIKTARI)
-    else if (id === 'keskin') this.mizrakHasari += KESKIN_BONUS
-    else if (id === 'hizli') this.atisBeklemesi = Math.round(this.atisBeklemesi * HIZLI_ORAN)
+    if (y.tur === 'tamir') this.kaleCani = Math.min(this.maxKaleCani, this.kaleCani + TAMIR_MIKTARI)
+    // Duvar yükseltmesi azami canı arttırır; kazanılan can hemen verilsin.
+    else if (y.tur === 'kale') this.kaleCani += KALE_BONUSU
+    // Element alındığı gibi etkin olsun, oyuncu ayrıca seçmek zorunda kalmasın.
+    else if (y.tur === 'element' && y.element) this.element = y.element
+    else if (y.tur === 'otomatik') this.otomatik = true
 
     return true
+  }
+
+  /** Etkin elementi değiştirir; alınmamış element seçilemez. */
+  elementSec(element: Element): boolean {
+    if (!this.acikElementler.includes(element)) return false
+    this.element = element
+    return true
+  }
+
+  /** Otomatik ateşi açar/kapatır; yükseltme alınmadıysa çalışmaz. */
+  otomatikDegistir(): boolean {
+    if (this.yukseltmeSeviyesi('otomatik') === 0) return false
+    this.otomatik = !this.otomatik
+    return true
+  }
+
+  /**
+   * Verilen noktaya en yakın düşen atış açısını arar.
+   *
+   * Yerçekimli yayın açısını kapalı formülle çözmek yerine mevcut yay
+   * simülasyonunu tarıyoruz: açı aralığı küçük ve atış seyrek olduğu için
+   * ucuz, ayrıca nişan önizlemesiyle birebir aynı yolu kullanıyor.
+   */
+  otomatikAci(hedefX: number, hedefY: number): number {
+    let enIyi = ACI_BASLANGIC
+    let enKisa = Number.POSITIVE_INFINITY
+    for (let aci = ACI_MIN; aci <= ACI_MAX; aci += OTOMATIK_ACI_ADIMI) {
+      const yol = this.nisanYolu(aci)
+      for (const nokta of yol) {
+        const uzaklik = Math.hypot(nokta.x - hedefX, nokta.y - hedefY)
+        if (uzaklik >= enKisa) continue
+        enKisa = uzaklik
+        enIyi = aci
+      }
+    }
+    return enIyi
   }
 
   // --- Kuleler ---
@@ -425,7 +522,9 @@ export class KaleSavunmasi {
       this.dogusIlerlet(dt)
     }
 
+    this.otomatikAtes()
     this.kuleIlerlet(dt, sonuc)
+    this.durumlariIlerlet(dt, sonuc)
     this.atisIlerlet(sn, sonuc)
     this.canavarIlerlet(sn, dt, sonuc)
 
@@ -444,6 +543,22 @@ export class KaleSavunmasi {
       this.asama = 'ara'
       this.araBirikim = 0
     }
+  }
+
+  /** Otomatik ateş açıksa en öndeki canavara nişan alıp atar. */
+  private otomatikAtes(): void {
+    if (!this.otomatik || !this.atisHazir || this.canavarlar.length === 0) return
+    // Kaleye en yakın canavar öncelikli; uçanı mızrak vurmaz, onu atla.
+    let hedef: Canavar | null = null
+    for (const c of this.canavarlar) {
+      if (this.tipler[c.tip].ucar) continue
+      if (!hedef || c.x < hedef.x) hedef = c
+    }
+    if (!hedef) return
+
+    const bilgi = this.tipler[hedef.tip]
+    this.aciAyarla(this.otomatikAci(hedef.x, canavarAyakY(bilgi) - bilgi.boy / 2))
+    this.at()
   }
 
   /** Kuleler menzillerindeki en öndeki canavara ok atar. */
@@ -492,6 +607,7 @@ export class KaleSavunmasi {
       hasar,
       agir: false,
       tur: 'ok',
+      element: 'normal',
     })
   }
 
@@ -539,6 +655,9 @@ export class KaleSavunmasi {
       // Faz rastgele başlasın; hepsi aynı anda aynı bacağı atmasın.
       faz: this.random(),
       vurusBirikim: 0,
+      yanmaKalan: 0,
+      yanmaTik: 0,
+      yavaslikKalan: 0,
     })
   }
 
@@ -619,15 +738,75 @@ export class KaleSavunmasi {
   private hasarVer(c: Canavar, m: Atis, sonuc: AdimSonucu): void {
     // Zırh her isabetten sabit hasar yutar ama en az 1 hasar hep geçer.
     c.can -= Math.max(1, m.hasar - this.tipler[c.tip].zirh)
-    const oldu = c.can <= 0
-    sonuc.isabetler.push({ canavarId: c.id, x: m.x, y: m.y, tip: c.tip, oldu, puan: oldu ? c.puan : 0 })
-    if (!oldu) return
+    if (c.can > 0) {
+      sonuc.isabetler.push({ canavarId: c.id, x: m.x, y: m.y, tip: c.tip, oldu: false, puan: 0 })
+      this.elementUygula(c, m, sonuc)
+      return
+    }
+    // Ölse de şimşek komşulara atlasın.
+    this.oldur(c, m.y, sonuc)
+    this.elementUygula(c, m, sonuc)
+  }
 
+  /** Elementin yan etkisi: yakma, yavaşlatma ya da komşulara atlama. */
+  private elementUygula(c: Canavar, m: Atis, sonuc: AdimSonucu): void {
+    if (m.element === 'alev') {
+      c.yanmaKalan = ALEV_SURE_MS
+      c.yanmaTik = 0
+      return
+    }
+    if (m.element === 'buz') {
+      c.yavaslikKalan = BUZ_SURE_MS
+      return
+    }
+    if (m.element !== 'simsek') return
+
+    // Şimşek: en yakın komşulara atlar. Zırhı yine hesaba katarız.
+    const komsular = this.canavarlar
+      .filter((k) => k !== c && Math.abs(k.x - c.x) <= SIMSEK_MENZIL)
+      .sort((a, b) => Math.abs(a.x - c.x) - Math.abs(b.x - c.x))
+      .slice(0, SIMSEK_HEDEF)
+
+    for (const komsu of komsular) {
+      komsu.can -= Math.max(1, SIMSEK_HASAR - this.tipler[komsu.tip].zirh)
+      sonuc.zincirler.push({ x1: c.x, y1: m.y, x2: komsu.x, y2: canavarAyakY(this.tipler[komsu.tip]) - this.tipler[komsu.tip].boy / 2 })
+      if (komsu.can > 0) {
+        sonuc.isabetler.push({ canavarId: komsu.id, x: komsu.x, y: m.y, tip: komsu.tip, oldu: false, puan: 0 })
+        continue
+      }
+      this.oldur(komsu, m.y, sonuc)
+    }
+  }
+
+  /** Canavarı listeden çıkarır, ödülünü verir ve isabet olayını yazar. */
+  private oldur(c: Canavar, y: number, sonuc: AdimSonucu): void {
+    sonuc.isabetler.push({ canavarId: c.id, x: c.x, y, tip: c.tip, oldu: true, puan: c.puan })
     this.skor += c.puan
     this.altin += c.altin
     this.oldurulen++
     const yer = this.canavarlar.indexOf(c)
     if (yer >= 0) this.canavarlar.splice(yer, 1)
+  }
+
+  /** Yanma ve yavaşlama sayaçlarını ilerletir; yanma hasarını uygular. */
+  private durumlariIlerlet(dt: number, sonuc: AdimSonucu): void {
+    for (let i = this.canavarlar.length - 1; i >= 0; i--) {
+      const c = this.canavarlar[i]
+      if (c.yavaslikKalan > 0) c.yavaslikKalan = Math.max(0, c.yavaslikKalan - dt)
+      if (c.yanmaKalan <= 0) continue
+
+      c.yanmaKalan = Math.max(0, c.yanmaKalan - dt)
+      c.yanmaTik += dt
+      if (c.yanmaTik < ALEV_ARALIK_MS) continue
+      c.yanmaTik = 0
+      // Alev zırhı yok sayar: zırhlıya karşı işe yarayan yol bu.
+      c.can -= ALEV_HASAR
+      if (c.can > 0) {
+        sonuc.isabetler.push({ canavarId: c.id, x: c.x, y: canavarAyakY(this.tipler[c.tip]) - this.tipler[c.tip].boy / 2, tip: c.tip, oldu: false, puan: 0 })
+        continue
+      }
+      this.oldur(c, canavarAyakY(this.tipler[c.tip]) - this.tipler[c.tip].boy / 2, sonuc)
+    }
   }
 
   private canavarIlerlet(sn: number, dt: number, sonuc: AdimSonucu): void {
@@ -637,7 +816,8 @@ export class KaleSavunmasi {
       const bilgi = this.tipler[c.tip]
 
       if (c.durum === 'yuruyor') {
-        const yol = bilgi.hiz * carpan * sn
+        const yavaslik = c.yavaslikKalan > 0 ? BUZ_ORAN : 1
+        const yol = bilgi.hiz * carpan * yavaslik * sn
         c.x -= yol
         // Faz yola bağlı: yavaş canavar yavaş adım atsın.
         c.faz = (c.faz + yol / ADIM_UZUNLUK) % 1

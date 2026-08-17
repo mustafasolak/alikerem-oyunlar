@@ -377,7 +377,7 @@ export function canavarAyakY(tip: CanavarTipi): number {
  * çıkarken canavarlar aynı kalıyor, oyun bir yerden sonra kendiliğinden
  * bitiyordu. Artık her dalgada canlar da büyüyor.
  */
-export const DALGA_CAN_ARTISI = 0.18
+export const DALGA_CAN_ARTISI = 0.24
 /** Güçlenen canavar daha çok altın ve puan verir; ekonomi geride kalmasın. */
 export const DALGA_ODUL_ARTISI = 0.1
 /**
@@ -415,15 +415,15 @@ export const BASLANGIC_ALTIN = 45
 export const KULE_TIPLERI: KuleTipi[] = [
   {
     ad: 'Okçu Kulesi',
-    fiyat: [45, 80, 130, 200, 300],
-    hasar: [1, 2, 3, 4, 6],
-    aralikMs: [1200, 950, 750, 600, 470],
-    menzil: [190, 225, 260, 295, 335],
+    fiyat: [45, 80, 130, 200, 300, 440, 640, 900],
+    hasar: [1, 2, 3, 4, 6, 8, 11, 15],
+    aralikMs: [1200, 950, 750, 600, 470, 400, 340, 290],
+    menzil: [190, 225, 260, 295, 335, 370, 405, 440],
     renk: 0x0ea5e9,
   },
 ]
 
-export const KULE_MAX_SEVIYE = 5
+export const KULE_MAX_SEVIYE = 8
 
 /** Kule yuvalarının x konumları — kalenin sağında, yolun arkasındaki çimde. */
 export const KULE_YUVALARI = [176, 300, 424]
@@ -464,7 +464,10 @@ export const KULE_SEVIYE_GORUNUM: KuleSeviyeGorunum[] = [
   { en: 30, boy: 54, mazgal: 4, cati: 14, bayrak: 0, takviye: false, susleme: false, isik: false, tonOran: 0.1 },
   { en: 34, boy: 66, mazgal: 5, cati: 18, bayrak: 15, takviye: true, susleme: false, isik: false, tonOran: 0.17 },
   { en: 38, boy: 77, mazgal: 6, cati: 22, bayrak: 17, takviye: true, susleme: true, isik: false, tonOran: 0.24 },
-  { en: 43, boy: 88, mazgal: 7, cati: 25, bayrak: 19, takviye: true, susleme: true, isik: true, tonOran: 0.32 },
+  { en: 43, boy: 88, mazgal: 7, cati: 25, bayrak: 19, takviye: true, susleme: true, isik: false, tonOran: 0.32 },
+  { en: 47, boy: 99, mazgal: 8, cati: 28, bayrak: 21, takviye: true, susleme: true, isik: false, tonOran: 0.39 },
+  { en: 51, boy: 110, mazgal: 9, cati: 31, bayrak: 23, takviye: true, susleme: true, isik: false, tonOran: 0.46 },
+  { en: 55, boy: 121, mazgal: 10, cati: 34, bayrak: 25, takviye: true, susleme: true, isik: true, tonOran: 0.53 },
 ]
 
 export function kuleGorunum(seviye: number): KuleSeviyeGorunum {
@@ -490,48 +493,164 @@ export const MENU_SATIR_BOY = 34
 /** Kutunun kule tepesinden yukarı payı. */
 export const MENU_ALT_PAY = 12
 
-// --- Malzemeler (altınla alınan destekler) ---
+// --- Mızrakçı yükseltmeleri (altının sonu gelmesin) ---
 
-export interface Malzeme {
+/**
+ * Elementler: mızrak satın alınan elementle uçar.
+ *
+ * Alev vurduğunu yakar (zamana yayılı hasar), buz yavaşlatır, şimşek yakındaki
+ * canavarlara atlar. Zırhlı canavarda tek tek az hasar geçtiği için alev ve
+ * şimşek orada işe yarar; kalabalıkta buz zaman kazandırır.
+ */
+export type Element = 'normal' | 'alev' | 'buz' | 'simsek'
+
+export const ELEMENT_SIMGE: Record<Element, string> = {
+  normal: '🗡',
+  alev: '🔥',
+  buz: '❄️',
+  simsek: '⚡',
+}
+
+export const ELEMENT_ADI: Record<Element, string> = {
+  normal: 'Mızrak',
+  alev: 'Alev',
+  buz: 'Buz',
+  simsek: 'Şimşek',
+}
+
+export const ELEMENT_RENGI: Record<Element, number> = {
+  normal: 0xe5e7eb,
+  alev: 0xf97316,
+  buz: 0x67e8f9,
+  simsek: 0xfacc15,
+}
+
+/** Alev: bu aralıkla bu kadar hasar, bu süre boyunca. Zırhı yok sayar. */
+export const ALEV_ARALIK_MS = 500
+export const ALEV_HASAR = 2
+export const ALEV_SURE_MS = 3000
+
+/** Buz: hızı bu oranla çarpar, bu süre boyunca. */
+export const BUZ_ORAN = 0.45
+export const BUZ_SURE_MS = 2200
+
+/** Şimşek: bu menzildeki bu kadar komşuya atlar, bu hasarla. */
+export const SIMSEK_MENZIL = 90
+export const SIMSEK_HEDEF = 2
+export const SIMSEK_HASAR = 3
+
+/** Otomatik ateş elle atıştan yavaş olsun; elle oynamak yine daha iyi. */
+export const OTOMATIK_BEKLEME_ORANI = 1.7
+/** Otomatik nişan açı taramasının adımı (derece). Küçük olursa daha isabetli, daha pahalı. */
+export const OTOMATIK_ACI_ADIMI = 3
+
+export type YukseltmeTuru = 'tamir' | 'hasar' | 'hiz' | 'kale' | 'element' | 'otomatik'
+
+export interface Yukseltme {
   id: string
-  /** Düğme yazısı; sayfada DOM'a basılıyor, emoji burada sorun değil. */
+  /** Düğme yazısı; DOM'a basılıyor, emoji burada sorun değil. */
   etiket: string
   ozet: string
+  /** Kaç kez alınabilir. 0 = sınırsız (duvar tamiri). */
+  maxSeviye: number
   fiyat: number
-  /** Bir kez alınıp kalıcı mı? (tamir her seferinde alınabilir) */
-  tekSeferlik: boolean
+  /** Her alışta fiyat bu oranla artar. */
+  fiyatArtisi: number
+  tur: YukseltmeTuru
+  element?: Element
 }
 
 /** Duvar tamiri bir seferde ne kadar can verir. */
 export const TAMIR_MIKTARI = 8
-/** Keskin mızrak hasara ne ekler. */
-export const KESKIN_BONUS = 1
-/** Hızlı atış beklemeyi hangi oranla çarpar. */
-export const HIZLI_ORAN = 0.7
+/** Hasar yükseltmesi her seviyede ne ekler. */
+export const HASAR_BONUSU = 1
+/** Hız yükseltmesi beklemeyi her seviyede hangi oranla çarpar. */
+export const HIZ_ORANI = 0.88
+/** Kale yükseltmesi azami canı her seviyede ne kadar arttırır. */
+export const KALE_BONUSU = 8
 
-export const MALZEMELER: Malzeme[] = [
+export const YUKSELTMELER: Yukseltme[] = [
   {
     id: 'tamir',
     etiket: '🧱 Duvar tamiri',
     ozet: `+${TAMIR_MIKTARI} kale canı`,
+    maxSeviye: 0,
     fiyat: 40,
-    tekSeferlik: false,
+    fiyatArtisi: 1,
+    tur: 'tamir',
   },
   {
-    id: 'keskin',
-    etiket: '⚔️ Keskin mızrak',
-    ozet: `mızrak hasarı +${KESKIN_BONUS}`,
+    id: 'hasar',
+    etiket: '⚔️ Mızrak hasarı',
+    ozet: `her seviyede +${HASAR_BONUSU} hasar`,
+    maxSeviye: 8,
     fiyat: 70,
-    tekSeferlik: true,
+    fiyatArtisi: 1.55,
+    tur: 'hasar',
   },
   {
-    id: 'hizli',
-    etiket: '⚡ Hızlı atış',
-    ozet: `bekleme %${Math.round((1 - HIZLI_ORAN) * 100)} kısa`,
+    id: 'hiz',
+    etiket: '⚡ Atış hızı',
+    ozet: 'her seviyede bekleme %12 kısa',
+    maxSeviye: 6,
     fiyat: 60,
-    tekSeferlik: true,
+    fiyatArtisi: 1.55,
+    tur: 'hiz',
+  },
+  {
+    id: 'kale',
+    etiket: '🛡 Kale duvarı',
+    ozet: `her seviyede +${KALE_BONUSU} azami can`,
+    maxSeviye: 6,
+    fiyat: 90,
+    fiyatArtisi: 1.5,
+    tur: 'kale',
+  },
+  {
+    id: 'otomatik',
+    etiket: '🤖 Otomatik ateş',
+    ozet: 'mızrakçı kendi nişan alıp atar',
+    maxSeviye: 1,
+    fiyat: 220,
+    fiyatArtisi: 1,
+    tur: 'otomatik',
+  },
+  {
+    id: 'alev',
+    etiket: '🔥 Alev mızrağı',
+    ozet: 'vurduğunu yakar, zırhı geçer',
+    maxSeviye: 1,
+    fiyat: 160,
+    fiyatArtisi: 1,
+    tur: 'element',
+    element: 'alev',
+  },
+  {
+    id: 'buz',
+    etiket: '❄️ Buz mızrağı',
+    ozet: 'vurduğunu yavaşlatır',
+    maxSeviye: 1,
+    fiyat: 190,
+    fiyatArtisi: 1,
+    tur: 'element',
+    element: 'buz',
+  },
+  {
+    id: 'simsek',
+    etiket: '⚡ Şimşek mızrağı',
+    ozet: 'yakındaki canavarlara atlar',
+    maxSeviye: 1,
+    fiyat: 260,
+    fiyatArtisi: 1,
+    tur: 'element',
+    element: 'simsek',
   },
 ]
+
+/** Bir sonraki seviyenin fiyatı (seviye 0 = hiç alınmamış). */
+export function yukseltmeFiyati(y: Yukseltme, seviye: number): number {
+  return Math.round(y.fiyat * Math.pow(y.fiyatArtisi, seviye))
+}
 
 // --- Ok (kule atışı) ---
 
@@ -543,15 +662,15 @@ export const OK_KALINLIK = 2
 
 export const DALGA_TABAN_ADET = 4
 export const DALGA_ADET_ARTISI = 2
-export const DALGA_MAX_ADET = 22
+export const DALGA_MAX_ADET = 30
 export const DOGUS_ARALIK_MS = 1500
 export const DOGUS_ARALIK_AZALMA = 55
-export const DOGUS_ARALIK_MIN = 520
+export const DOGUS_ARALIK_MIN = 420
 /** Dalgalar arası hazırlık payı. */
 export const DALGA_ARASI_MS = 3000
 /** İlk dalga daha çabuk gelsin. */
 export const ILK_ARA_MS = 1700
-export const DALGA_HIZ_ARTISI = 0.045
+export const DALGA_HIZ_ARTISI = 0.05
 export const DALGA_BONUSU = 120
 export const DALGA_ALTIN_BONUSU = 25
 
@@ -715,6 +834,8 @@ export const MESALE_MS = 620
 // --- Efektler ---
 
 export const ISABET_EFEKT_MS = 220
+/** Şimşek zinciri çizgisinin görünme süresi. */
+export const ZINCIR_EFEKT_MS = 220
 /** Kule yükselince yeni görünümün zıplama süresi. */
 export const KULE_POP_MS = 320
 /** En üst seviye kulenin tepe ışığı yanıp sönme süresi. */
