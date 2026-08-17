@@ -22,14 +22,17 @@ import {
   KESKIN_BONUS,
   KULE_MAX_SEVIYE,
   KULE_TIPLERI,
+  PATRON_DALGA_ARALIK,
   SIM_ADIM_MS,
   TAMIR_MIKTARI,
   ZEMIN_Y,
+  canavarAyakY,
   dalgaCanCarpani,
   dalgaCanavarSayisi,
   dalgaOdulCarpani,
   kuleAtisY,
   kuleGorunum,
+  patronDalgasiMi,
   vakitIndeksi,
 } from '../src/games/kalesavunmasi/config/constants.ts'
 import { Klondike } from '../src/games/solitaire/systems/Klondike.ts'
@@ -659,15 +662,128 @@ function tohumlu(tohum) {
     return sayim
   }
 
+  // Şef dalgası olmayan iki dalga seçildi (4 ve 19): dağılımı şef bozmasın.
   const erken = tipDagilimi(4)
-  const geri = tipDagilimi(20)
-  const trolOrani = (s) => s[2] / Math.max(1, s.reduce((a, b) => a + b, 0))
+  const geri = tipDagilimi(19)
+  // Tip sırası zayıftan güçlüye; ortalama sıra yükseliyorsa dağılım
+  // güçlülere kaymış demektir. (Tek bir tipin oranına bakmak yanıltır:
+  // tabloya yeni tip eklenince herkesin payı düşer.)
+  const ortalamaGuc = (s) => {
+    const toplam = s.reduce((a, b) => a + b, 0)
+    return s.reduce((a, adet, sira) => a + adet * sira, 0) / Math.max(1, toplam)
+  }
 
   kontrol('erken dalgada goblin daha sık', erken[0] > erken[2], `goblin ${erken[0]}, trol ${erken[2]}`)
+  kontrol('şef rastgele doğmuyor', erken[5] === 0 && geri[5] === 0)
   kontrol(
-    'ileri dalgada trol sıklaşıyor',
-    trolOrani(geri) > trolOrani(erken),
-    `${(trolOrani(erken) * 100).toFixed(0)}% → ${(trolOrani(geri) * 100).toFixed(0)}%`,
+    'ileri dalgada güçlü tipler baskın',
+    ortalamaGuc(geri) > ortalamaGuc(erken),
+    `ortalama güç ${ortalamaGuc(erken).toFixed(2)} → ${ortalamaGuc(geri).toFixed(2)}`,
+  )
+}
+
+// --- Kale Savunması: zırh, uçuş ve şef ---
+{
+  const zirhli = CANAVAR_TIPLERI.findIndex((t) => t.zirh > 0 && !t.patron)
+  const ucan = CANAVAR_TIPLERI.findIndex((t) => t.ucar)
+  const patron = CANAVAR_TIPLERI.findIndex((t) => t.patron)
+  kontrol('zırhlı tip tanımlı', zirhli >= 0)
+  kontrol('uçan tip tanımlı', ucan >= 0)
+  kontrol('şef tipi tanımlı', patron >= 0)
+  kontrol('şef en canlı tip', CANAVAR_TIPLERI[patron].can === Math.max(...CANAVAR_TIPLERI.map((t) => t.can)))
+  kontrol('uçanın yüksekliği var', CANAVAR_TIPLERI[ucan].yukseklik > 0)
+  esit('uçan yerdekinden yukarıda', canavarAyakY(CANAVAR_TIPLERI[ucan]) < ZEMIN_Y, true)
+}
+
+{
+  // Zırh her isabetten sabit hasar yutar ama en az 1 hasar geçer
+  const oyun = new KaleSavunmasi(tohumlu(61))
+  oyun.basla()
+  const zirhliTip = CANAVAR_TIPLERI.findIndex((t) => t.zirh > 0 && !t.patron)
+  const zirh = CANAVAR_TIPLERI[zirhliTip].zirh
+
+  // Elle bir zırhlı koy: dalga beklemeden ölç
+  const koy = (tip, can) => {
+    oyun.canavarlar.length = 0
+    oyun.canavarlar.push({
+      id: 999, tip, x: 300, can, maxCan: can, altin: 0, puan: 0,
+      durum: 'yuruyor', faz: 0, vurusBirikim: 0,
+    })
+  }
+
+  koy(zirhliTip, 100)
+  oyun.mizrakHasari = zirh + 3
+  oyun.aciAyarla(0)
+  const oncekiCan = oyun.canavarlar[0].can
+  // Mızrağı doğrudan canavarın üstüne koyup bir adım ilerlet
+  oyun.atislar.push({ id: 1, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: oyun.mizrakHasari, agir: false, tur: 'mizrak' })
+  oyun.ilerlet(SIM_ADIM_MS)
+  esit('zırh hasarı azaltıyor', oncekiCan - oyun.canavarlar[0].can, 3)
+
+  // Zırhtan zayıf vuruş bile 1 hasar geçirir
+  koy(zirhliTip, 100)
+  oyun.atislar.push({ id: 2, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 1, agir: false, tur: 'ok' })
+  oyun.ilerlet(SIM_ADIM_MS)
+  esit('zayıf vuruş en az 1 hasar geçirir', 100 - oyun.canavarlar[0].can, 1)
+}
+
+{
+  // Uçana mızrak değmez, kule oku değer
+  const oyun = new KaleSavunmasi(tohumlu(62))
+  oyun.basla()
+  const ucanTip = CANAVAR_TIPLERI.findIndex((t) => t.ucar)
+  const ucanY = canavarAyakY(CANAVAR_TIPLERI[ucanTip]) - CANAVAR_TIPLERI[ucanTip].boy / 2
+
+  const koyUcan = () => {
+    oyun.canavarlar.length = 0
+    oyun.atislar.length = 0
+    oyun.canavarlar.push({
+      id: 998, tip: ucanTip, x: 300, can: 50, maxCan: 50, altin: 0, puan: 0,
+      durum: 'yuruyor', faz: 0, vurusBirikim: 0,
+    })
+  }
+
+  koyUcan()
+  oyun.atislar.push({ id: 1, x: 300, y: ucanY, vx: 0, vy: 1, hasar: 5, agir: false, tur: 'mizrak' })
+  oyun.ilerlet(SIM_ADIM_MS)
+  esit('mızrak uçana değmiyor', oyun.canavarlar[0].can, 50)
+
+  koyUcan()
+  oyun.atislar.push({ id: 2, x: 300, y: ucanY, vx: 0, vy: 1, hasar: 5, agir: false, tur: 'ok' })
+  oyun.ilerlet(SIM_ADIM_MS)
+  esit('kule oku uçanı vuruyor', oyun.canavarlar[0].can, 45)
+}
+
+{
+  // Şef yalnız şef dalgasında ve dalganın sonunda gelir
+  esit('5. dalga şef dalgası', patronDalgasiMi(PATRON_DALGA_ARALIK), true)
+  esit('4. dalga şef dalgası değil', patronDalgasiMi(PATRON_DALGA_ARALIK - 1), false)
+
+  const oyun = new KaleSavunmasi(tohumlu(63))
+  oyun.basla()
+  const patronTip = CANAVAR_TIPLERI.findIndex((t) => t.patron)
+  const dogusSirasi = []
+  for (let i = 0; i < 60000 && oyun.dalga <= PATRON_DALGA_ARALIK; i++) {
+    oyun.ilerlet(SIM_ADIM_MS)
+    if (oyun.canavarlar.length === 0) continue
+    dogusSirasi.push({ dalga: oyun.dalga, tip: oyun.canavarlar[0].tip })
+    oyun.canavarlar.length = 0
+  }
+
+  const patronlar = dogusSirasi.filter((d) => d.tip === patronTip)
+  esit('yalnız bir şef doğdu', patronlar.length, 1)
+  esit('şef şef dalgasında geldi', patronlar[0].dalga, PATRON_DALGA_ARALIK)
+
+  const sefDalgasi = dogusSirasi.filter((d) => d.dalga === PATRON_DALGA_ARALIK)
+  esit('şef dalganın sonuncusu', sefDalgasi[sefDalgasi.length - 1].tip, patronTip)
+  kontrol(
+    'şef dalgasında ondan önce sıradan canavarlar var',
+    sefDalgasi.length > 1 && sefDalgasi.slice(0, -1).every((d) => d.tip !== patronTip),
+  )
+  kontrol(
+    'şef dalgası bir fazla canavar getiriyor',
+    sefDalgasi.length === dalgaCanavarSayisi(PATRON_DALGA_ARALIK) + 1,
+    `${sefDalgasi.length} canavar`,
   )
 }
 

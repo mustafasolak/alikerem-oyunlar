@@ -166,7 +166,7 @@ Diğer: Mastermind · Labirent · Matematik Bulmacası · Sayı Piramidi
 - [x] Mayın Tarlası'nda akor (sayıya çift tıkla çevresini aç)
 - [x] 2048'de geri alma (oyun başına 3 hak)
 - [x] Solitaire ailesinde çoklu kart taşıma ve geri alma
-- [ ] Kale Savunması: Mancınık ve Buz Kulesi (alan hasarı / yavaşlatma), uçan canavar
+- [ ] Kale Savunması: Mancınık ve Buz Kulesi (alan hasarı / yavaşlatma)
 - [ ] Mahjong tek katmanlı — gerçek kat yapısı yok
 - [ ] Tangram parçaları hâlâ kare — gerçek tangram parçaları çizilmeli
 - [x] Yönetim paneli (#/yonetim) — gizleme, ana sayfa vitrini, skor denetimi, istatistik

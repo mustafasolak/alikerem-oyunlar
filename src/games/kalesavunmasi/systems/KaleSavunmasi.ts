@@ -49,10 +49,12 @@ import {
   TIP_KAYMA_DALGA,
   YERCEKIMI,
   ZEMIN_Y,
+  canavarAyakY,
   dalgaCanCarpani,
   dalgaCanavarSayisi,
   dalgaOdulCarpani,
   kuleAtisY,
+  patronDalgasiMi,
 } from '../config/constants.ts'
 
 export type CanavarDurum = 'yuruyor' | 'vuruyor'
@@ -456,8 +458,8 @@ export class KaleSavunmasi {
     const bilgi = CANAVAR_TIPLERI[hedef.tip]
     // Ok mazgal hattından çıkar; kule yükseldikçe başlangıç da yükselir.
     const baslangicY = kuleAtisY(seviye)
-    // Gövdenin ortasına nişan al.
-    const hedefY = ZEMIN_Y - bilgi.boy * 0.5
+    // Gövdenin ortasına nişan al (uçanlarda havadaki gövdeye).
+    const hedefY = canavarAyakY(bilgi) - bilgi.boy * 0.5
     const uzaklik = Math.hypot(hedef.x - kuleX, hedefY - baslangicY) || 1
 
     this.atislar.push({
@@ -475,7 +477,8 @@ export class KaleSavunmasi {
   private dalgaBaslat(): void {
     this.dalga++
     this.asama = 'dalga'
-    this.kalanDogus = dalgaCanavarSayisi(this.dalga)
+    // Şef dalgalarında bir fazla doğuş: sonuncusu şef olur.
+    this.kalanDogus = dalgaCanavarSayisi(this.dalga) + (patronDalgasiMi(this.dalga) ? 1 : 0)
     this.dogusBirikim = 0
   }
 
@@ -486,11 +489,18 @@ export class KaleSavunmasi {
     if (this.dogusBirikim < aralik) return
     this.dogusBirikim = 0
     this.kalanDogus--
-    this.canavarDogur()
+    // Şef dalgasının son doğuşu şeftir; ondan önce sıradan canavarlar gelir.
+    const patronSirasi = patronDalgasiMi(this.dalga) && this.kalanDogus === 0
+    this.canavarDogur(patronSirasi ? this.patronTipi() : this.tipSec())
   }
 
-  private canavarDogur(): void {
-    const tip = this.tipSec()
+  /** Şef tipinin sırası; tablo değişirse ilk patron işaretli tip bulunur. */
+  private patronTipi(): number {
+    const sira = CANAVAR_TIPLERI.findIndex((t) => t.patron)
+    return sira >= 0 ? sira : 0
+  }
+
+  private canavarDogur(tip: number): void {
     const bilgi = CANAVAR_TIPLERI[tip]
     // Can ve ödül doğduğu dalgaya göre ölçeklenir.
     const can = Math.round(bilgi.can * dalgaCanCarpani(this.dalga))
@@ -520,14 +530,18 @@ export class KaleSavunmasi {
   private tipSec(): number {
     const acik: number[] = []
     for (let i = 0; i < CANAVAR_TIPLERI.length; i++) {
+      // Şef rastgele doğmaz; yalnız dalga sonunda gelir.
+      if (CANAVAR_TIPLERI[i].patron) continue
       if (this.dalga >= CANAVAR_TIPLERI[i].ilkDalga) acik.push(i)
     }
     if (acik.length === 0) return 0
 
+    // Ağırlık açık tiplerin kendi sırasına göre hesaplanır; tabloya yeni tip
+    // eklemek (ya da şefi dışarıda bırakmak) dengeyi kaydırmasın.
     const kayma = Math.min(1, Math.max(0, this.dalga - 1) / TIP_KAYMA_DALGA)
-    const agirlik = acik.map((i) => {
-      const zayifAgirlik = CANAVAR_TIPLERI.length - i
-      const gucluAgirlik = i + 1
+    const agirlik = acik.map((_, sira) => {
+      const zayifAgirlik = acik.length - sira
+      const gucluAgirlik = sira + 1
       return zayifAgirlik * (1 - kayma) + gucluAgirlik * kayma
     })
 
@@ -569,15 +583,21 @@ export class KaleSavunmasi {
     if (m.y > ZEMIN_Y) return null
     for (const c of this.canavarlar) {
       const bilgi = CANAVAR_TIPLERI[c.tip]
+      // Uçana mızrak değmez; yalnız kule oku vurur.
+      if (bilgi.ucar && m.tur === 'mizrak') continue
       if (Math.abs(m.x - c.x) > bilgi.en / 2 + MIZRAK_TEMAS) continue
-      if (m.y < ZEMIN_Y - bilgi.boy - MIZRAK_TEMAS) continue
+
+      const ayak = canavarAyakY(bilgi)
+      if (m.y > ayak + MIZRAK_TEMAS) continue
+      if (m.y < ayak - bilgi.boy - MIZRAK_TEMAS) continue
       return c
     }
     return null
   }
 
   private hasarVer(c: Canavar, m: Atis, sonuc: AdimSonucu): void {
-    c.can -= m.hasar
+    // Zırh her isabetten sabit hasar yutar ama en az 1 hasar hep geçer.
+    c.can -= Math.max(1, m.hasar - CANAVAR_TIPLERI[c.tip].zirh)
     const oldu = c.can <= 0
     sonuc.isabetler.push({ canavarId: c.id, x: m.x, y: m.y, tip: c.tip, oldu, puan: oldu ? c.puan : 0 })
     if (!oldu) return

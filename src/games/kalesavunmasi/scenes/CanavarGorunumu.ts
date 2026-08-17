@@ -15,8 +15,10 @@ import {
   CANAVAR_TIPLERI,
   COLORS,
   HASAR_PARLAMA_MS,
+  KANAT_ACI,
   OLUM_EFEKT_MS,
-  ZEMIN_Y,
+  UCUS_SALINIM,
+  canavarAyakY,
   type CanavarTipi,
 } from '../config/constants.ts'
 import type { Canavar } from '../systems/KaleSavunmasi.ts'
@@ -44,10 +46,14 @@ export class CanavarGorunumu {
   private readonly barArka: Phaser.GameObjects.Rectangle
   private readonly barDolu: Phaser.GameObjects.Rectangle
   private readonly barEn: number
+  /** Ayak (uçanlarda gövde alt) hattı. */
+  private readonly ayakY: number
+  private readonly kanatlar: Phaser.GameObjects.Triangle[] = []
 
   constructor(scene: Phaser.Scene, canavar: Canavar) {
     this.scene = scene
     this.bilgi = CANAVAR_TIPLERI[canavar.tip]
+    this.ayakY = canavarAyakY(this.bilgi)
     const { en, boy, renk } = this.bilgi
 
     const kalcaY = -boy * 0.36
@@ -113,9 +119,42 @@ export class CanavarGorunumu {
     this.barArka.setVisible(false)
     this.barDolu.setVisible(false)
 
+    const susler: Phaser.GameObjects.GameObject[] = []
+
+    if (this.bilgi.zirh > 0) {
+      // Zırh: göğüste plaka + omuz koruma; oka dayanıklı olduğu görünsün.
+      susler.push(
+        scene.add.rectangle(0, govdeY, en * 0.86, boy * 0.3, acikTon(COLORS.KALE_TAS_ACIK, 0.1)).setRounded(3),
+        scene.add.rectangle(0, govdeY - boy * 0.1, en * 0.86, 2, koyuTon(COLORS.KALE_TAS, 0.3)),
+        scene.add.circle(-en * 0.42, omuzY + 3, 5, COLORS.KALE_TAS_ACIK),
+        scene.add.circle(en * 0.42, omuzY + 3, 5, COLORS.KALE_TAS),
+      )
+    }
+
+    if (this.bilgi.patron) {
+      // Şef tacı: üç altın diş
+      for (const yon of [-1, 0, 1]) {
+        susler.push(
+          scene.add.triangle(yon * kafaR * 0.62, kafaY - kafaR * 0.92, -3, 6, 0, -7, 3, 6, COLORS.ALTIN),
+        )
+      }
+    }
+
+    if (this.bilgi.ucar) {
+      // Kanatlar gövdenin arkasından çıkar, faz ile çırpar.
+      for (const yon of [-1, 1]) {
+        const kanat = scene.add
+          .triangle(yon * en * 0.28, govdeY - boy * 0.1, 0, 0, yon * en * 0.7, -boy * 0.42, yon * en * 0.62, boy * 0.16, acikTon(renk, 0.25))
+          .setAlpha(0.92)
+        this.kanatlar.push(kanat)
+      }
+    }
+
     this.ust = scene.add.container(0, 0, [
+      ...this.kanatlar,
       this.arkaKol,
       govde,
+      ...susler,
       this.onKol,
       kafa,
       boynuz,
@@ -124,7 +163,9 @@ export class CanavarGorunumu {
       this.barArka,
       this.barDolu,
     ])
-    this.kap = scene.add.container(canavar.x, ZEMIN_Y, [this.solBacak, this.sagBacak, this.ust])
+    this.solBacak.setVisible(!this.bilgi.ucar)
+    this.sagBacak.setVisible(!this.bilgi.ucar)
+    this.kap = scene.add.container(canavar.x, this.ayakY, [this.solBacak, this.sagBacak, this.ust])
     this.guncelle(canavar)
   }
 
@@ -132,6 +173,17 @@ export class CanavarGorunumu {
     this.kap.setX(canavar.x)
     const t = canavar.faz * Math.PI * 2
     const salinim = Math.sin(t)
+
+    if (this.bilgi.ucar) {
+      // Uçan: bacak yok, kanat çırpar, gövde havada salınır.
+      for (let i = 0; i < this.kanatlar.length; i++) {
+        this.kanatlar[i].setAngle(salinim * KANAT_ACI * (i === 0 ? 1 : -1))
+      }
+      this.kap.setY(this.ayakY + salinim * UCUS_SALINIM)
+      this.onKol.setAngle(canavar.durum === 'vuruyor' ? -VURUS_ACI * Math.max(0, salinim) : salinim * KOL_ACI)
+      this.canBariniTazele(canavar)
+      return
+    }
 
     if (canavar.durum === 'yuruyor') {
       this.solBacak.setAngle(salinim * BACAK_ACI)
@@ -149,14 +201,17 @@ export class CanavarGorunumu {
       this.ust.setY(0)
     }
 
+    this.canBariniTazele(canavar)
+  }
+
+  private canBariniTazele(canavar: Canavar): void {
     const oran = Math.max(0, canavar.can) / canavar.maxCan
     const yarali = oran < 1
     this.barArka.setVisible(yarali)
     this.barDolu.setVisible(yarali)
-    if (yarali) {
-      this.barDolu.setDisplaySize(Math.max(1, this.barEn * oran), CANAVAR_BAR_BOY)
-      this.barDolu.setFillStyle(oran < 0.4 ? COLORS.CAN_BAR_AZ : COLORS.CAN_BAR_DOLU)
-    }
+    if (!yarali) return
+    this.barDolu.setDisplaySize(Math.max(1, this.barEn * oran), CANAVAR_BAR_BOY)
+    this.barDolu.setFillStyle(oran < 0.4 ? COLORS.CAN_BAR_AZ : COLORS.CAN_BAR_DOLU)
   }
 
   /** İsabet: beyaz parlama + hafif geri sekme. */
@@ -179,7 +234,7 @@ export class CanavarGorunumu {
       targets: this.kap,
       angle: -78,
       alpha: 0,
-      y: ZEMIN_Y + 5,
+      y: this.ayakY + 5,
       duration: OLUM_EFEKT_MS,
       ease: 'Quad.easeIn',
       onComplete: () => this.yok(),

@@ -24,6 +24,7 @@ import {
   OVERLAY_GECIKME_MS,
   SAPLANAN_OMUR_MS,
   ZEMIN_Y,
+  patronDalgasiMi,
 } from '../config/constants.ts'
 import { KaleSavunmasi, type Isabet } from '../systems/KaleSavunmasi.ts'
 import { ArkaPlan } from './ArkaPlan.ts'
@@ -380,7 +381,8 @@ export class GameScene extends TemelSahne {
   private dalgaBasladi(dalga: number): void {
     setChip('wave', dalga)
     this.arkaPlan.vakitGuncelle(dalga)
-    this.bildir(`Dalga ${dalga}`)
+    // Şef dalgası ayrıca duyurulsun: oyuncu hazırlansın.
+    this.bildir(patronDalgasiMi(dalga) ? `Dalga ${dalga} · ŞEF geliyor!` : `Dalga ${dalga}`)
     sesler.otur()
     if (this.baslamisMi) return
     this.sayac.basla()

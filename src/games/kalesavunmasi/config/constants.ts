@@ -91,6 +91,17 @@ export interface CanavarTipi {
   vurusAralikMs: number
   /** Kaçıncı dalgadan itibaren çıkar. */
   ilkDalga: number
+  /**
+   * Her isabetten düşülen hasar; en az 1 hasar yine geçer.
+   * Zırh kule okuna (tek tek az hasar) mızraktan çok daha etkili.
+   */
+  zirh: number
+  /** Uçuyor mu? Uçana mızrak değmez, yalnız kule oku vurur. */
+  ucar: boolean
+  /** Uçanların yerden yüksekliği (piksel). */
+  yukseklik: number
+  /** Dalga sonunda tek başına gelen şef mi? Rastgele seçime girmez. */
+  patron: boolean
 }
 
 export const CANAVAR_TIPLERI: CanavarTipi[] = [
@@ -106,6 +117,10 @@ export const CANAVAR_TIPLERI: CanavarTipi[] = [
     vurusHasari: 1,
     vurusAralikMs: 1500,
     ilkDalga: 1,
+    zirh: 0,
+    ucar: false,
+    yukseklik: 0,
+    patron: false,
   },
   {
     ad: 'Ork',
@@ -119,6 +134,10 @@ export const CANAVAR_TIPLERI: CanavarTipi[] = [
     vurusHasari: 3,
     vurusAralikMs: 1800,
     ilkDalga: 2,
+    zirh: 0,
+    ucar: false,
+    yukseklik: 0,
+    patron: false,
   },
   {
     ad: 'Trol',
@@ -132,8 +151,80 @@ export const CANAVAR_TIPLERI: CanavarTipi[] = [
     vurusHasari: 4,
     vurusAralikMs: 2100,
     ilkDalga: 4,
+    zirh: 0,
+    ucar: false,
+    yukseklik: 0,
+    patron: false,
+  },
+  {
+    // Zırhlı: yavaş ama her isabetten 2 hasar yutar. Kulenin tek tek az
+    // hasar veren okuna dayanıklı; güçlü mızrak ve yüksek seviye kule gerek.
+    ad: 'Zırhlı',
+    can: 12,
+    hiz: 22,
+    altin: 26,
+    puan: 70,
+    en: 34,
+    boy: 48,
+    renk: 0x64748b,
+    vurusHasari: 3,
+    vurusAralikMs: 2000,
+    ilkDalga: 5,
+    zirh: 2,
+    ucar: false,
+    yukseklik: 0,
+    patron: false,
+  },
+  {
+    // Yarasa: hızlı ve alçaktan uçar. Mızrak değmez, yalnız kule vurabilir —
+    // oyuncuyu kule kurmaya zorlayan tip.
+    ad: 'Yarasa',
+    can: 6,
+    hiz: 48,
+    altin: 20,
+    puan: 55,
+    en: 30,
+    boy: 24,
+    renk: 0x7c3aed,
+    vurusHasari: 2,
+    vurusAralikMs: 1400,
+    ilkDalga: 6,
+    zirh: 0,
+    ucar: true,
+    yukseklik: 92,
+    patron: false,
+  },
+  {
+    // Şef: dalga sonunda tek başına gelen dev. Rastgele doğmaz.
+    ad: 'Şef',
+    can: 60,
+    hiz: 14,
+    altin: 120,
+    puan: 400,
+    en: 56,
+    boy: 76,
+    renk: 0xb91c1c,
+    vurusHasari: 6,
+    vurusAralikMs: 2400,
+    ilkDalga: 5,
+    zirh: 3,
+    ucar: false,
+    yukseklik: 0,
+    patron: true,
   },
 ]
+
+/** Şef kaç dalgada bir gelir. */
+export const PATRON_DALGA_ARALIK = 5
+
+export function patronDalgasiMi(dalga: number): boolean {
+  return dalga > 0 && dalga % PATRON_DALGA_ARALIK === 0
+}
+
+/** Canavarın ayak (uçanlarda alt) hattı. */
+export function canavarAyakY(tip: CanavarTipi): number {
+  return ZEMIN_Y - tip.yukseklik
+}
 
 /**
  * Dalga başına can çarpanı.
@@ -488,4 +579,8 @@ export const OLUM_EFEKT_MS = 380
 export const KALE_SARSINTI_MS = 180
 export const KALE_SARSINTI_GUC = 0.006
 export const HASAR_PARLAMA_MS = 120
+/** Uçan canavarın kanat çırpma açısı (derece). */
+export const KANAT_ACI = 34
+/** Uçan canavarın havada salınma genliği (piksel). */
+export const UCUS_SALINIM = 5
 export const OVERLAY_GECIKME_MS = 420
