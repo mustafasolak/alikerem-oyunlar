@@ -163,13 +163,59 @@
  */
 @media (min-width: 900px) {
   .game-shell {
-    width: min(100% - 3rem, 800px);
+    width: min(100% - 3rem, 860px);
+    gap: 0.6rem;
+    padding-top: 0.8rem;
+  }
+
+  /*
+   * Masaüstünde dikey yer tahtaya gitsin: açıklama satırı gizlenir, paneller
+   * yan yana dizilir. Dizüstü penceresinde (yükseklik ~780px) tahta bunlarla
+   * 636px'ten 800px'in üstüne çıkıyor.
+   */
+  .game-intro p {
+    display: none;
+  }
+
+  /*
+   * Panel başlığı içeriğin yanına geçer: her panel iki satır yerine tek satır
+   * olur. `columns` kullanan paneller (kelime listesi gibi) bundan etkilenmesin.
+   */
+  .panel:not(:has(.columns)) {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding-block: 0.55rem;
+  }
+
+  .panel:not(:has(.columns)) h2 {
+    margin-bottom: 0;
+    white-space: nowrap;
+  }
+
+  .panel:not(:has(.columns)) > *:last-child {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /*
+   * Katlanır panel: telefonda kapalı başlar (özet satırıyla açılır), geniş
+   * ekranda oyun onu açtığı için özet satırı yalnızca yer kaplar — gizlenir.
+   */
+  details.katlanir > summary {
+    display: none;
   }
 }
 
 @media (min-width: 1280px) {
   .game-shell {
-    width: min(100% - 4rem, 1000px);
+    width: min(100% - 4rem, 1120px);
+  }
+}
+
+@media (min-width: 1600px) {
+  .game-shell {
+    width: min(100% - 4rem, 1320px);
   }
 }
 

@@ -778,9 +778,9 @@ export const KATALOG: KatalogKaydi[] = [
       "#7c2d12"
     ],
     "tuval": {
-      "genislik": 720,
+      "genislik": 840,
       "yukseklik": 430,
-      "disPay": 400
+      "disPay": 330
     },
     "arayuz": {
       "aracCubugu": [

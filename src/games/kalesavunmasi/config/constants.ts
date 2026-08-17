@@ -6,7 +6,7 @@
  * yürür. Yukarı yön eksi y'dir, açılar derece cinsindendir (0 = sağa yatay).
  */
 
-export const GAME_WIDTH = 720
+export const GAME_WIDTH = 840
 /** Bu genişlikten itibaren paneller açık başlar (tablet ve masaüstü). */
 export const GENIS_EKRAN_ESIGI = 900
 export const GAME_HEIGHT = 430
@@ -538,7 +538,7 @@ export const KULE_YIKIM_ORANI = 0.5
 export const KULE_YUVA_DOKUNMA = 40
 
 /** Kule yuvalarının x konumları — kalenin sağında, yolun arkasındaki çimde. */
-export const KULE_YUVALARI = [178, 292, 406, 520, 634]
+export const KULE_YUVALARI = [162, 278, 394, 510, 626, 742]
 /** Kulelerin oturduğu hat. */
 export const KULE_TABAN_Y = 342
 /** Yuva tabanındaki taş platform. */

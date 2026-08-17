@@ -46,7 +46,7 @@ export default tanim({
   kategori: 'arcade',
   etiketler: ['Arcade', 'Nişan', 'Savunma'],
   renk: ['#f59e0b', '#7c2d12'],
-  tuval: { genislik: 720, yukseklik: 430, disPay: 400 },
+  tuval: { genislik: 840, yukseklik: 430, disPay: 330 },
   arayuz: {
     // Zorluk üstte: sitedeki diğer oyunlarda da bu yerde duruyor.
     aracCubugu: ZORLUKLAR.map((z) => ({ etiket: z.ad, deger: z.id })),

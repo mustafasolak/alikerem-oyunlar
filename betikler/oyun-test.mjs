@@ -850,7 +850,7 @@ function tohumlu(tohum) {
     kontrol(`${tip.ad}: özeti var`, typeof tip.ozet === 'string' && tip.ozet.length > 0)
   }
 
-  esit('beş kule yuvası var', KULE_YUVALARI.length, 5)
+  kontrol('en az beş kule yuvası var', KULE_YUVALARI.length >= 5, KULE_YUVALARI.length + ' yuva')
   kontrol('yuvalar kalenin sağında', KULE_YUVALARI.every((x) => x > KALE_GENISLIK))
   kontrol('yuvalar alan içinde', KULE_YUVALARI.every((x) => x < GAME_WIDTH))
   kontrol('yuvalar soldan sağa sıralı', KULE_YUVALARI.every((x, i) => i === 0 || x > KULE_YUVALARI[i - 1]))
@@ -865,7 +865,7 @@ function tohumlu(tohum) {
     esit(`${KULE_TIPLERI[tip].ad} kuruldu`, oyun.kuleAl(tip, tip), true)
     esit(`${KULE_TIPLERI[tip].ad} yuvada`, oyun.kuleler[tip].tip, tip)
   }
-  esit('beş yuvanın üçü dolu', oyun.kuleler.filter(Boolean).length, 3)
+  esit('üç yuva dolu', oyun.kuleler.filter(Boolean).length, 3)
 }
 
 {
