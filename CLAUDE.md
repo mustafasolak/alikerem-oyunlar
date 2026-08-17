@@ -1,4 +1,4 @@
-# Proje: Ali Kerem Oyunları
+# Proje: Binbir Oyun
 
 ## Ne yapıyoruz
 Tarayıcıda çalışan mini oyun koleksiyonu. Tek bir ana sayfa var, oyunlar oradan açılıyor.

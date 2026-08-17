@@ -1,4 +1,4 @@
--- Ali Kerem Oyunları — veritabanı şeması
+-- Binbir Oyun — veritabanı şeması
 -- Çalıştırmak için: Vercel → Storage → Postgres → Query, ya da psql "$POSTGRES_URL" -f betikler/sema.sql
 -- Tekrar tekrar çalıştırılabilir (hepsi "if not exists").
 

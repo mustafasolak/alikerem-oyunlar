@@ -76,8 +76,12 @@ export function katalogSayfasi(): Temizleyici {
           .join('')}
       </div>
 
-      <section id="vitrin-bolum" hidden>
-        <div class="section-title"><span>⭐ Öne çıkanlar</span></div>
+      <section class="vitrin" id="vitrin-bolum" hidden>
+        <div class="vitrin-baslik">
+          <span class="vitrin-yildiz" aria-hidden="true">⭐</span>
+          <h2>Öne çıkanlar</h2>
+          <span class="vitrin-not">Seçtiklerimiz</span>
+        </div>
         <div class="grid grid--vitrin" id="vitrin-grid"></div>
       </section>
 
