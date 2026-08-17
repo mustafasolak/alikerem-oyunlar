@@ -15,9 +15,12 @@ import {
   KALE_CANI,
   KALE_SARSINTI_GUC,
   KALE_SARSINTI_MS,
+  KULE_TIPLERI,
   MIZRAK_BOY,
   MIZRAK_KALINLIK,
   NISAN_NOKTA_ARALIK,
+  OK_BOY,
+  OK_KALINLIK,
   OVERLAY_GECIKME_MS,
   SAPLANAN_OMUR_MS,
   ZEMIN_Y,
@@ -26,6 +29,7 @@ import { KaleSavunmasi, type Isabet } from '../systems/KaleSavunmasi.ts'
 import { ArkaPlan } from './ArkaPlan.ts'
 import { CanavarGorunumu } from './CanavarGorunumu.ts'
 import { KaleGorunumu } from './KaleGorunumu.ts'
+import { KuleAlani } from './KuleAlani.ts'
 
 /** Bildirim yazısının yüksekliği. */
 const BILDIRIM_Y = 92
@@ -37,6 +41,7 @@ export class GameScene extends TemelSahne {
 
   private arkaPlan!: ArkaPlan
   private kale!: KaleGorunumu
+  private kuleAlani!: KuleAlani
   private canavarKatmani!: Phaser.GameObjects.Container
   private mizrakKatmani!: Phaser.GameObjects.Container
   private saplananKatmani!: Phaser.GameObjects.Container
@@ -55,6 +60,7 @@ export class GameScene extends TemelSahne {
     this.arkaPlan = new ArkaPlan(this)
     this.saplananKatmani = this.add.container(0, 0).setDepth(KATMAN.IZGARA)
     this.kale = new KaleGorunumu(this)
+    this.kuleAlani = new KuleAlani(this, (yuva, tip) => this.kuleAl(yuva, tip))
     this.canavarKatmani = this.add.container(0, 0).setDepth(KATMAN.ICERIK)
     this.mizrakKatmani = this.add.container(0, 0).setDepth(KATMAN.EFEKT)
     this.nisanCizim = this.add.graphics().setDepth(KATMAN.NISAN)
@@ -66,6 +72,8 @@ export class GameScene extends TemelSahne {
 
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.nisanla(p))
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      // Kule yuvasına/dükkâna gelen dokunuş mızrak atmasın.
+      if (this.kuleAlani.dokun(p.worldX, p.worldY, this.oyun.kuleler, this.oyun.altin)) return
       this.nisanla(p)
       this.at()
     })
@@ -94,10 +102,13 @@ export class GameScene extends TemelSahne {
     this.arkaPlan.sifirla(1)
     this.kale.sifirla()
     this.kale.canGoster(KALE_CANI, KALE_CANI)
+    this.kuleAlani.sifirla()
+    this.kuleAlani.tazele(this.oyun.kuleler, this.oyun.altin)
     this.bildirim.setAlpha(0)
 
     setChip('wave', 'Hazır')
     setChip('castle', KALE_CANI)
+    setChip('gold', this.oyun.altin)
     this.skorGoster(0)
     this.nisanCiz()
   }
@@ -111,17 +122,20 @@ export class GameScene extends TemelSahne {
     this.isabetleriIsle(sonuc.isabetler)
     for (const saplanan of sonuc.saplananlar) this.saplananCiz(saplanan.x, saplanan.aci)
     if (sonuc.kaleVuruldu) this.kaleHasari()
+    if (sonuc.kuleAtti) sesler.tik()
     if (sonuc.bitenDalga !== null) this.dalgaBitti(sonuc.bitenDalga)
     if (sonuc.yeniDalga !== null) this.dalgaBasladi(sonuc.yeniDalga)
 
     this.canavarlariEsle()
-    this.mizraklariEsle()
+    this.atislariEsle()
     this.nisanCiz()
+    this.kuleAlani.tazele(this.oyun.kuleler, this.oyun.altin)
 
     this.kale.nisanAyarla(this.oyun.aci)
     this.kale.hazirGoster(this.oyun.atisHazir)
     this.kale.canGoster(this.oyun.kaleCani, KALE_CANI)
     setChip('castle', this.oyun.kaleCani)
+    setChip('gold', this.oyun.altin)
     this.skorGoster(this.oyun.skor)
 
     if (sonuc.oyunBitti) this.oyunuBitir()
@@ -173,19 +187,19 @@ export class GameScene extends TemelSahne {
     }
   }
 
-  private mizraklariEsle(): void {
+  private atislariEsle(): void {
     const ucan = new Set<number>()
-    for (const mizrak of this.oyun.mizraklar) {
-      ucan.add(mizrak.id)
-      let gorunum = this.mizrakGorunumleri.get(mizrak.id)
+    for (const atis of this.oyun.atislar) {
+      ucan.add(atis.id)
+      let gorunum = this.mizrakGorunumleri.get(atis.id)
       if (!gorunum) {
-        gorunum = this.mizrakYap()
+        gorunum = atis.tur === 'ok' ? this.okYap() : this.mizrakYap()
         this.mizrakKatmani.add(gorunum)
-        this.mizrakGorunumleri.set(mizrak.id, gorunum)
+        this.mizrakGorunumleri.set(atis.id, gorunum)
       }
-      gorunum.setPosition(mizrak.x, mizrak.y)
-      // Mızrak uçtuğu yöne bakar: yay boyunca ucu aşağı döner.
-      gorunum.setRotation(Math.atan2(mizrak.vy, mizrak.vx))
+      gorunum.setPosition(atis.x, atis.y)
+      // Cisim uçtuğu yöne bakar: yay boyunca ucu aşağı döner.
+      gorunum.setRotation(Math.atan2(atis.vy, atis.vx))
     }
 
     for (const [id, gorunum] of this.mizrakGorunumleri) {
@@ -200,6 +214,24 @@ export class GameScene extends TemelSahne {
       this.add.rectangle(-MIZRAK_BOY / 2, 0, MIZRAK_BOY, MIZRAK_KALINLIK, COLORS.MIZRAK_SAP).setOrigin(0, 0.5),
       this.add.triangle(MIZRAK_BOY / 2, 0, 0, -4, 9, 0, 0, 4, COLORS.MIZRAK_UC),
     ])
+  }
+
+  /** Kule oku: mızraktan kısa, arkasında tüy var. */
+  private okYap(): Phaser.GameObjects.Container {
+    return this.add.container(0, 0, [
+      this.add.rectangle(-OK_BOY / 2, 0, OK_BOY, OK_KALINLIK, COLORS.OK_SAP).setOrigin(0, 0.5),
+      this.add.triangle(OK_BOY / 2, 0, 0, -3, 6, 0, 0, 3, COLORS.OK_UC),
+      this.add.rectangle(-OK_BOY / 2 + 2, 0, 4, OK_KALINLIK + 3, COLORS.OK_UC).setOrigin(0, 0.5),
+    ])
+  }
+
+  private kuleAl(yuva: number, tip: number): void {
+    if (this.oyun.kuleAl(yuva, tip)) {
+      sesler.dogru()
+      this.bildir(`${KULE_TIPLERI[tip].ad} kuruldu`)
+      return
+    }
+    sesler.yanlis()
   }
 
   // --- Olaylar ---

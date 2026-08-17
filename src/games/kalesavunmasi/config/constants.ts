@@ -129,6 +129,60 @@ export const CANAVAR_TIPLERI: CanavarTipi[] = [
   },
 ]
 
+// --- Kuleler ---
+
+export interface KuleTipi {
+  ad: string
+  /** Seviye başına fiyat: [0] satın alma, sonrası yükseltme. */
+  fiyat: number[]
+  /** Seviye başına atış hasarı. */
+  hasar: number[]
+  /** Seviye başına iki atış arası (ms). */
+  aralikMs: number[]
+  /** Seviye başına yatay menzil (piksel). */
+  menzil: number[]
+  renk: number
+}
+
+/** Oyuncu ilk kuleyi hemen kurabilsin: mekanik ilk saniyede görünür olsun. */
+export const BASLANGIC_ALTIN = 45
+
+export const KULE_TIPLERI: KuleTipi[] = [
+  {
+    ad: 'Okçu Kulesi',
+    fiyat: [45, 80, 130],
+    hasar: [1, 2, 3],
+    aralikMs: [1200, 950, 750],
+    menzil: [190, 230, 270],
+    renk: 0x0ea5e9,
+  },
+]
+
+export const KULE_MAX_SEVIYE = 3
+
+/** Kule yuvalarının x konumları — kalenin sağında, yolun arkasındaki çimde. */
+export const KULE_YUVALARI = [176, 300, 424]
+/** Kulelerin oturduğu hat. */
+export const KULE_TABAN_Y = 320
+export const KULE_EN = 30
+export const KULE_BOY = 54
+/** Yuva tabanındaki taş platform. */
+export const YUVA_EN = 38
+export const YUVA_BOY = 9
+
+/** Dükkân kutusu ölçüleri. */
+export const MENU_EN = 138
+export const MENU_BASLIK_BOY = 22
+export const MENU_SATIR_BOY = 34
+/** Kutunun kule tepesinden yukarı payı. */
+export const MENU_ALT_PAY = 12
+
+// --- Ok (kule atışı) ---
+
+export const OK_HIZI = 430
+export const OK_BOY = 18
+export const OK_KALINLIK = 2
+
 // --- Dalgalar ---
 
 export const DALGA_TABAN_ADET = 4
@@ -175,6 +229,17 @@ export const COLORS = {
   MIZRAKCI_TEN: 0xf5d0a9,
   MIZRAK_SAP: 0xa16207,
   MIZRAK_UC: 0xe5e7eb,
+  OK_SAP: 0x57534e,
+  OK_UC: 0xf1f5f9,
+  YUVA_TAS: 0x6b7280,
+  YUVA_BOS: 0xfef08a,
+  KULE_CATI: 0x1e3a8a,
+  MENU_ARKA: 0x0f172a,
+  MENU_KENAR: 0x94a3b8,
+  MENU_PARA_YOK: 0x64748b,
+  MENZIL: 0x38bdf8,
+  ALTIN: 0xfbbf24,
+  ALTIN_KENAR: 0x92400e,
   NISAN: 0xfef08a,
   CAN_BAR_ARKA: 0x111827,
   CAN_BAR_DOLU: 0x22c55e,

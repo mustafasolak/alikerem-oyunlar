@@ -13,9 +13,11 @@ import {
   ACI_MAX,
   ACI_MIN,
   ATIS_BEKLEME_MS,
+  BASLANGIC_ALTIN,
   DALGA_MAX_ADET,
   DOGUS_X,
   KALE_CANI,
+  KULE_TIPLERI,
   SIM_ADIM_MS,
   ZEMIN_Y,
   dalgaCanavarSayisi,
@@ -547,7 +549,7 @@ function tohumlu(tohum) {
   const oyun = new KaleSavunmasi(tohumlu(5))
   esit('ilk atış geçer', oyun.at(), true)
   esit('bekleme dolmadan ikinci atış olmaz', oyun.at(), false)
-  esit('bir mızrak uçuyor', oyun.mizraklar.length, 1)
+  esit('bir mızrak uçuyor', oyun.atislar.length, 1)
 
   for (let i = 0; i < Math.ceil(ATIS_BEKLEME_MS / SIM_ADIM_MS) + 1; i++) oyun.ilerlet(SIM_ADIM_MS)
   esit('bekleme dolunca yeniden atılır', oyun.at(), true)
@@ -563,7 +565,39 @@ function tohumlu(tohum) {
     saplanan += oyun.ilerlet(SIM_ADIM_MS).saplananlar.length
   }
   esit('mızrak yere saplandı', saplanan, 1)
-  esit('uçan mızrak kalmadı', oyun.mizraklar.length, 0)
+  esit('uçan mızrak kalmadı', oyun.atislar.length, 0)
+}
+
+{
+  // Kule satın alma: para, dolu yuva, geçersiz yuva
+  const oyun = new KaleSavunmasi(tohumlu(31))
+  esit('oyun başlangıç altınıyla açılır', oyun.altin, BASLANGIC_ALTIN)
+
+  oyun.altin = 0
+  esit('parasız kule alınmaz', oyun.kuleAl(0, 0), false)
+
+  oyun.altin = 200
+  esit('kule kuruldu', oyun.kuleAl(0, 0), true)
+  esit('altından fiyat düştü', oyun.altin, 200 - KULE_TIPLERI[0].fiyat[0])
+  esit('kule 1. seviyede başlar', oyun.kuleler[0].seviye, 1)
+  esit('dolu yuvaya ikinci kule olmaz', oyun.kuleAl(0, 0), false)
+  esit('olmayan yuvaya kule olmaz', oyun.kuleAl(9, 0), false)
+  esit('boş yuvanın fiyatı ilk basamak', oyun.kuleFiyati(1, 0), KULE_TIPLERI[0].fiyat[0])
+
+  // Menzile canavar girince kule kendiliğinden ok atar
+  let kuleAtti = false
+  let okGoruldu = false
+  for (let i = 0; i < 40000 / SIM_ADIM_MS && !kuleAtti; i++) {
+    const sonuc = oyun.ilerlet(SIM_ADIM_MS)
+    kuleAtti = kuleAtti || sonuc.kuleAtti
+    okGoruldu = okGoruldu || oyun.atislar.some((a) => a.tur === 'ok')
+  }
+  esit('kule ok attı', kuleAtti, true)
+  kontrol('havada ok var', okGoruldu)
+
+  oyun.reset()
+  esit('sıfırlama kuleleri kaldırır', oyun.kuleler.every((k) => k === null), true)
+  esit('sıfırlama altını başa alır', oyun.altin, BASLANGIC_ALTIN)
 }
 
 {

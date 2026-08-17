@@ -14,6 +14,7 @@ import {
   ACI_MIN,
   ADIM_UZUNLUK,
   ATIS_BEKLEME_MS,
+  BASLANGIC_ALTIN,
   CANAVAR_TIPLERI,
   DALGA_ALTIN_BONUSU,
   DALGA_ARASI_MS,
@@ -27,6 +28,11 @@ import {
   GAME_WIDTH,
   ILK_ARA_MS,
   KALE_CANI,
+  KULE_BOY,
+  KULE_MAX_SEVIYE,
+  KULE_TABAN_Y,
+  KULE_TIPLERI,
+  KULE_YUVALARI,
   MAX_BIRIKIM_MS,
   MIZRAK_CIKIS_X,
   MIZRAK_CIKIS_Y,
@@ -36,6 +42,7 @@ import {
   MIZRAK_TEMAS,
   NISAN_ADIM_MS,
   NISAN_MAX_ADIM,
+  OK_HIZI,
   SIM_ADIM_MS,
   YERCEKIMI,
   ZEMIN_Y,
@@ -57,12 +64,28 @@ export interface Canavar {
   vurusBirikim: number
 }
 
-export interface Mizrak {
+/** Havadaki cisim: oyuncunun mızrağı ya da kulenin oku. */
+export interface Atis {
   id: number
   x: number
   y: number
   vx: number
   vy: number
+  hasar: number
+  /** Yerçekimine tabi mi? Mızrak yay çizer, ok düz gider. */
+  agir: boolean
+  /** Sahne buna göre çizer. */
+  tur: 'mizrak' | 'ok'
+}
+
+/** Yuvaya kurulmuş kule. */
+export interface Kule {
+  /** KULE_YUVALARI dizisindeki sıra. */
+  yuva: number
+  /** KULE_TIPLERI dizisindeki sıra. */
+  tip: number
+  seviye: number
+  atisBirikim: number
 }
 
 export interface Isabet {
@@ -80,6 +103,8 @@ export interface AdimSonucu {
   /** Yere saplanan mızraklar. */
   saplananlar: { x: number; aci: number }[]
   kaleVuruldu: boolean
+  /** Bu adımda kule ok attı mı? */
+  kuleAtti: boolean
   /** Bu adımda başlayan dalganın numarası (yoksa null). */
   yeniDalga: number | null
   /** Bu adımda tamamlanan dalganın numarası (yoksa null). */
@@ -94,6 +119,7 @@ function bosSonuc(): AdimSonucu {
     isabetler: [],
     saplananlar: [],
     kaleVuruldu: false,
+    kuleAtti: false,
     yeniDalga: null,
     bitenDalga: null,
     oyunBitti: false,
@@ -104,15 +130,17 @@ export class KaleSavunmasi {
   dalga = 0
   kaleCani = KALE_CANI
   skor = 0
-  /** Oyun parası — kuleler bununla alınacak. */
-  altin = 0
+  /** Oyun parası — kuleler bununla alınır. */
+  altin = BASLANGIC_ALTIN
   oldurulen = 0
   asama: Asama = 'ara'
   /** Nişan açısı (derece; 0 = sağa yatay, eksi = yukarı). */
   aci = ACI_BASLANGIC
 
   readonly canavarlar: Canavar[] = []
-  readonly mizraklar: Mizrak[] = []
+  readonly atislar: Atis[] = []
+  /** Yuva başına kule; boş yuva null. */
+  readonly kuleler: (Kule | null)[] = KULE_YUVALARI.map(() => null)
 
   /** Testlerde kestirilebilir olsun diye üreteç dışarıdan verilebilir. */
   private readonly random: Uretec
@@ -132,12 +160,13 @@ export class KaleSavunmasi {
     this.dalga = 0
     this.kaleCani = KALE_CANI
     this.skor = 0
-    this.altin = 0
+    this.altin = BASLANGIC_ALTIN
     this.oldurulen = 0
     this.asama = 'ara'
     this.aci = ACI_BASLANGIC
     this.canavarlar.length = 0
-    this.mizraklar.length = 0
+    this.atislar.length = 0
+    this.kuleler.fill(null)
     this.sonrakiId = 1
     this.kalanDogus = 0
     this.dogusBirikim = 0
@@ -187,13 +216,40 @@ export class KaleSavunmasi {
     if (this.asama === 'bitti' || !this.atisHazir) return false
     this.beklemeBirikim = 0
     const radyan = (this.aci * Math.PI) / 180
-    this.mizraklar.push({
+    this.atislar.push({
       id: this.sonrakiId++,
       x: MIZRAK_CIKIS_X,
       y: MIZRAK_CIKIS_Y,
       vx: Math.cos(radyan) * MIZRAK_HIZI,
       vy: Math.sin(radyan) * MIZRAK_HIZI,
+      hasar: MIZRAK_HASARI,
+      agir: true,
+      tur: 'mizrak',
     })
+    return true
+  }
+
+  // --- Kuleler ---
+
+  /** Yuvadaki kulenin bir sonraki basamağının fiyatı; sıra dolduysa null. */
+  kuleFiyati(yuva: number, tip: number): number | null {
+    const kule = this.kuleler[yuva]
+    if (!kule) return KULE_TIPLERI[tip].fiyat[0]
+    if (kule.tip !== tip || kule.seviye >= KULE_MAX_SEVIYE) return null
+    return KULE_TIPLERI[kule.tip].fiyat[kule.seviye] ?? null
+  }
+
+  /** Boş yuvaya kule kurar; para yetmezse ya da yuva doluysa false döner. */
+  kuleAl(yuva: number, tip: number): boolean {
+    if (this.asama === 'bitti') return false
+    if (yuva < 0 || yuva >= this.kuleler.length) return false
+    if (this.kuleler[yuva]) return false
+    const fiyat = KULE_TIPLERI[tip]?.fiyat[0]
+    if (fiyat === undefined || this.altin < fiyat) return false
+
+    this.altin -= fiyat
+    // İlk atış hemen gelsin, oyuncu aldığını görsün.
+    this.kuleler[yuva] = { yuva, tip, seviye: 1, atisBirikim: KULE_TIPLERI[tip].aralikMs[0] }
     return true
   }
 
@@ -250,7 +306,8 @@ export class KaleSavunmasi {
       this.dogusIlerlet(dt)
     }
 
-    this.mizrakIlerlet(sn, sonuc)
+    this.kuleIlerlet(dt, sonuc)
+    this.atisIlerlet(sn, sonuc)
     this.canavarIlerlet(sn, dt, sonuc)
 
     if (this.kaleCani <= 0) {
@@ -268,6 +325,54 @@ export class KaleSavunmasi {
       this.asama = 'ara'
       this.araBirikim = 0
     }
+  }
+
+  /** Kuleler menzillerindeki en öndeki canavara ok atar. */
+  private kuleIlerlet(dt: number, sonuc: AdimSonucu): void {
+    for (const kule of this.kuleler) {
+      if (!kule) continue
+      const bilgi = KULE_TIPLERI[kule.tip]
+      const basamak = kule.seviye - 1
+      kule.atisBirikim = Math.min(kule.atisBirikim + dt, bilgi.aralikMs[basamak])
+      if (kule.atisBirikim < bilgi.aralikMs[basamak]) continue
+
+      const kuleX = KULE_YUVALARI[kule.yuva]
+      const hedef = this.enOndekiHedef(kuleX, bilgi.menzil[basamak])
+      if (!hedef) continue
+
+      kule.atisBirikim = 0
+      this.okAt(kuleX, hedef, bilgi.hasar[basamak])
+      sonuc.kuleAtti = true
+    }
+  }
+
+  /** Menzildeki, kaleye en yakın canavar. */
+  private enOndekiHedef(kuleX: number, menzil: number): Canavar | null {
+    let hedef: Canavar | null = null
+    for (const c of this.canavarlar) {
+      if (Math.abs(c.x - kuleX) > menzil) continue
+      if (!hedef || c.x < hedef.x) hedef = c
+    }
+    return hedef
+  }
+
+  private okAt(kuleX: number, hedef: Canavar, hasar: number): void {
+    const bilgi = CANAVAR_TIPLERI[hedef.tip]
+    const baslangicY = KULE_TABAN_Y - KULE_BOY
+    // Gövdenin ortasına nişan al.
+    const hedefY = ZEMIN_Y - bilgi.boy * 0.5
+    const uzaklik = Math.hypot(hedef.x - kuleX, hedefY - baslangicY) || 1
+
+    this.atislar.push({
+      id: this.sonrakiId++,
+      x: kuleX,
+      y: baslangicY,
+      vx: ((hedef.x - kuleX) / uzaklik) * OK_HIZI,
+      vy: ((hedefY - baslangicY) / uzaklik) * OK_HIZI,
+      hasar,
+      agir: false,
+      tur: 'ok',
+    })
   }
 
   private dalgaBaslat(): void {
@@ -321,30 +426,32 @@ export class KaleSavunmasi {
     return acik[acik.length - 1]
   }
 
-  private mizrakIlerlet(sn: number, sonuc: AdimSonucu): void {
-    for (let i = this.mizraklar.length - 1; i >= 0; i--) {
-      const m = this.mizraklar[i]
-      m.vy += YERCEKIMI * sn
+  /** Mızrak ve ok aynı yoldan ilerler; fark yalnızca yerçekimi. */
+  private atisIlerlet(sn: number, sonuc: AdimSonucu): void {
+    for (let i = this.atislar.length - 1; i >= 0; i--) {
+      const m = this.atislar[i]
+      if (m.agir) m.vy += YERCEKIMI * sn
       m.x += m.vx * sn
       m.y += m.vy * sn
 
       const hedef = this.carpisan(m)
       if (hedef) {
         this.hasarVer(hedef, m, sonuc)
-        this.mizraklar.splice(i, 1)
+        this.atislar.splice(i, 1)
         continue
       }
       if (m.y >= ZEMIN_Y) {
-        sonuc.saplananlar.push({ x: m.x, aci: Math.atan2(m.vy, m.vx) })
-        this.mizraklar.splice(i, 1)
+        // Ok yere saplanmaz, mızrak saplanır; ikisi de sahneden çıkar.
+        if (m.tur === 'mizrak') sonuc.saplananlar.push({ x: m.x, aci: Math.atan2(m.vy, m.vx) })
+        this.atislar.splice(i, 1)
         continue
       }
-      if (m.x > GAME_WIDTH + MIZRAK_TASMA) this.mizraklar.splice(i, 1)
+      if (m.x > GAME_WIDTH + MIZRAK_TASMA || m.x < -MIZRAK_TASMA) this.atislar.splice(i, 1)
     }
   }
 
-  /** Mızrağın ucu bir canavarın gövdesine girdi mi? */
-  private carpisan(m: Mizrak): Canavar | null {
+  /** Atışın ucu bir canavarın gövdesine girdi mi? */
+  private carpisan(m: Atis): Canavar | null {
     if (m.y > ZEMIN_Y) return null
     for (const c of this.canavarlar) {
       const bilgi = CANAVAR_TIPLERI[c.tip]
@@ -355,8 +462,8 @@ export class KaleSavunmasi {
     return null
   }
 
-  private hasarVer(c: Canavar, m: Mizrak, sonuc: AdimSonucu): void {
-    c.can -= MIZRAK_HASARI
+  private hasarVer(c: Canavar, m: Atis, sonuc: AdimSonucu): void {
+    c.can -= m.hasar
     const oldu = c.can <= 0
     sonuc.isabetler.push({ canavarId: c.id, x: m.x, y: m.y, tip: c.tip, oldu })
     if (!oldu) return
