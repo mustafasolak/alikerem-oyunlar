@@ -21,8 +21,11 @@ import {
   KALE_SARSINTI_GUC,
   KALE_SARSINTI_MS,
   KULE_TIPLERI,
+  KULE_YUVALARI,
+  KULE_YUVA_DOKUNMA,
   MIZRAK_BOY,
   MIZRAK_KALINLIK,
+  NISAN_ESIGI,
   NISAN_NOKTA_ARALIK,
   OK_BOY,
   OK_KALINLIK,
@@ -61,6 +64,9 @@ export class GameScene extends TemelSahne {
 
   /** Nişan yayı boşuna yeniden çizilmesin: son çizilen açı. */
   private cizilenAci = Number.NaN
+  /** Son nişan alınan nokta; küçük oynamalarda açı yeniden çözülmesin. */
+  private nisanX = Number.NaN
+  private nisanY = Number.NaN
   private baslamisMi = false
   /** DOM'a her karede yazmamak için son basılan malzeme/skor durumu. */
   private malzemeImza = ''
@@ -82,6 +88,7 @@ export class GameScene extends TemelSahne {
       this,
       (yuva, tip) => this.kuleAl(yuva, tip),
       (yuva) => this.kuleYukselt(yuva),
+      (yuva) => this.kuleYik(yuva),
     )
     this.canavarKatmani = this.add.container(0, 0).setDepth(KATMAN.ICERIK)
     this.mizrakKatmani = this.add.container(0, 0).setDepth(KATMAN.EFEKT)
@@ -95,7 +102,7 @@ export class GameScene extends TemelSahne {
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.nisanla(p))
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       // Kule yuvasına/dükkâna gelen dokunuş mızrak atmasın.
-      if (this.kuleAlani.dokun(p.worldX, p.worldY, this.oyun.kuleler, this.oyun.altin)) return
+      if (this.kuleAlani.dokun(p.worldX, p.worldY, this.oyun.kuleler, this.oyun.altin, this.yikimBedeli(p))) return
       this.nisanla(p)
       this.at()
     })
@@ -416,8 +423,15 @@ export class GameScene extends TemelSahne {
     })
   }
 
+  /**
+   * Açı çözümü yay simülasyonu taradığı için ucuz değil; işaretçi birkaç
+   * pikselden az oynadıysa yeniden hesaplamıyoruz.
+   */
   private nisanla(p: Phaser.Input.Pointer): void {
     if (this.bitti || this.yaziyor) return
+    if (Math.hypot(p.worldX - this.nisanX, p.worldY - this.nisanY) < NISAN_ESIGI) return
+    this.nisanX = p.worldX
+    this.nisanY = p.worldY
     this.oyun.nisanlaNokta(p.worldX, p.worldY)
   }
 
@@ -514,6 +528,25 @@ export class GameScene extends TemelSahne {
       return
     }
     sesler.yanlis()
+  }
+
+  /** Dokunulan yuvanın yıkım bedeli; menüde "Yık · +X" diye yazılıyor. */
+  private yikimBedeli(p: Phaser.Input.Pointer): number {
+    for (let yuva = 0; yuva < this.oyun.kuleler.length; yuva++) {
+      if (Math.abs(p.worldX - KULE_YUVALARI[yuva]) > KULE_YUVA_DOKUNMA) continue
+      return this.oyun.kuleYikimBedeli(yuva) ?? 0
+    }
+    return 0
+  }
+
+  private kuleYik(yuva: number): void {
+    const bedel = this.oyun.kuleYikimBedeli(yuva) ?? 0
+    if (!this.oyun.kuleYik(yuva)) {
+      sesler.yanlis()
+      return
+    }
+    sesler.kaydir()
+    this.bildir(`Kule yıkıldı · +${bedel} altın`)
   }
 
   private kuleYukselt(yuva: number): void {

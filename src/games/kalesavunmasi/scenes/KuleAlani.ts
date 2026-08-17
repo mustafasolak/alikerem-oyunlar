@@ -47,7 +47,7 @@ interface Kutu {
 interface Dugme extends Kutu {
   tip: number
   alinabilir: boolean
-  eylem: 'al' | 'yukselt'
+  eylem: 'al' | 'yukselt' | 'yik'
 }
 
 /** Fiyat etiketindeki altın parasının yarıçapı. */
@@ -66,9 +66,12 @@ export class KuleAlani {
   private readonly menzilCizim: Phaser.GameObjects.Graphics
   private readonly satinAl: (yuva: number, tip: number) => void
   private readonly yukselt: (yuva: number) => void
+  private readonly yik: (yuva: number) => void
 
   /** Açık kutunun yuvası; kapalıysa -1. */
   private secili = -1
+  /** Açık kutudaki kulenin yıkım bedeli; sahne veriyor. */
+  private yikimBedeli = 0
   private dugmeler: Dugme[] = []
   /** Yükseltme zıplamasını bir kez oynatmak için son çizilen seviyeler. */
   private readonly oncekiSeviyeler: number[] = KULE_YUVALARI.map(() => 0)
@@ -79,10 +82,12 @@ export class KuleAlani {
     scene: Phaser.Scene,
     satinAl: (yuva: number, tip: number) => void,
     yukselt: (yuva: number) => void,
+    yik: (yuva: number) => void,
   ) {
     this.scene = scene
     this.satinAl = satinAl
     this.yukselt = yukselt
+    this.yik = yik
     this.menzilCizim = scene.add.graphics().setDepth(KATMAN.IZGARA)
     this.kap = scene.add.container(0, 0).setDepth(KATMAN.IZGARA)
     this.menuKap = scene.add.container(0, 0).setDepth(KATMAN.NISAN)
@@ -108,12 +113,13 @@ export class KuleAlani {
    * Dokunuşu değerlendirir. true dönerse dokunuş kule arayüzüne aitti;
    * sahne o dokunuşla mızrak atmamalı.
    */
-  dokun(x: number, y: number, kuleler: (Kule | null)[], altin: number): boolean {
+  dokun(x: number, y: number, kuleler: (Kule | null)[], altin: number, yikimBedeli = 0): boolean {
     if (this.secili >= 0) {
       for (const dugme of this.dugmeler) {
         if (!icinde(dugme, x, y)) continue
         if (dugme.alinabilir) {
           if (dugme.eylem === 'yukselt') this.yukselt(this.secili)
+          else if (dugme.eylem === 'yik') this.yik(this.secili)
           else this.satinAl(this.secili, dugme.tip)
         }
         this.kapat()
@@ -127,6 +133,7 @@ export class KuleAlani {
     for (let yuva = 0; yuva < KULE_YUVALARI.length; yuva++) {
       if (!icinde(this.yuvaKutusu(yuva, kuleler), x, y)) continue
       this.secili = yuva
+      this.yikimBedeli = yikimBedeli
       this.ciz(kuleler, altin)
       return true
     }
@@ -150,7 +157,8 @@ export class KuleAlani {
   }
 
   tazele(kuleler: (Kule | null)[], altin: number): void {
-    const yeni = kuleler.map((k) => (k ? `${k.tip}.${k.seviye}` : '-')).join(',') + `|${altin}|${this.secili}`
+    const yeni =
+      kuleler.map((k) => (k ? `${k.tip}.${k.seviye}.${k.yatirim}` : '-')).join(',') + `|${altin}|${this.secili}`
     if (yeni === this.imza) return
     this.imza = yeni
     this.ciz(kuleler, altin)
@@ -176,7 +184,7 @@ export class KuleAlani {
       this.oncekiSeviyeler[yuva] = kuleler[yuva]?.seviye ?? 0
     }
 
-    if (this.secili >= 0) this.menuCiz(this.secili, kuleler, altin)
+    if (this.secili >= 0) this.menuCiz(this.secili, kuleler, altin, this.yikimBedeli)
   }
 
   private yuvaCiz(x: number, secili: boolean): void {
@@ -346,10 +354,10 @@ export class KuleAlani {
   /**
    * Boş yuvada satın alma satırları, kurulu kulede yükseltme satırı çizilir.
    */
-  private menuCiz(yuva: number, kuleler: (Kule | null)[], altin: number): void {
+  private menuCiz(yuva: number, kuleler: (Kule | null)[], altin: number, yikimBedeli: number): void {
     const kule = kuleler[yuva]
     const yuvaX = KULE_YUVALARI[yuva]
-    const satirlar = kule ? 1 : KULE_TIPLERI.length
+    const satirlar = kule ? 2 : KULE_TIPLERI.length
     const boy = MENU_BASLIK_BOY + satirlar * MENU_SATIR_BOY + 8
     const alt = kuleTepeY(kule?.seviye ?? 1) - MENU_ALT_PAY
     const ust = alt - boy
@@ -380,6 +388,7 @@ export class KuleAlani {
           .setOrigin(0.5),
       )
       this.yukseltmeSatiri(merkezX, satirY, kule, altin)
+      this.yikimSatiri(merkezX, satirY + MENU_SATIR_BOY, kule.yuva, yikimBedeli)
       return
     }
 
@@ -404,6 +413,14 @@ export class KuleAlani {
       )
       this.dugmeEkle(merkezX, y, tip, alinabilir, 'al')
     }
+  }
+
+  /** Yıkım satırı: yatırılanın bir kısmı geri döner, yuva boşalır. */
+  private yikimSatiri(merkezX: number, y: number, yuva: number, bedel: number): void {
+    this.satirZemini(merkezX, y, COLORS.YIKIM, true)
+    this.paraEtiketi(this.menuKap, merkezX, y, `Yık · +${bedel}`, '#fee2e2', '11px')
+    this.dugmeEkle(merkezX, y, 0, true, 'yik')
+    void yuva
   }
 
   private yukseltmeSatiri(merkezX: number, y: number, kule: Kule, altin: number): void {
@@ -433,7 +450,13 @@ export class KuleAlani {
     )
   }
 
-  private dugmeEkle(merkezX: number, y: number, tip: number, alinabilir: boolean, eylem: 'al' | 'yukselt'): void {
+  private dugmeEkle(
+    merkezX: number,
+    y: number,
+    tip: number,
+    alinabilir: boolean,
+    eylem: 'al' | 'yukselt' | 'yik',
+  ): void {
     this.dugmeler.push({
       x1: merkezX - MENU_EN / 2,
       y1: y - MENU_SATIR_BOY / 2,

@@ -765,7 +765,7 @@ export const KATALOG: KatalogKaydi[] = [
     "ad": "Kale Savunması",
     "ozet": "Kaleye yürüyen canavarları mızrakla durdur.",
     "aciklama": "Dalga dalga gelen canavarları mızrakla vur, kaleyi ayakta tut.",
-    "ipucu": "<kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · <kbd>E</kbd> element değiştir · <b>+</b> yuvasına dokun = kule kur, kuleye dokun = yükselt · <b>uçan canavara mızrak değmez, yalnız kuleler vurur</b>",
+    "ipucu": "<b>Nereye dokunursan mızrak oraya düşer</b> · <kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · <kbd>E</kbd> element · <b>+</b> yuvasına dokun = kule kur, kuleye dokun = yükselt ya da yık · <b>uçan canavara mızrak değmez, yalnız kuleler vurur</b>",
     "emoji": "🏰",
     "kategori": "arcade",
     "etiketler": [

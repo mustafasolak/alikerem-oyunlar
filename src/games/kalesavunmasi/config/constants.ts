@@ -61,6 +61,8 @@ export const SAPLANAN_OMUR_MS = 2600
 export const NISAN_ADIM_MS = 24
 export const NISAN_MAX_ADIM = 140
 export const NISAN_NOKTA_ARALIK = 12
+/** İşaretçi bu kadar oynamadıkça açı yeniden çözülmez (piksel). */
+export const NISAN_ESIGI = 4
 
 // --- Simülasyon ---
 
@@ -531,6 +533,15 @@ export const KULE_TIPLERI: KuleTipi[] = [
 
 export const KULE_MAX_SEVIYE = 12
 
+/**
+ * Kule yıkınca yatırılanın ne kadarı geri döner.
+ * Tamamı dönse yuvayı bedelsiz deneyip durmak olurdu; yarısı geri gelince
+ * yer değiştirmek mümkün ama bedeli var.
+ */
+export const KULE_YIKIM_ORANI = 0.5
+/** Yuvaya dokunma sayılan yatay uzaklık. */
+export const KULE_YUVA_DOKUNMA = 40
+
 /** Kule yuvalarının x konumları — kalenin sağında, yolun arkasındaki çimde. */
 export const KULE_YUVALARI = [178, 292, 406, 520, 634]
 /** Kulelerin oturduğu hat. */
@@ -861,6 +872,7 @@ export const COLORS = {
   MENU_PARA_YOK: 0x64748b,
   MENZIL: 0x38bdf8,
   YUKSELT: 0x16a34a,
+  YIKIM: 0xb91c1c,
   ALTIN: 0xfbbf24,
   ALTIN_KENAR: 0x92400e,
   NISAN: 0xfef08a,

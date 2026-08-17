@@ -53,6 +53,7 @@ import {
   ILK_ARA_MS,
   KULE_MAX_SEVIYE,
   KULE_TIPLERI,
+  KULE_YIKIM_ORANI,
   KULE_YUVALARI,
   MAX_BIRIKIM_MS,
   MIZRAK_CIKIS_X,
@@ -133,6 +134,8 @@ export interface Kule {
   tip: number
   seviye: number
   atisBirikim: number
+  /** Bu kuleye toplam yatırılan altın; yıkım bedeli buradan hesaplanır. */
+  yatirim: number
 }
 
 export interface Isabet {
@@ -370,10 +373,15 @@ export class KaleSavunmasi {
     this.aciAyarla(this.aci + fark)
   }
 
-  /** İşaretçinin bulunduğu noktaya göre açıyı ayarlar. */
+  /**
+   * İşaretçinin gösterdiği noktaya düşecek açıyı bulup ayarlar.
+   *
+   * Eskiden açı doğrudan işaretçinin yönüydü; yerçekimi yüzünden mızrak hep
+   * başka yere düşüyordu ve eğik atış yapmak çok zordu. Artık yay o noktadan
+   * geçecek şekilde çözülüyor: nereye tıklarsan oraya gidiyor.
+   */
   nisanlaNokta(x: number, y: number): void {
-    const aci = (Math.atan2(y - MIZRAK_CIKIS_Y, Math.max(1, x - MIZRAK_CIKIS_X)) * 180) / Math.PI
-    this.aciAyarla(aci)
+    this.aciAyarla(this.hedefAcisi(x, y))
   }
 
   /** Mızrak atar; oyun durmuşsa ya da bekleme dolmadıysa false döner. */
@@ -461,13 +469,14 @@ export class KaleSavunmasi {
   }
 
   /**
-   * Verilen noktaya en yakın düşen atış açısını arar.
+   * Verilen noktaya en yakın geçen atış açısını arar.
    *
    * Yerçekimli yayın açısını kapalı formülle çözmek yerine mevcut yay
-   * simülasyonunu tarıyoruz: açı aralığı küçük ve atış seyrek olduğu için
-   * ucuz, ayrıca nişan önizlemesiyle birebir aynı yolu kullanıyor.
+   * simülasyonunu tarıyoruz: açı aralığı küçük, ayrıca nişan önizlemesiyle
+   * birebir aynı yolu kullanıyor — yani gösterilen yay ile gerçek atış
+   * hiç ayrışmıyor. Hem elle nişanda hem otomatik ateşte bu kullanılıyor.
    */
-  otomatikAci(hedefX: number, hedefY: number): number {
+  hedefAcisi(hedefX: number, hedefY: number): number {
     let enIyi = ACI_BASLANGIC
     let enKisa = Number.POSITIVE_INFINITY
     for (let aci = ACI_MIN; aci <= ACI_MAX; aci += OTOMATIK_ACI_ADIMI) {
@@ -501,9 +510,31 @@ export class KaleSavunmasi {
     if (fiyat === undefined || this.altin < fiyat) return false
 
     this.altin -= fiyat
+    kule.yatirim += fiyat
     kule.seviye++
     // Yeni seviyenin atışı beklemesin.
     kule.atisBirikim = KULE_TIPLERI[kule.tip].aralikMs[kule.seviye - 1]
+    return true
+  }
+
+  /** Yuvadaki kuleyi yıkarsa kaç altın döner; yuva boşsa null. */
+  kuleYikimBedeli(yuva: number): number | null {
+    const kule = this.kuleler[yuva]
+    if (!kule) return null
+    return Math.floor(kule.yatirim * KULE_YIKIM_ORANI)
+  }
+
+  /**
+   * Kuleyi yıkar, yatırılanın bir kısmını geri verir ve yuvayı boşaltır.
+   * Böylece yanlış yere kurulan kule yerine başka tip kurulabiliyor.
+   */
+  kuleYik(yuva: number): boolean {
+    if (this.asama === 'bitti') return false
+    const bedel = this.kuleYikimBedeli(yuva)
+    if (bedel === null) return false
+
+    this.altin += bedel
+    this.kuleler[yuva] = null
     return true
   }
 
@@ -517,7 +548,7 @@ export class KaleSavunmasi {
 
     this.altin -= fiyat
     // İlk atış hemen gelsin, oyuncu aldığını görsün.
-    this.kuleler[yuva] = { yuva, tip, seviye: 1, atisBirikim: KULE_TIPLERI[tip].aralikMs[0] }
+    this.kuleler[yuva] = { yuva, tip, seviye: 1, atisBirikim: KULE_TIPLERI[tip].aralikMs[0], yatirim: fiyat }
     return true
   }
 
@@ -610,7 +641,7 @@ export class KaleSavunmasi {
     if (!hedef) return
 
     const bilgi = this.tipler[hedef.tip]
-    this.aciAyarla(this.otomatikAci(hedef.x, canavarAyakY(bilgi) - bilgi.boy / 2))
+    this.aciAyarla(this.hedefAcisi(hedef.x, canavarAyakY(bilgi) - bilgi.boy / 2))
     this.at()
   }
 

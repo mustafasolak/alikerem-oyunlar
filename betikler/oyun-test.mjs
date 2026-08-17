@@ -37,6 +37,7 @@ import {
   KRITIK_TABAN_SANS,
   KULE_MAX_SEVIYE,
   KULE_TIPLERI,
+  KULE_YIKIM_ORANI,
   KULE_YUVALARI,
   PATRON_DALGA_ARALIK,
   SIM_ADIM_MS,
@@ -915,6 +916,75 @@ function tohumlu(tohum) {
   oyun.ilerlet(SIM_ADIM_MS)
   esit('zırh delici tam hasar geçirdi', 500 - oyun.canavarlar[0].can, zirh + 5)
   kontrol('büyücü yavaşlattı', oyun.canavarlar[0].yavaslikKalan > 0)
+}
+
+// --- Kale Savunması: kule yıkımı ---
+{
+  const oyun = new KaleSavunmasi(tohumlu(36), 0, 1)
+  oyun.basla()
+  oyun.altin = 1000000
+
+  esit('boş yuvanın yıkım bedeli yok', oyun.kuleYikimBedeli(0), null)
+  esit('boş yuva yıkılmaz', oyun.kuleYik(0), false)
+
+  const alisFiyati = KULE_TIPLERI[0].fiyat[0]
+  oyun.kuleAl(0, 0)
+  esit('yatırım alış fiyatı', oyun.kuleler[0].yatirim, alisFiyati)
+  esit('yıkım bedeli yatırımın yarısı', oyun.kuleYikimBedeli(0), Math.floor(alisFiyati * KULE_YIKIM_ORANI))
+
+  // Yükseltme yatırımı büyütüyor, yıkım bedeli de büyüyor
+  const yukseltmeFiyat = KULE_TIPLERI[0].fiyat[1]
+  oyun.kuleYukselt(0)
+  esit('yatırım yükseltmeyi de sayıyor', oyun.kuleler[0].yatirim, alisFiyati + yukseltmeFiyat)
+  esit(
+    'yıkım bedeli büyüdü',
+    oyun.kuleYikimBedeli(0),
+    Math.floor((alisFiyati + yukseltmeFiyat) * KULE_YIKIM_ORANI),
+  )
+
+  // Yıkınca altın geri geliyor, yuva boşalıyor
+  const bedel = oyun.kuleYikimBedeli(0)
+  const altinOnce = oyun.altin
+  esit('kule yıkıldı', oyun.kuleYik(0), true)
+  esit('yuva boşaldı', oyun.kuleler[0], null)
+  esit('altın geri geldi', oyun.altin, altinOnce + bedel)
+
+  // Yıkım kârlı olmamalı: harcananın tamamı dönmüyor
+  kontrol('geri dönen harcanandan az', bedel < alisFiyati + yukseltmeFiyat, `${bedel} < ${alisFiyati + yukseltmeFiyat}`)
+
+  // Boşalan yuvaya başka tip kurulabiliyor
+  esit('yerine başka tip kuruldu', oyun.kuleAl(0, 2), true)
+  esit('yeni tip yuvada', oyun.kuleler[0].tip, 2)
+  esit('yeni kule 1. seviyeden başlıyor', oyun.kuleler[0].seviye, 1)
+  esit('yeni kulenin yatırımı kendi fiyatı', oyun.kuleler[0].yatirim, KULE_TIPLERI[2].fiyat[0])
+}
+
+// --- Kale Savunması: nişan işaretçinin gösterdiği yere düşüyor ---
+{
+  const oyun = new KaleSavunmasi(tohumlu(37), 0, 1)
+
+  // Yolun farklı noktalarına nişan al: yay o noktanın yakınına düşmeli
+  for (const hedefX of [200, 320, 450, 560]) {
+    oyun.nisanlaNokta(hedefX, ZEMIN_Y)
+    const yol = oyun.nisanYolu()
+    const dusus = yol[yol.length - 1]
+    kontrol(
+      `x=${hedefX} nişanı hedefe yakın düşüyor`,
+      Math.abs(dusus.x - hedefX) < 40,
+      `düşüş ${dusus.x.toFixed(0)}, hedef ${hedefX}`,
+    )
+  }
+
+  // Yakın hedef için açı dik, uzak hedef için yayvan olmalı
+  oyun.nisanlaNokta(DURAK_X, ZEMIN_Y)
+  const yakinAci = oyun.aci
+  oyun.nisanlaNokta(600, ZEMIN_Y)
+  const uzakAci = oyun.aci
+  kontrol('yakın hedefte açı daha dik', yakinAci > uzakAci, `yakın ${yakinAci.toFixed(0)}°, uzak ${uzakAci.toFixed(0)}°`)
+
+  // Menzil dışını gösterince sınırda kalıyor, patlamıyor
+  oyun.nisanlaNokta(GAME_WIDTH * 3, ZEMIN_Y)
+  kontrol('menzil dışında açı sınırlar içinde', oyun.aci >= ACI_MIN && oyun.aci <= ACI_MAX, `${oyun.aci}`)
 }
 
 // --- Kale Savunması: kritik vuruş ---
