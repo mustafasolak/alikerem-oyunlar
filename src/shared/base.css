@@ -1,24 +1,29 @@
 /* Site geneli: sıfırlama + tasarım değişkenleri. Her sayfa bunu içe aktarır. */
 
 :root {
-  /* Oyun sitesi tonu: derin çivit zemin, elektrik moru vurgu, camgöbeği ikinci renk */
-  --bg: #0a0912;
-  --bg-soft: #12101f;
-  --surface: #191631;
-  --surface-hi: #221e3d;
-  --line: #322c55;
-  --text: #f1eefc;
-  --text-dim: #9c96c4;
-  --accent: #a78bfa;
-  --accent-soft: #c4b5fd;
-  /* Vurgu zemini üstüne yazılan koyu metin */
-  --accent-yazi: #140f2e;
+  /*
+   * Aydınlık, neşeli tema: çocuk oyun sitesi koyu ve ağır durmasın.
+   * Zemin kırık beyaz-lila, yüzeyler beyaz, vurgu canlı mor.
+   */
+  --bg: #f4f2ff;
+  --bg-soft: #ffffff;
+  --surface: #ffffff;
+  --surface-hi: #f1eefc;
+  --line: #e2ddf6;
+  --text: #221c3d;
+  --text-dim: #6d6693;
+  --accent: #7c3aed;
+  --accent-soft: #6d28d9;
+  /* Vurgu zemini üstüne yazılan metin */
+  --accent-yazi: #ffffff;
   /* Vitrin ve ikincil vurgular */
-  --accent-2: #22d3ee;
+  --accent-2: #0891b2;
+  /* Kart ve panel gölgesi */
+  --golge: 0 2px 8px rgb(60 40 130 / 0.07), 0 10px 24px rgb(60 40 130 / 0.06);
   --radius: 16px;
   --radius-sm: 10px;
   --font: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 *,
@@ -46,10 +51,13 @@ body {
   min-height: 100dvh;
   /* Yan taşma olursa sayfa yatay kaymasın */
   overflow-x: hidden;
+  /* Üstte iki yumuşak renk lekesi: sayfa düz beyaz kalmasın, neşeli dursun */
   background:
-    radial-gradient(1100px 620px at 10% -12%, #2b1e5c 0%, transparent 60%),
-    radial-gradient(900px 520px at 100% 0%, #0d3b4d 0%, transparent 55%),
+    radial-gradient(900px 480px at 8% -10%, #ddd0ff 0%, transparent 62%),
+    radial-gradient(760px 420px at 100% -4%, #cfeeff 0%, transparent 58%),
+    radial-gradient(620px 380px at 50% 108%, #ffe6f2 0%, transparent 60%),
     var(--bg);
+  background-attachment: fixed;
   color: var(--text);
   font-family: var(--font);
   -webkit-font-smoothing: antialiased;

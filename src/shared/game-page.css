@@ -7,6 +7,11 @@
   /* Oyun başlığının gradyan renkleri; oyun kendi CSS dosyasında ezer. */
   --game-a: var(--accent);
   --game-b: #f2b179;
+  /*
+   * Metin rengi: aydınlık zeminde oyunun açık rengi (--game-a) okunmuyor
+   * (51 oyunun hepsi 4.5 kontrastın altında). Koyu renkten türetiyoruz.
+   */
+  --game-yazi: color-mix(in srgb, var(--game-b) 50%, #171233);
 }
 
 .game-shell {
@@ -123,7 +128,8 @@
   font-size: clamp(2.2rem, 9vw, 3.2rem);
   line-height: 1;
   letter-spacing: -0.03em;
-  background: linear-gradient(140deg, var(--game-a) 0%, var(--game-b) 100%);
+  /* Aydınlık zeminde açık uçtan başlayan gradyan okunmuyor: iki uç da koyu */
+  background: linear-gradient(140deg, var(--game-yazi) 0%, color-mix(in srgb, var(--game-a) 45%, #171233) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -376,7 +382,7 @@
 }
 
 .status-chip b {
-  color: var(--game-a);
+  color: var(--game-yazi);
   font-variant-numeric: tabular-nums;
 }
 
@@ -394,9 +400,9 @@
 }
 
 .toolbar .btn[aria-pressed='true'] {
-  background: var(--game-a);
-  border-color: var(--game-a);
-  color: #241f1a;
+  background: var(--game-yazi);
+  border-color: var(--game-yazi);
+  color: #fff;
 }
 
 /* Kelime listesi / ipucu listesi gibi paneller */
@@ -468,7 +474,7 @@
 }
 
 .clue-list li .no {
-  color: var(--game-a);
+  color: var(--game-yazi);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -516,9 +522,9 @@
 
 /* Aç/kapa tuşu açıkken (Sudoku kalem modu) */
 .keypad-key.is-pressed {
-  background: var(--game-a);
-  border-color: var(--game-a);
-  color: #16130f;
+  background: var(--game-yazi);
+  border-color: var(--game-yazi);
+  color: #fff;
 }
 
 .keypad-key.is-correct {
@@ -728,9 +734,9 @@
 
 .tablo-sekme button[aria-pressed='true'],
 .tablo-donem button[aria-pressed='true'] {
-  background: var(--game-a);
-  border-color: var(--game-a);
-  color: #16130f;
+  background: var(--game-yazi);
+  border-color: var(--game-yazi);
+  color: #fff;
 }
 
 .tablo-sekme button[hidden],
@@ -760,6 +766,6 @@
 }
 
 .scoreboard li.is-ben {
-  outline: 1px solid var(--game-a);
+  outline: 1px solid var(--game-yazi);
   outline-offset: -1px;
 }
