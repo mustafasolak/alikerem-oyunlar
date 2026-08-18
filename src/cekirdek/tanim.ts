@@ -72,15 +72,24 @@ export interface OyunTanimi {
   etiketler: string[]
   /** Başlık gradyanı: [--game-a, --game-b] */
   renk: [string, string]
-  tuval: {
+  /** Dış bağlantılı oyunlarda bulunmaz. */
+  tuval?: {
     genislik: number
     yukseklik: number
     /** Tuval dışındaki arayüzün kapladığı dikey alan (px). */
     disPay: number
   }
   arayuz?: Arayuz
-  /** Tembel: oyun açılana kadar sahne kodu indirilmez. */
-  sahne: () => Promise<{ GameScene: SahneYapici }>
+  /**
+   * Tembel: oyun açılana kadar sahne kodu indirilmez.
+   * Dış bağlantılı oyunlarda bulunmaz.
+   */
+  sahne?: () => Promise<{ GameScene: SahneYapici }>
+  /**
+   * Ayrı bir adreste çalışan oyun. Verilirse kart doğrudan oraya götürür;
+   * `sahne` ve `tuval` aranmaz. Kodu bu depoya girmeyen kardeş projeler için.
+   */
+  disAdres?: string
 }
 
 /** Sadece tip güvenliği için; çalışma zamanında nesneyi aynen döner. */

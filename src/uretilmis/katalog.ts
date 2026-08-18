@@ -1619,6 +1619,25 @@ export const KATALOG: KatalogKaydi[] = [
     }
   },
   {
+    "id": "robicraft",
+    "ad": "Robicraft",
+    "ozet": "Küp küp kendi dünyanı kur, kaz ve inşa et.",
+    "aciklama": "Voxel dünyasında kaz, küp yerleştir, istediğini inşa et.",
+    "ipucu": "Oyun ayrı bir sekmede açılır.",
+    "emoji": "🧱",
+    "kategori": "yerlestirme",
+    "etiketler": [
+      "Voxel",
+      "İnşa",
+      "Serbest"
+    ],
+    "renk": [
+      "#65a30d",
+      "#14532d"
+    ],
+    "disAdres": "https://robiminecraft-production.up.railway.app/"
+  },
+  {
     "id": "rubik",
     "ad": "Rubik Küpü",
     "ozet": "Açılmış küpte yüzleri çevirip altı rengi topla.",

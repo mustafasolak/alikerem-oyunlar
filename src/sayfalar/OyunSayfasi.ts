@@ -36,7 +36,15 @@ export async function oyunSayfasi(id: string): Promise<Temizleyici> {
 
   const kayit = KATALOG_HARITASI.get(id)
   const yukleyici = yukleyiciBul(id)
-  if (!kayit || !yukleyici) {
+
+  // Dış bağlantılı oyun: burada sahne kurulmaz, doğrudan kendi adresine gider.
+  // (Karta tıklayınca zaten oraya gidiliyor; bu, adresi elle yazan için.)
+  if (kayit?.disAdres) {
+    window.location.replace(kayit.disAdres)
+    return () => {}
+  }
+
+  if (!kayit || !yukleyici || !kayit.tuval) {
     kok.innerHTML = `
       <div class="wrap bos-durum">
         <h1>Oyun bulunamadı</h1>
@@ -62,16 +70,18 @@ export async function oyunSayfasi(id: string): Promise<Temizleyici> {
 
   try {
     const tanim = (await yukleyici()).default
+    if (!tanim.sahne) throw new Error(`${id}: sahne yükleyicisi yok`)
     const { GameScene } = await tanim.sahne()
     if (iptal) return () => {}
 
     sahneKutusu?.classList.remove('yukleniyor')
     const oran = cizimOrani()
+    const tuval = kayit.tuval
     oyun = new Phaser.Game({
       type: Phaser.AUTO,
       parent: 'game',
-      width: kayit.tuval.genislik * oran,
-      height: kayit.tuval.yukseklik * oran,
+      width: tuval.genislik * oran,
+      height: tuval.yukseklik * oran,
       transparent: true,
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
       scene: [GameScene as unknown as typeof Phaser.Scene],
@@ -83,7 +93,7 @@ export async function oyunSayfasi(id: string): Promise<Temizleyici> {
       const kamerayiAyarla = (): void => {
         for (const sahne of oyun?.scene.getScenes(false) ?? []) {
           sahne.cameras.main?.setZoom(oran)
-          sahne.cameras.main?.centerOn(kayit.tuval.genislik / 2, kayit.tuval.yukseklik / 2)
+          sahne.cameras.main?.centerOn(tuval.genislik / 2, tuval.yukseklik / 2)
         }
       }
       oyun.events.once(Phaser.Core.Events.READY, kamerayiAyarla)

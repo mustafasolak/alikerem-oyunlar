@@ -137,6 +137,7 @@ export function temayiUygula(oyun: KatalogKaydi): void {
   const kok = document.documentElement.style
   kok.setProperty('--game-a', oyun.renk[0])
   kok.setProperty('--game-b', oyun.renk[1])
+  if (!oyun.tuval) return
   kok.setProperty('--game-aspect', String(oyun.tuval.genislik / oyun.tuval.yukseklik))
   kok.setProperty('--chrome', `${oyun.tuval.disPay}px`)
 }

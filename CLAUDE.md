@@ -71,6 +71,13 @@ Klasör açılır, gerisi otomatik: katalog kaydı, sayfa kabuğu, adres, kart.
 **Elle kayıt tutulan hiçbir liste yok.** Kategoriler: arcade · mantik · kelime ·
 kagit · dikkat · yerlestirme.
 
+### Dış bağlantılı oyun
+Başka bir adreste çalışan oyun için `oyun.ts` içinde `sahne` ve `tuval` yerine
+`disAdres` verilir. Kart doğrudan o adrese götürür (ayrı sekme), `#/oyun/<id>`
+adresi de oraya yönlendirir. Kodu bu depoya girmeyen kardeş projeler böyle
+eklenir; sözleşme testi https zorunluluğunu ve `sahne`/`tuval` bulunmamasını
+denetler.
+
 ## Yayın
 
 İki hedef birden desteklenir:
@@ -148,7 +155,7 @@ yönlendirmelerle korunuyor; kırılmasınlar diye silinmemeli.
 - [x] Telefon uyumu: yatay taşma yok, tahta ilk ekrana sığıyor
 - [x] Herkese açık ortak skor tablosu (Vercel + Neon Postgres, günlük/haftalık/aylık)
 
-### Oyunlar — 52'si de oynanabilir
+### Oyunlar — 53'ü de oynanabilir
 Arcade: 2048 · Yılan · Tetris · Match-3 · Şeker Patlatma · Bubble Shooter · Zuma ·
   Kale Savunması
 Mantık: Sudoku · Mayın Tarlası · Nonogram · Kakuro · Lights Out · Mantık Kapıları ·
@@ -160,6 +167,7 @@ Kâğıt/eşleştirme: Solitaire · Spider · FreeCell · Mahjong · Hafıza Kar
 Renk ayırma: Top Sıralama · Renk Sıralama · Su Şişesi
 Dikkat: Farkları Bul · Gizli Nesne · Resim Tamamlama
 Diğer: Mastermind · Labirent · Matematik Bulmacası · Sayı Piramidi
+Dış bağlantı: Robicraft (ayrı depo, Railway'de barınıyor)
 
 ### Kalan işler
 - [x] Sudoku'da kalem notları

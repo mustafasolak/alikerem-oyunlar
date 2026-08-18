@@ -132,18 +132,25 @@ export function katalogSayfasi(): Temizleyici {
 
   function kart(o: KatalogKaydi): string {
     const enIyi = bestEntryOf(o.id)
-    const rekor = enIyi
-      ? `<span class="record"><span aria-hidden="true">🏆</span> ${kacir(enIyi.name)} · ${enIyi.score}</span>`
-      : '<span class="record record--empty">Henüz skor yok</span>'
+    // Dış bağlantılı oyun ayrı sekmede açılır; skoru bu sitede tutulmaz.
+    const rekor = o.disAdres
+      ? '<span class="record record--empty">Ayrı sekmede açılır</span>'
+      : enIyi
+        ? `<span class="record"><span aria-hidden="true">🏆</span> ${kacir(enIyi.name)} · ${enIyi.score}</span>`
+        : '<span class="record record--empty">Henüz skor yok</span>'
+    const git = o.disAdres ? 'Aç ↗' : 'Oyna →'
+    const adres = o.disAdres
+      ? `href="${kacir(o.disAdres)}" target="_blank" rel="noopener noreferrer"`
+      : `href="#/oyun/${o.id}"`
     const fav = favoriMi(o.id)
     return `
       <div class="card-sarmal">
-        <a class="card" href="#/oyun/${o.id}" style="--kart-a:${o.renk[0]};--kart-b:${o.renk[1]}">
+        <a class="card" ${adres} style="--kart-a:${o.renk[0]};--kart-b:${o.renk[1]}">
           <div class="card-art" aria-hidden="true">${o.emoji}</div>
           <h2>${kacir(o.ad)}</h2>
           <p>${kacir(o.ozet)}</p>
           <ul class="tags">${o.etiketler.map((e) => `<li>${kacir(e)}</li>`).join('')}</ul>
-          <div class="card-foot">${rekor}<span class="go">Oyna →</span></div>
+          <div class="card-foot">${rekor}<span class="go">${git}</span></div>
         </a>
         <button class="favori ${fav ? 'is-on' : ''}" type="button" data-favori="${o.id}"
           aria-label="${fav ? 'Favorilerden çıkar' : 'Favorilere ekle'}">${fav ? '★' : '☆'}</button>

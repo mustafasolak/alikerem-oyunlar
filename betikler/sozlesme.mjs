@@ -63,6 +63,14 @@ for (const dosya of dosyalar) {
   if (!Array.isArray(t.renk) || t.renk.length !== 2) bildir('renk ikilisi eksik')
   else for (const r of t.renk) if (!/^#[0-9a-f]{6}$/i.test(r)) bildir(`geçersiz renk: ${r}`)
 
+  // Dış bağlantılı oyun: kodu burada değil, tuval ve sahne aranmaz.
+  if (t.disAdres) {
+    if (!/^https:\/\/[^\s]+$/.test(t.disAdres)) bildir(`disAdres https adresi olmalı: ${t.disAdres}`)
+    if (t.sahne) bildir('dış bağlantılı oyunda sahne bulunmamalı')
+    if (t.tuval) bildir('dış bağlantılı oyunda tuval bulunmamalı')
+    continue
+  }
+
   const tuval = t.tuval ?? {}
   if (!(tuval.genislik > 0 && tuval.yukseklik > 0)) bildir('tuval ölçüsü geçersiz')
   else {
