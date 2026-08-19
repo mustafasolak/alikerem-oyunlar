@@ -36,7 +36,7 @@ import {
   ZORLUKLAR,
   patronDalgasiMi,
 } from '../config/constants.ts'
-import { acikDunyaSayisi, dunyaAcikMi, oldurulenEkle, sonrakiDunyayaKalan } from '../systems/Ilerleme.ts'
+import { acikDunyaSayisi, dunyaAcikMi, dunyayaKalan, oldurulenEkle, sonrakiDunyayaKalan } from '../systems/Ilerleme.ts'
 import { KaleSavunmasi, type Isabet } from '../systems/KaleSavunmasi.ts'
 import { ArkaPlan } from './ArkaPlan.ts'
 import { CanavarGorunumu } from './CanavarGorunumu.ts'
@@ -168,8 +168,8 @@ export class GameScene extends TemelSahne {
 
   /** Kilitli dünyaların düğmesini kapatır, kalan sayıyı yazar. */
   private dunyalariTazele(): void {
-    const kalan = sonrakiDunyayaKalan()
     for (let sira = 0; sira < DUNYALAR.length; sira++) {
+      const kalan = dunyayaKalan(sira)
       const dugme = document.querySelector<HTMLButtonElement>(`#dunya button[data-dunya="${sira}"]`)
       if (!dugme) continue
       const acik = dunyaAcikMi(sira)

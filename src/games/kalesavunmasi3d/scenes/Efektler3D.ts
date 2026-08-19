@@ -111,8 +111,18 @@ export class Efektler3D {
     })
   }
 
-  /** Bomba: menzili gösteren büyüyüp sönen küre. */
+  /** Bomba: içte kısa bir parlama, dışta menzili gösteren küre. */
   patlama(konum: THREE.Vector3, yaricap: number, renk: number): void {
+    const parlama = new THREE.Mesh(
+      new THREE.SphereGeometry(yaricap * 0.42, 12, 10),
+      malzeme(0xfff7ed, { saydam: 0.9, isik: 0xfb923c }),
+    )
+    parlama.position.copy(konum)
+    this.ekle(parlama, PATLAMA_MS * 0.45, (nesne, oran) => {
+      nesne.scale.setScalar(0.5 + oran * 0.9)
+      ;((nesne as THREE.Mesh).material as THREE.MeshLambertMaterial).opacity = 0.9 * (1 - oran)
+    })
+
     const kure = new THREE.Mesh(new THREE.SphereGeometry(yaricap, 14, 10), malzeme(renk, { saydam: 0.34, isik: renk }))
     kure.position.copy(konum)
     kure.scale.setScalar(0.4)

@@ -193,7 +193,7 @@ Dış bağlantı: Robicraft (ayrı depo, Railway'de barınıyor)
 - [x] Kale Savunması: kule tipleri (okçu / bombacı-alan / büyücü-zırh delici), 5 yuva
 - [x] Kale Savunması: kritik vuruş, hasar sayıları, sürekli can barları
 - [x] Kale Savunması 3B: three.js ile üç boyutlu sürüm (mantık paylaşılıyor)
-- [ ] Kale Savunması: 3. dünya (DUNYALAR tablosuna satır eklemek yeterli)
+- [x] Kale Savunması: 3. dünya (Ateş Diyarı — zırhlı canavarlar, gece başlar)
 - [ ] Mahjong tek katmanlı — gerçek kat yapısı yok
 - [ ] Tangram parçaları hâlâ kare — gerçek tangram parçaları çizilmeli
 - [x] Yönetim paneli (#/yonetim) — gizleme, ana sayfa vitrini, skor denetimi, istatistik

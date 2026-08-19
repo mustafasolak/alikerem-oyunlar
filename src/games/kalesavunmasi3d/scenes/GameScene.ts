@@ -15,6 +15,7 @@
 import * as THREE from 'three'
 
 import { setChip } from '../../../shared/dom.ts'
+import { readScore, writeScore } from '../../../shared/safeStorage.ts'
 import { sesler } from '../../../shared/Sesler.ts'
 import { UcBoyutSahne } from '../../../shared/UcBoyutSahne.ts'
 import {
@@ -36,7 +37,14 @@ import {
 } from '../../kalesavunmasi/config/constants.ts'
 import { acikDunyaSayisi, dunyaAcikMi, oldurulenEkle, sonrakiDunyayaKalan } from '../../kalesavunmasi/systems/Ilerleme.ts'
 import { KaleSavunmasi, type Isabet } from '../../kalesavunmasi/systems/KaleSavunmasi.ts'
-import { KAMERALAR, KAMERA_YUMUSAMA, ZEMIN_NISAN_PAYI, type KameraAyari, yukseklik } from '../config/sahne3d.ts'
+import {
+  KAMERALAR,
+  KAMERA_YUMUSAMA,
+  ZEMIN_NISAN_PAYI,
+  kaliteSec,
+  type KameraAyari,
+  yukseklik,
+} from '../config/sahne3d.ts'
 import { Atislar3D } from './Atislar3D.ts'
 import { Bildirim3D } from './Bildirim3D.ts'
 import { Dukkan3D, type DukkanSatiri } from './Dukkan3D.ts'
@@ -51,6 +59,8 @@ import { Paneller3D } from './Paneller3D.ts'
 
 /** Kritik hasar yazısının büyüklük çarpanı. */
 const KRITIK_OLCEK = 1.5
+/** Seçilen kamera açısı burada saklanıyor; sıfır anlamsız olmasın diye +1. */
+const KAMERA_ANAHTARI = 'kalesavunmasi3d:kamera'
 
 export class GameScene extends UcBoyutSahne {
   private readonly oyun = new KaleSavunmasi()
@@ -98,12 +108,16 @@ export class GameScene extends UcBoyutSahne {
   }
 
   protected kur(): void {
-    this.gercekGolge = window.innerWidth >= GENIS_EKRAN_ESIGI
+    const kalite = kaliteSec(window.innerWidth, navigator.hardwareConcurrency ?? 4, GENIS_EKRAN_ESIGI)
+    this.gercekGolge = kalite.golge
+    this.cizici.setPixelRatio(Math.min(window.devicePixelRatio, kalite.piksel))
     if (this.gercekGolge) {
       this.cizici.shadowMap.enabled = true
       this.cizici.shadowMap.type = THREE.PCFSoftShadowMap
     }
-    this.dunya = new Dunya3D(this.sahne, this.gercekGolge)
+    // Son seçilen kamera açısı hatırlansın.
+    this.kameraSira = Math.max(0, Math.min(KAMERALAR.length - 1, readScore(KAMERA_ANAHTARI) - 1))
+    this.dunya = new Dunya3D(this.sahne, kalite)
     this.kale = new Kale3D(this.sahne, this.gercekGolge)
     this.kuleAlani = new Kuleler3D(this.sahne, this.gercekGolge)
     this.kuleMenu = new KuleMenu3D(this.sahne)
@@ -162,6 +176,7 @@ export class GameScene extends UcBoyutSahne {
     this.kuleMenu.kapat()
     this.dukkaniKapat()
     this.dunya.sifirla(1, DUNYALAR[this.oyun.dunyaSira].vakitBaslangic)
+    this.mesaleleriAyarla()
     this.bildirim.temizle()
     this.onizleme.gizle()
 
@@ -182,7 +197,7 @@ export class GameScene extends UcBoyutSahne {
     // Arka plan, kule animasyonu ve dükkân duraklamada da canlı: beklerken alışveriş yapılır.
     this.kamerayiSuzdur(delta)
     this.dunya.guncelle(delta)
-    this.kale.guncelle(delta)
+    this.kale.guncelle(delta, this.kamera.quaternion)
     this.kuleAlani.guncelle(delta)
     this.kuleAlani.tazele(this.oyun.kuleler)
     this.menuyuTazele()
@@ -244,6 +259,7 @@ export class GameScene extends UcBoyutSahne {
   /** 🎥 tuşu: sıradaki açıya geçer. Geçiş yumuşak, dünya gözle döner. */
   private kameraDegistir(): void {
     this.kameraSira = (this.kameraSira + 1) % KAMERALAR.length
+    writeScore(KAMERA_ANAHTARI, this.kameraSira + 1)
     this.kamerayiOturt()
     sesler.tik()
     this.bildir(`🎥 ${this.kameraAyari.ad}`)
@@ -640,11 +656,17 @@ export class GameScene extends UcBoyutSahne {
   private dalgaBasladi(dalga: number): void {
     setChip('wave', dalga)
     this.dunya.vakitGuncelle(dalga, DUNYALAR[this.oyun.dunyaSira].vakitBaslangic)
+    this.mesaleleriAyarla()
     this.bildir(patronDalgasiMi(dalga) ? `Dalga ${dalga} · ŞEF geliyor!` : `Dalga ${dalga}`)
     sesler.otur()
     if (this.baslamisMi) return
     this.sayac.basla()
     this.baslamisMi = true
+  }
+
+  /** Vakit ilerledikçe meşaleler güçlenir: gündüz sönük, gece tam. */
+  private mesaleleriAyarla(): void {
+    this.kale.isikAyari(this.dunya.vakitSirasi / 2)
   }
 
   private dalgaBitti(dalga: number): void {
@@ -687,6 +709,7 @@ export class GameScene extends UcBoyutSahne {
   private gostergeleriTazele(): void {
     this.nisaniCiz()
     this.kale.nisanla(this.oyun.aci)
+    this.kale.canGoster(this.oyun.kaleCani, this.oyun.maxKaleCani)
     this.atislar.kamerayaBak(this.kamera.quaternion)
     setChip('castle', this.oyun.kaleCani)
     setChip('gold', this.oyun.altin)

@@ -17,7 +17,7 @@ import {
   YUKSELTMELER,
   ZORLUKLAR,
 } from '../../kalesavunmasi/config/constants.ts'
-import { dunyaAcikMi, sonrakiDunyayaKalan } from '../../kalesavunmasi/systems/Ilerleme.ts'
+import { dunyaAcikMi, dunyayaKalan } from '../../kalesavunmasi/systems/Ilerleme.ts'
 import type { KaleSavunmasi } from '../../kalesavunmasi/systems/KaleSavunmasi.ts'
 import { butonGrubu } from '../../../shared/dom.ts'
 
@@ -74,8 +74,8 @@ export class Paneller3D {
 
   /** Kilitli dünyaların düğmesini kapatır, kalan sayıyı yazar. */
   dunyalariTazele(): void {
-    const kalan = sonrakiDunyayaKalan()
     for (let sira = 0; sira < DUNYALAR.length; sira++) {
+      const kalan = dunyayaKalan(sira)
       const dugme = document.querySelector<HTMLButtonElement>(`#dunya button[data-dunya="${sira}"]`)
       if (!dugme) continue
       const acik = dunyaAcikMi(sira)

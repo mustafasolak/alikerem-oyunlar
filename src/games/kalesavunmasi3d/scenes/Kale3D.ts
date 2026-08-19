@@ -34,12 +34,26 @@ import {
   MIZRAKCI_BOY,
   yukseklik,
 } from '../config/sahne3d.ts'
-import { golgeVer, koni, kure, kutu, malzeme, silindir } from './yapi.ts'
+import { duz, golgeVer, koni, kure, kutu, malzeme, silindir } from './yapi.ts'
 
 /** Sarsıntının en büyük kayması (dünya birimi). */
 const SARSINTI_GUC = 7
 /** Atış hareketinin süresi (ms). */
 const ATIS_MS = 220
+/** Kale can barının ölçüsü ve kapının üstündeki yüksekliği. */
+const BAR_EN = 170
+const BAR_BOY = 16
+const BAR_PAY = 58
+/** Çatlaklar bu can oranlarının altında görünür. */
+const CATLAK_ESIKLERI = [0.66, 0.4, 0.18]
+/** Duman bu can oranının altında tütmeye başlar. */
+const DUMAN_ESIGI = 0.45
+const DUMAN_ADET = 5
+/** Bir duman yumağının yükselme süresi (ms). */
+const DUMAN_MS = 2600
+/** Meşale ışığının gece gücü ve menzili. */
+const MESALE_ISIK_GUCU = 2.6
+const MESALE_MENZIL = 420
 /** Kolun atarken savurduğu açı (derece). */
 const SAVURMA = 52
 
@@ -51,6 +65,13 @@ export class Kale3D {
   private readonly duvarUstu: number
   private readonly onKol: THREE.Group
   private readonly mesaleler: THREE.Mesh[] = []
+  private readonly mesaleIsiklari: THREE.PointLight[] = []
+  private readonly catlaklar: THREE.Mesh[] = []
+  private readonly dumanlar: THREE.Mesh[] = []
+  private readonly barGrubu = new THREE.Group()
+  private readonly barDolu: THREE.Mesh
+  private dumanTutuyor = false
+  private dumanFaz = 0
   private sarsintiKalan = 0
   private atisKalan = 0
   private aci = 0
@@ -110,10 +131,17 @@ export class Kale3D {
       const ates = kure(11, malzeme(COLORS.MESALE, { isik: COLORS.MESALE }), 8)
       ates.position.set(sap.position.x, KAPI_BOY * 0.8 + 20, KALE_Z2 + 6)
       this.mesaleler.push(ates)
-      this.kok.add(sap, ates)
+      // Gece meşale çevreyi gerçekten aydınlatsın; gündüz sönük durur.
+      const isik = new THREE.PointLight(COLORS.MESALE, 0, MESALE_MENZIL, 2)
+      isik.position.copy(ates.position)
+      this.mesaleIsiklari.push(isik)
+      this.kok.add(sap, ates, isik)
     }
 
     this.onKol = this.mizrakciyiKur()
+    this.barDolu = this.canBariniKur()
+    this.catlaklariKur()
+    this.dumanlariKur()
     if (gercekGolge) golgeVer(this.kok, true, true)
   }
 
@@ -133,7 +161,29 @@ export class Kale3D {
     this.sarsintiKalan = KALE_SARSINTI_MS
   }
 
-  guncelle(delta: number): void {
+  /** Kale canı: bar, çatlaklar ve duman buna göre. */
+  canGoster(can: number, maxCan: number): void {
+    const oran = Math.max(0, Math.min(1, maxCan > 0 ? can / maxCan : 0))
+    this.barDolu.scale.x = Math.max(0.001, oran)
+    this.barDolu.position.x = -(BAR_EN * (1 - oran)) / 2
+    ;(this.barDolu.material as THREE.MeshBasicMaterial).color.setHex(
+      oran > 0.5 ? 0x22c55e : oran > 0.25 ? 0xf59e0b : 0xef4444,
+    )
+    for (let i = 0; i < this.catlaklar.length; i++) {
+      this.catlaklar[i].visible = oran <= CATLAK_ESIKLERI[i]
+    }
+    this.dumanTutuyor = oran <= DUMAN_ESIGI
+    if (!this.dumanTutuyor) for (const duman of this.dumanlar) duman.visible = false
+  }
+
+  /** Vakte göre meşale ışığı (0 gündüz, 1 gece). */
+  isikAyari(gecelik: number): void {
+    for (const isik of this.mesaleIsiklari) isik.intensity = MESALE_ISIK_GUCU * gecelik
+  }
+
+  guncelle(delta: number, kameraYonu?: THREE.Quaternion): void {
+    if (kameraYonu) this.barGrubu.quaternion.copy(kameraYonu)
+    this.dumaniIlerlet(delta)
     if (this.sarsintiKalan > 0) {
       this.sarsintiKalan -= delta
       const guc = Math.max(0, this.sarsintiKalan / KALE_SARSINTI_MS) * SARSINTI_GUC
@@ -147,6 +197,70 @@ export class Kale3D {
     this.titrek += delta
     const parlaklik = 0.75 + 0.25 * Math.sin((this.titrek / MESALE_SALINIM_MS) * Math.PI * 2)
     for (const ates of this.mesaleler) ates.scale.setScalar(parlaklik)
+  }
+
+  /** Yükselip sönen duman yumakları; yalnız kale ağır hasarlıyken görünür. */
+  private dumaniIlerlet(delta: number): void {
+    if (!this.dumanTutuyor) return
+    this.dumanFaz += delta
+    for (let i = 0; i < this.dumanlar.length; i++) {
+      const duman = this.dumanlar[i]
+      const oran = (((this.dumanFaz + (i * DUMAN_MS) / DUMAN_ADET) % DUMAN_MS) / DUMAN_MS)
+      duman.visible = true
+      duman.position.y = this.duvarUstu + 10 + oran * 130
+      duman.scale.setScalar(0.5 + oran * 1.6)
+      ;(duman.material as THREE.MeshBasicMaterial).opacity = 0.32 * (1 - oran)
+    }
+  }
+
+  /**
+   * Kapının üstündeki can barı.
+   *
+   * Derinlik sınamasız çiziliyor: bar kameraya dönerken bir kenarı duvarın
+   * içine girip yarısı kayboluyordu, yukarı taşıyınca da çerçeveden çıkıyordu.
+   * Bu bir gösterge, arayüz gibi hep üstte dursun.
+   */
+  private canBariniKur(): THREE.Mesh {
+    const arka = kutu(BAR_EN + 4, BAR_BOY + 4, 1, duz(0x0f172a))
+    const dolu = kutu(BAR_EN, BAR_BOY, 1, duz(0x22c55e))
+    dolu.position.z = 1
+    for (const parca of [arka, dolu]) {
+      const m = parca.material as THREE.MeshBasicMaterial
+      m.depthTest = false
+      m.depthWrite = false
+      parca.renderOrder = 6
+    }
+    this.barGrubu.add(arka, dolu)
+    this.barGrubu.position.set(0, KAPI_BOY + BAR_PAY, KALE_Z2 + 14)
+    this.kok.add(this.barGrubu)
+    return dolu
+  }
+
+  /** Can azaldıkça beliren çatlaklar: duvarın hasarı gözle görünsün. */
+  private catlaklariKur(): void {
+    const yerler = [
+      { x: -KALE_YARI_EN * 0.55, y: this.duvarUstu * 0.62, aci: 0.35 },
+      { x: KALE_YARI_EN * 0.5, y: this.duvarUstu * 0.45, aci: -0.5 },
+      { x: -KALE_YARI_EN * 0.15, y: this.duvarUstu * 0.3, aci: 0.2 },
+    ]
+    for (const yer of yerler) {
+      const catlak = kutu(6, this.duvarUstu * 0.42, 3, 0x0b1220)
+      catlak.position.set(yer.x, yer.y, KALE_Z2 + 1.5)
+      catlak.rotation.z = yer.aci
+      catlak.visible = false
+      this.catlaklar.push(catlak)
+      this.kok.add(catlak)
+    }
+  }
+
+  private dumanlariKur(): void {
+    for (let i = 0; i < DUMAN_ADET; i++) {
+      const duman = kure(16, duz(0x94a3b8, 0.3), 8)
+      duman.position.set((i - DUMAN_ADET / 2) * 40, this.duvarUstu, 0)
+      duman.visible = false
+      this.dumanlar.push(duman)
+      this.kok.add(duman)
+    }
   }
 
   private kolaAciVer(): void {

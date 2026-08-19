@@ -334,6 +334,120 @@ export interface Dunya {
   vakitBaslangic: number
 }
 
+
+/**
+ * Üçüncü dünya: Ateş Diyarı.
+ *
+ * İkinci dünyanın yaklaşık iki katı: zırh burada asıl mesele — obsidyen muhafız
+ * ve alev lordu okçuya neredeyse geçirmiyor, büyücü kulesi (zırh delici) ya da
+ * alev mızrağı gerekiyor. Uçan ejder ilk kez zırhlı geliyor, yani tek kule
+ * yetmiyor. Karşılığında ödül çarpanı yüksek.
+ */
+export const CANAVAR_TIPLERI_3: CanavarTipi[] = [
+  {
+    ad: 'Lav Cini',
+    can: 16,
+    hiz: 56,
+    altin: 32,
+    puan: 80,
+    en: 28,
+    boy: 38,
+    renk: 0xfb923c,
+    vurusHasari: 3,
+    vurusAralikMs: 1200,
+    ilkDalga: 1,
+    zirh: 0,
+    ucar: false,
+    yukseklik: 0,
+    patron: false,
+  },
+  {
+    ad: 'Cehennem Tazısı',
+    can: 26,
+    hiz: 66,
+    altin: 45,
+    puan: 120,
+    en: 36,
+    boy: 34,
+    renk: 0x991b1b,
+    vurusHasari: 5,
+    vurusAralikMs: 1000,
+    ilkDalga: 2,
+    zirh: 1,
+    ucar: false,
+    yukseklik: 0,
+    patron: false,
+  },
+  {
+    ad: 'Obsidyen Muhafız',
+    can: 60,
+    hiz: 20,
+    altin: 95,
+    puan: 250,
+    en: 42,
+    boy: 60,
+    renk: 0x334155,
+    vurusHasari: 9,
+    vurusAralikMs: 1900,
+    ilkDalga: 3,
+    zirh: 6,
+    ucar: false,
+    yukseklik: 0,
+    patron: false,
+  },
+  {
+    ad: 'Ateş Ejderi',
+    can: 46,
+    hiz: 62,
+    altin: 90,
+    puan: 240,
+    en: 38,
+    boy: 34,
+    renk: 0xf59e0b,
+    vurusHasari: 7,
+    vurusAralikMs: 1200,
+    ilkDalga: 4,
+    zirh: 2,
+    ucar: true,
+    yukseklik: 110,
+    patron: false,
+  },
+  {
+    ad: 'Magma Devi',
+    can: 80,
+    hiz: 22,
+    altin: 120,
+    puan: 320,
+    en: 50,
+    boy: 70,
+    renk: 0xea580c,
+    vurusHasari: 12,
+    vurusAralikMs: 2000,
+    ilkDalga: 5,
+    zirh: 3,
+    ucar: false,
+    yukseklik: 0,
+    patron: false,
+  },
+  {
+    ad: 'Alev Lordu',
+    can: 340,
+    hiz: 12,
+    altin: 600,
+    puan: 1800,
+    en: 68,
+    boy: 92,
+    renk: 0x7f1d1d,
+    vurusHasari: 16,
+    vurusAralikMs: 2400,
+    ilkDalga: 5,
+    zirh: 7,
+    ucar: false,
+    yukseklik: 0,
+    patron: true,
+  },
+]
+
 export const DUNYALAR: Dunya[] = [
   {
     ad: 'Yeşil Ovalar',
@@ -350,6 +464,15 @@ export const DUNYALAR: Dunya[] = [
     kaleCani: 40,
     odulCarpani: 1.6,
     vakitBaslangic: 1,
+  },
+  {
+    ad: 'Ateş Diyarı',
+    kisaAd: 'Dünya 3',
+    canavarlar: CANAVAR_TIPLERI_3,
+    kaleCani: 55,
+    odulCarpani: 2.4,
+    // Gece başlar: alev diyarı hep karanlıkta.
+    vakitBaslangic: 2,
   },
 ]
 

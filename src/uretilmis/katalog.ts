@@ -841,7 +841,7 @@ export const KATALOG: KatalogKaydi[] = [
         {
           "id": "dunya",
           "baslik": "Dünya",
-          "ic": "<details class=\"katlanir\"><summary>Dünya 1 · Dünya 2</summary><div class=\"toolbar\"><button class=\"btn\" type=\"button\" data-dunya=\"0\">Dünya 1</button><button class=\"btn\" type=\"button\" data-dunya=\"1\">Dünya 2</button></div></details>"
+          "ic": "<details class=\"katlanir\"><summary>Dünya 1 · Dünya 2 · Dünya 3</summary><div class=\"toolbar\"><button class=\"btn\" type=\"button\" data-dunya=\"0\">Dünya 1</button><button class=\"btn\" type=\"button\" data-dunya=\"1\">Dünya 2</button><button class=\"btn\" type=\"button\" data-dunya=\"2\">Dünya 3</button></div></details>"
         },
         {
           "id": "malzeme",
@@ -942,7 +942,7 @@ export const KATALOG: KatalogKaydi[] = [
         {
           "id": "dunya",
           "baslik": "Dünya",
-          "ic": "<details class=\"katlanir\"><summary>Dünya 1 · Dünya 2</summary><div class=\"toolbar\"><button class=\"btn\" type=\"button\" data-dunya=\"0\">Dünya 1</button><button class=\"btn\" type=\"button\" data-dunya=\"1\">Dünya 2</button></div></details>"
+          "ic": "<details class=\"katlanir\"><summary>Dünya 1 · Dünya 2 · Dünya 3</summary><div class=\"toolbar\"><button class=\"btn\" type=\"button\" data-dunya=\"0\">Dünya 1</button><button class=\"btn\" type=\"button\" data-dunya=\"1\">Dünya 2</button><button class=\"btn\" type=\"button\" data-dunya=\"2\">Dünya 3</button></div></details>"
         },
         {
           "id": "malzeme",

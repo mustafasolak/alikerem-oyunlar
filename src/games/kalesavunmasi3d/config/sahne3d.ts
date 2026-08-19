@@ -204,6 +204,29 @@ export const SIS_UZAK = 3400
 
 // --- Süs ---
 
+/**
+ * Cihaza göre kalite.
+ *
+ * Zayıf cihazda süs sayısı, piksel oranı ve gölge birlikte iniyor; oyunun
+ * kendisi hiç değişmiyor. Ölçüt ekran genişliği ve çekirdek sayısı: ikisi de
+ * tarayıcıdan bedava geliyor, gerçek bir kıyaslama koşturmaya gerek yok.
+ */
+export interface Kalite {
+  agac: number
+  tas: number
+  bulut: number
+  /** Tuvalin en çok kaç kat çözünürlükte çizileceği. */
+  piksel: number
+  golge: boolean
+}
+
+export const KALITE_YUKSEK: Kalite = { agac: 14, tas: 18, bulut: 5, piksel: 2, golge: true }
+export const KALITE_DUSUK: Kalite = { agac: 7, tas: 9, bulut: 3, piksel: 1.5, golge: false }
+
+export function kaliteSec(ekranGenisligi: number, cekirdek: number, esik: number): Kalite {
+  return ekranGenisligi >= esik && cekirdek >= 4 ? KALITE_YUKSEK : KALITE_DUSUK
+}
+
 export const AGAC_ADET = 14
 /**
  * Ağaçlar yolun bu kadar dışında, yalnız uzak tarafta durur.

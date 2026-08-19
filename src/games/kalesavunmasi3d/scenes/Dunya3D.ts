@@ -16,7 +16,6 @@ import {
   vakitIndeksi,
 } from '../../kalesavunmasi/config/constants.ts'
 import {
-  AGAC_ADET,
   AGAC_BOY,
   AGAC_UZAKLIK,
   BORDUR_BOY,
@@ -33,10 +32,10 @@ import {
   SAHA_ON,
   SIS_UZAK,
   SIS_YAKIN,
-  TAS_ADET,
   VAKIT_ISIGI,
   YOL_YARI_EN,
 } from '../config/sahne3d.ts'
+import type { Kalite } from '../config/sahne3d.ts'
 import { acik, doseme, golgeVer, koni, kure, kutu, malzeme, silindir } from './yapi.ts'
 
 /**
@@ -51,7 +50,6 @@ const YILDIZ_ADET = 160
 /** Bulutların yüksekliği ve sürüklenme hızı (birim/saniye). */
 const BULUT_Y = 760
 const BULUT_HIZ = 9
-const BULUT_ADET = 5
 /** Gölge haritasının çözünürlüğü ve kapsadığı alanın yarısı. */
 const GOLGE_DOKU = 2048
 const GOLGE_ALAN = 660
@@ -81,7 +79,12 @@ export class Dunya3D {
   private readonly bulutlar: THREE.Group[] = []
   private vakit = -1
 
-  constructor(sahne: THREE.Scene, gercekGolge = false) {
+  private readonly kalite: Kalite
+
+  constructor(sahne: THREE.Scene, kalite: Kalite) {
+    this.kalite = kalite
+    const gercekGolge = kalite.golge
+
     this.sahne = sahne
     sahne.add(this.kok)
 
@@ -164,6 +167,11 @@ export class Dunya3D {
     this.renkleriTazele(VAKITLER[hedef])
   }
 
+  /** Kaçıncı vakit (0 gündüz … 2 gece). */
+  get vakitSirasi(): number {
+    return Math.max(0, this.vakit)
+  }
+
   guncelle(delta: number): void {
     const yol = (BULUT_HIZ * delta) / 1000
     for (const bulut of this.bulutlar) {
@@ -175,7 +183,7 @@ export class Dunya3D {
   // --- Yerleşim ---
 
   private agaclariKur(): void {
-    for (let i = 0; i < AGAC_ADET; i++) {
+    for (let i = 0; i < this.kalite.agac; i++) {
       // Hepsi uzak tarafta: yakın taraftaki ağaç kamerayla yol arasına giriyor.
       const on = i % 3 === 0
       const yon = 1
@@ -212,7 +220,7 @@ export class Dunya3D {
   }
 
   private taslariKur(): void {
-    for (let i = 0; i < TAS_ADET; i++) {
+    for (let i = 0; i < this.kalite.tas; i++) {
       const r = 4 + Math.random() * 9
       const tas = kure(r, 0x94a3b8, 7)
       const yon = Math.random() < 0.25 ? -1 : 1
@@ -229,7 +237,7 @@ export class Dunya3D {
 
   private bulutlariKur(): void {
     const beyaz = malzeme(0xffffff, { saydam: 0.85 })
-    for (let i = 0; i < BULUT_ADET; i++) {
+    for (let i = 0; i < this.kalite.bulut; i++) {
       const bulut = new THREE.Group()
       const parcaAdet = 3 + Math.floor(Math.random() * 3)
       for (let k = 0; k < parcaAdet; k++) {

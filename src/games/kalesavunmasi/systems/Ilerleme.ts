@@ -35,6 +35,16 @@ export function dunyaAcikMi(sira: number, toplam = toplamOldurulen()): boolean {
   return sira < acikDunyaSayisi(toplam)
 }
 
+/**
+ * Belirli bir dünyanın açılmasına kaç canavar kaldı; zaten açıksa 0.
+ *
+ * `sonrakiDunyayaKalan` yalnız bir sonrakini söylüyor; üç dünya olunca kilitli
+ * son dünyanın etiketinde de o sayı yazıyor ve yanlış oluyordu.
+ */
+export function dunyayaKalan(sira: number, toplam = toplamOldurulen()): number {
+  return Math.max(0, sira * DUNYA_ESIGI - toplam)
+}
+
 /** Bir sonraki dünyaya kaç canavar kaldı; hepsi açıksa null. */
 export function sonrakiDunyayaKalan(toplam = toplamOldurulen()): number | null {
   if (acikDunyaSayisi(toplam) >= DUNYALAR.length) return null

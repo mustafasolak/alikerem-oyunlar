@@ -24,12 +24,26 @@ import { birak, koni, kure, malzeme, silindir } from './yapi.ts'
 const OK_YANAL_YOL = 260
 /** Yere saplanan mızrağın yerden yüksekliği. */
 const SAPLANAN_Y = 6
+/** Uçuş izinin boyu ve saydamlığı. */
+const IZ_BOY = 46
+const IZ_SAYDAM = 0.34
 
 interface AtisGorunum {
   kok: THREE.Group
   /** Doğduğu andaki yanal yer. */
   yanal: number
   basX: number
+}
+
+/**
+ * Uçuş izi: cismin arkasında kalan sivri kuyruk.
+ * Nereden geldiği ve ne kadar hızlı gittiği tek bakışta okunuyor.
+ */
+function iz(renk: number, kalinlik: number): THREE.Mesh {
+  const kuyruk = koni(kalinlik, IZ_BOY, malzeme(renk, { saydam: IZ_SAYDAM, isik: renk }), 6)
+  kuyruk.rotation.x = -Math.PI / 2
+  kuyruk.position.z = -IZ_BOY / 2
+  return kuyruk
 }
 
 /** Mızrak gövdesi: sap + uç. Yerel ileri yönü +z. */
@@ -133,7 +147,9 @@ export class Atislar3D {
   /** Mızrak mı, ok mu, gülle mi, büyü topu mu — atışın taşıdığı özelliklerden. */
   private gorunumYap(atis: Atis): AtisGorunum {
     if (atis.tur === 'mizrak') {
-      const kok = mizrakYap(ELEMENT_RENGI[atis.element])
+      const renk = ELEMENT_RENGI[atis.element]
+      const kok = mizrakYap(renk)
+      kok.add(iz(atis.kritik ? 0xfde047 : renk, 3.4))
       // Kritik atış uçarken de belli olsun.
       if (atis.kritik) kok.add(kure(7, malzeme(0xfde047, { saydam: 0.5, isik: 0xfde047 }), 8))
       return { kok, yanal: 0, basX: atis.x }
@@ -141,16 +157,21 @@ export class Atislar3D {
 
     const kok = new THREE.Group()
     if (atis.alan > 0) {
-      kok.add(kure(6, KULE_TIPLERI[1].renk, 8))
+      kok.add(kure(6, KULE_TIPLERI[1].renk, 8), iz(0x78350f, 3.6))
     } else if (atis.zirhDelici) {
-      kok.add(kure(5, malzeme(KULE_TIPLERI[2].renk, { isik: KULE_TIPLERI[2].renk }), 8))
+      const hale = new THREE.Mesh(
+        new THREE.TorusGeometry(9, 1.6, 6, 14),
+        malzeme(KULE_TIPLERI[2].renk, { saydam: 0.75, isik: KULE_TIPLERI[2].renk }),
+      )
+      hale.rotation.y = Math.PI / 2
+      kok.add(kure(5, malzeme(KULE_TIPLERI[2].renk, { isik: KULE_TIPLERI[2].renk }), 8), hale, iz(KULE_TIPLERI[2].renk, 3.2))
     } else {
       const sap = silindir(1.5, 1.5, 20, COLORS.OK_SAP, 5)
       sap.rotation.x = Math.PI / 2
       const uc = koni(3, 8, COLORS.OK_UC, 5)
       uc.rotation.x = Math.PI / 2
       uc.position.z = 14
-      kok.add(sap, uc)
+      kok.add(sap, uc, iz(0xe2e8f0, 2.2))
     }
     return { kok, yanal: KULE_YANAL, basX: atis.x }
   }
