@@ -20,6 +20,8 @@ import { UcBoyutSahne } from '../../../shared/UcBoyutSahne.ts'
 import {
   ACI_ADIM,
   DALGA_BONUSU,
+  HEDEFLEME_KURALLARI,
+  dalgaCanavarSayisi,
   DUNYALAR,
   ELEMENT_ADI,
   ELEMENT_RENGI,
@@ -34,7 +36,7 @@ import {
 } from '../../kalesavunmasi/config/constants.ts'
 import { acikDunyaSayisi, dunyaAcikMi, oldurulenEkle, sonrakiDunyayaKalan } from '../../kalesavunmasi/systems/Ilerleme.ts'
 import { KaleSavunmasi, type Isabet } from '../../kalesavunmasi/systems/KaleSavunmasi.ts'
-import { CERCEVE, KAMERA_HEDEF, KAMERA_PAY, KAMERA_YON, yukseklik } from '../config/sahne3d.ts'
+import { KAMERALAR, KAMERA_YUMUSAMA, ZEMIN_NISAN_PAYI, type KameraAyari, yukseklik } from '../config/sahne3d.ts'
 import { Atislar3D } from './Atislar3D.ts'
 import { Bildirim3D } from './Bildirim3D.ts'
 import { Canavar3D } from './Canavar3D.ts'
@@ -42,6 +44,8 @@ import { Dunya3D } from './Dunya3D.ts'
 import { Efektler3D } from './Efektler3D.ts'
 import { Kale3D } from './Kale3D.ts'
 import { Kuleler3D } from './Kuleler3D.ts'
+import { KuleMenu3D, type MenuDurum, type MenuEylem } from './KuleMenu3D.ts'
+import { Onizleme3D } from './Onizleme3D.ts'
 import { Paneller3D } from './Paneller3D.ts'
 
 /** Kritik hasar yazısının büyüklük çarpanı. */
@@ -55,6 +59,13 @@ export class GameScene extends UcBoyutSahne {
   private efektler!: Efektler3D
   private paneller!: Paneller3D
   private bildirim!: Bildirim3D
+  private kuleMenu!: KuleMenu3D
+  private onizleme!: Onizleme3D
+  /**
+   * Gerçek gölge açık mı? Telefonda kapalı: gölge haritası her karede ikinci
+   * bir çizim demek, orada yassı daire gölgeler yetiyor.
+   */
+  private gercekGolge = false
 
   private readonly canavarGorunumleri = new Map<number, Canavar3D>()
   /** Ölüm animasyonunu sürdüren, mantıkta artık olmayan canavarlar. */
@@ -62,8 +73,15 @@ export class GameScene extends UcBoyutSahne {
   private atislar!: Atislar3D
 
   private readonly isinlayici = new THREE.Raycaster()
-  /** Yolun orta düzlemi: nişan ışını bununla kesişir. */
+  /** Nişan ışınının kesiştiği düzlemler: yolun ortası (x=0) ve yer (y=0). */
   private readonly yolDuzlemi = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0)
+  private readonly zeminDuzlemi = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+
+  /** Seçili kamera açısı ve geçişin gittiği yer. */
+  private kameraSira = 0
+  private readonly kameraKonumu = new THREE.Vector3()
+  private readonly bakisHedefi = new THREE.Vector3()
+  private readonly bakis = new THREE.Vector3()
 
   private cizilenAci = Number.NaN
   private baslamisMi = false
@@ -76,15 +94,22 @@ export class GameScene extends UcBoyutSahne {
   }
 
   protected kur(): void {
-    this.dunya = new Dunya3D(this.sahne)
-    this.kale = new Kale3D(this.sahne)
-    this.kuleAlani = new Kuleler3D(this.sahne)
+    this.gercekGolge = window.innerWidth >= GENIS_EKRAN_ESIGI
+    if (this.gercekGolge) {
+      this.cizici.shadowMap.enabled = true
+      this.cizici.shadowMap.type = THREE.PCFSoftShadowMap
+    }
+    this.dunya = new Dunya3D(this.sahne, this.gercekGolge)
+    this.kale = new Kale3D(this.sahne, this.gercekGolge)
+    this.kuleAlani = new Kuleler3D(this.sahne, this.gercekGolge)
+    this.kuleMenu = new KuleMenu3D(this.sahne)
     this.efektler = new Efektler3D(this.sahne)
     // Duyuru kameranın çocuğu; kamera sahnede olmazsa çizilmez.
     this.sahne.add(this.kamera)
     this.bildirim = new Bildirim3D(this.kamera)
+    this.onizleme = new Onizleme3D(this.kamera)
     this.atislar = new Atislar3D(this.sahne, this.efektler)
-    this.kamerayiOturt()
+    this.kamerayiOturt(true)
 
     this.tuvalOlayi('pointermove', (x, y) => this.nisanla(x, y))
     this.tuvalOlayi('pointerdown', (x, y) => this.dokun(x, y))
@@ -94,11 +119,13 @@ export class GameScene extends UcBoyutSahne {
     this.tus(['ArrowDown', 'KeyS'], () => this.oyun.aciDegistir(ACI_ADIM))
     this.tus(['KeyP', 'Escape'], () => this.duraklatDegistir())
     this.tus('KeyE', () => this.elementDegistir())
+    this.tus('KeyC', () => this.kameraDegistir())
     this.tuslariYakala(['Space', 'ArrowUp', 'ArrowDown'])
 
     this.padDugmesi('at', () => this.at())
     this.padDugmesi('element', () => this.elementDegistir())
     this.padDugmesi('otomatik', () => this.otomatikDegistir())
+    this.padDugmesi('kamera', () => this.kameraDegistir())
     this.padDugmesi('duraklat', () => this.duraklatDegistir())
 
     this.paneller = new Paneller3D(this.oyun, {
@@ -126,8 +153,10 @@ export class GameScene extends UcBoyutSahne {
     this.atislar.temizle()
     this.efektler.temizle()
     this.kuleAlani.sifirla()
+    this.kuleMenu.kapat()
     this.dunya.sifirla(1, DUNYALAR[this.oyun.dunyaSira].vakitBaslangic)
     this.bildirim.temizle()
+    this.onizleme.gizle()
 
     this.baslamisMi = false
     this.cizilenAci = Number.NaN
@@ -144,11 +173,14 @@ export class GameScene extends UcBoyutSahne {
 
   protected guncelle(delta: number): void {
     // Arka plan, kule animasyonu ve dükkân duraklamada da canlı: beklerken alışveriş yapılır.
+    this.kamerayiSuzdur(delta)
     this.dunya.guncelle(delta)
     this.kale.guncelle(delta)
     this.kuleAlani.guncelle(delta)
     this.kuleAlani.tazele(this.oyun.kuleler)
+    this.menuyuTazele()
     this.bildirim.guncelle(delta)
+    this.onizlemeyiTazele()
     this.efektler.guncelle(delta, this.kamera.quaternion)
     this.paneller.tazele(this.kuleAlani.seciliYuva)
     this.gostergeleriTazele()
@@ -191,21 +223,34 @@ export class GameScene extends UcBoyutSahne {
 
   /** Tuval ölçüsü değişince kamera sahayı yeniden çerçeveler. */
   protected override olculerDegisti(): void {
-    this.kamerayiOturt()
+    this.kamerayiOturt(true)
   }
 
   // --- Kamera ---
 
+  private get kameraAyari(): KameraAyari {
+    return KAMERALAR[this.kameraSira]
+  }
+
+  /** 🎥 tuşu: sıradaki açıya geçer. Geçiş yumuşak, dünya gözle döner. */
+  private kameraDegistir(): void {
+    this.kameraSira = (this.kameraSira + 1) % KAMERALAR.length
+    this.kamerayiOturt()
+    sesler.tik()
+    this.bildir(`🎥 ${this.kameraAyari.ad}`)
+  }
+
   /**
-   * Kamerayı sahanın tamamını görecek uzaklığa oturtur.
+   * Seçili açının kamerayı koyacağı yeri hesaplar.
    *
    * Sabit bir konum vermek yerine çerçeve kutusunun sekiz köşesi tek tek
    * sınanıyor: hangi köşe taşıyorsa kamera o kadar geriye çekiliyor. Böylece
    * tuval oranı değişse de (tam ekran, dar pencere) saha hep içeride kalıyor.
    */
-  private kamerayiOturt(): void {
-    const yon = new THREE.Vector3(KAMERA_YON.x, KAMERA_YON.y, KAMERA_YON.z).normalize()
-    const hedef = new THREE.Vector3(KAMERA_HEDEF.x, KAMERA_HEDEF.y, KAMERA_HEDEF.z)
+  private kamerayiOturt(anlik = false): void {
+    const ayar = this.kameraAyari
+    const yon = new THREE.Vector3(ayar.yon.x, ayar.yon.y, ayar.yon.z).normalize()
+    const hedef = new THREE.Vector3(ayar.hedef.x, ayar.hedef.y, ayar.hedef.z)
     const ileri = yon.clone().negate()
     const sag = new THREE.Vector3().crossVectors(ileri, new THREE.Vector3(0, 1, 0)).normalize()
     const yukari = new THREE.Vector3().crossVectors(sag, ileri).normalize()
@@ -213,9 +258,10 @@ export class GameScene extends UcBoyutSahne {
     const tanX = tanY * this.kamera.aspect
 
     let uzaklik = 0
-    for (const kx of [CERCEVE.x1, CERCEVE.x2]) {
-      for (const ky of [CERCEVE.y1, CERCEVE.y2]) {
-        for (const kz of [CERCEVE.z1, CERCEVE.z2]) {
+    const c = ayar.cerceve
+    for (const kx of [c.x1, c.x2]) {
+      for (const ky of [c.y1, c.y2]) {
+        for (const kz of [c.z1, c.z2]) {
           const v = new THREE.Vector3(kx, ky, kz).sub(hedef)
           const derinlik = v.dot(ileri)
           uzaklik = Math.max(
@@ -227,38 +273,111 @@ export class GameScene extends UcBoyutSahne {
       }
     }
 
-    this.kamera.position.copy(hedef).addScaledVector(yon, uzaklik * KAMERA_PAY)
-    this.kamera.lookAt(hedef)
+    this.kameraKonumu.copy(hedef).addScaledVector(yon, uzaklik * ayar.pay)
+    this.bakisHedefi.copy(hedef)
+    if (!anlik) return
+    this.kamera.position.copy(this.kameraKonumu)
+    this.bakis.copy(this.bakisHedefi)
+    this.kamera.lookAt(this.bakis)
+  }
+
+  /** Kamerayı hedefine doğru yumuşatarak taşır (kare süresinden bağımsız). */
+  private kamerayiSuzdur(delta: number): void {
+    if (this.kamera.position.distanceToSquared(this.kameraKonumu) < 0.01) return
+    const oran = 1 - Math.exp(-delta / KAMERA_YUMUSAMA)
+    this.kamera.position.lerp(this.kameraKonumu, oran)
+    this.bakis.lerp(this.bakisHedefi, oran)
+    this.kamera.lookAt(this.bakis)
   }
 
   // --- Girdi ---
 
-  /** İşaretçinin yol düzlemine düştüğü nokta (dünya koordinatı). */
-  private yolNoktasi(x: number, y: number): THREE.Vector3 | null {
+  /** İşaretçinin nişan düzlemine düştüğü nokta (dünya koordinatı). */
+  private nisanNoktasi(x: number, y: number): THREE.Vector3 | null {
     this.isinlayici.setFromCamera(new THREE.Vector2(x, y), this.kamera)
+    const duzlem = this.kameraAyari.nisan === 'zemin' ? this.zeminDuzlemi : this.yolDuzlemi
     const nokta = new THREE.Vector3()
-    return this.isinlayici.ray.intersectPlane(this.yolDuzlemi, nokta) ? nokta : null
+    return this.isinlayici.ray.intersectPlane(duzlem, nokta) ? nokta : null
   }
 
   private nisanla(x: number, y: number): void {
     if (this.bitti || this.yaziyor) return
-    const nokta = this.yolNoktasi(x, y)
+    const nokta = this.nisanNoktasi(x, y)
     if (!nokta) return
-    this.oyun.nisanlaNokta(nokta.z, ZEMIN_Y - nokta.y)
+    // Tepeden bakarken dokunulan noktanın yüksekliği yok: yere nişan alınır.
+    const simY = this.kameraAyari.nisan === 'zemin' ? ZEMIN_Y - ZEMIN_NISAN_PAYI : ZEMIN_Y - nokta.y
+    this.oyun.nisanlaNokta(nokta.z, simY)
   }
 
-  /** Dokunuş önce kule yuvasına bakar; yuva değilse nişan alıp atar. */
+  /**
+   * Dokunuş sırası: açık menü → kule yuvası → nişan + atış.
+   *
+   * Menü açıkken dışarıya dokunmak menüyü kapatır ve o dokunuş atışa gitmez;
+   * yoksa menüyü kapatmaya çalışırken istemeden mızrak atılıyor.
+   */
   private dokun(x: number, y: number): void {
     if (this.bitti || this.yaziyor) return
     this.isinlayici.setFromCamera(new THREE.Vector2(x, y), this.kamera)
+
+    const secili = this.kuleAlani.seciliYuva
+    if (this.kuleMenu.acik && secili !== null) {
+      const vurus = this.isinlayici.intersectObject(this.kuleMenu.nesne, false)[0]
+      if (vurus?.uv) {
+        const eylem = this.kuleMenu.eylem(vurus.uv, this.oyun.kuleler[secili] !== null)
+        if (eylem) this.menuEylemi(eylem, secili)
+        else sesler.tik()
+        return
+      }
+    }
+
     const kesisenler = this.isinlayici.intersectObjects(this.kuleAlani.hedefler, false)
     const yuva = kesisenler.length > 0 ? this.kuleAlani.yuvaBul(kesisenler[0].object) : null
     if (yuva !== null) {
       this.yuvaSec(yuva)
       return
     }
+    if (this.kuleMenu.acik) {
+      this.yuvaSec(secili ?? 0)
+      return
+    }
     this.nisanla(x, y)
     this.at()
+  }
+
+  /** Menü satırının karşılığı. */
+  private menuEylemi(eylem: MenuEylem, yuva: number): void {
+    if (eylem === 'yukselt') this.kuleYukselt()
+    else if (eylem === 'yik') this.kuleYik()
+    else if (eylem === 'hedef') this.hedeflemeDegistir(yuva)
+    else this.kuleAl(Number(eylem.slice(4)))
+  }
+
+  private hedeflemeDegistir(yuva: number): void {
+    const sira = this.oyun.hedeflemeDegistir(yuva)
+    sesler.tik()
+    this.bildir(`${HEDEFLEME_KURALLARI[sira].simge} ${HEDEFLEME_KURALLARI[sira].ad}`)
+  }
+
+  /** Menünün içeriği ve yeri; açık değilse iş yapılmaz. */
+  private menuyuTazele(): void {
+    this.kuleMenu.guncelle(this.kamera)
+    const yuva = this.kuleAlani.seciliYuva
+    if (!this.kuleMenu.acik || yuva === null) return
+    this.kuleMenu.tazele(this.menuDurumu(yuva))
+  }
+
+  private menuDurumu(yuva: number): MenuDurum {
+    const kule = this.oyun.kuleler[yuva]
+    const kural = HEDEFLEME_KURALLARI[kule?.hedefleme ?? 0]
+    return {
+      yuva,
+      kule,
+      altin: this.oyun.altin,
+      yikimBedeli: this.oyun.kuleYikimBedeli(yuva),
+      yukseltmeFiyati: kule ? this.oyun.kuleFiyati(yuva, kule.tip) : null,
+      hedeflemeAdi: kural.ad,
+      hedeflemeSimgesi: kural.simge,
+    }
   }
 
   private at(): void {
@@ -274,6 +393,11 @@ export class GameScene extends UcBoyutSahne {
     const yeni = this.kuleAlani.seciliYuva === yuva ? null : yuva
     this.kuleAlani.sec(yeni, this.oyun.kuleler)
     sesler.tik()
+    if (yeni === null) {
+      this.kuleMenu.kapat()
+      return
+    }
+    this.kuleMenu.ac(this.kuleAlani.menuKonumu(yeni, this.oyun.kuleler[yeni]), this.menuDurumu(yeni))
   }
 
   private kuleAl(tip: number): void {
@@ -285,6 +409,7 @@ export class GameScene extends UcBoyutSahne {
     }
     sesler.dogru()
     this.kuleAlani.sec(yuva, this.oyun.kuleler)
+    this.kuleMenu.ac(this.kuleAlani.menuKonumu(yuva, this.oyun.kuleler[yuva]), this.menuDurumu(yuva))
     this.bildir(`${KULE_TIPLERI[tip].ad} kuruldu`)
   }
 
@@ -297,6 +422,7 @@ export class GameScene extends UcBoyutSahne {
     }
     sesler.birlesme(this.oyun.kuleler[yuva]?.seviye ?? 2)
     this.kuleAlani.sec(yuva, this.oyun.kuleler)
+    this.kuleMenu.ac(this.kuleAlani.menuKonumu(yuva, this.oyun.kuleler[yuva]), this.menuDurumu(yuva))
     this.bildir(`Kule Lv${this.oyun.kuleler[yuva]?.seviye} oldu`)
   }
 
@@ -310,6 +436,7 @@ export class GameScene extends UcBoyutSahne {
     }
     sesler.kaydir()
     this.kuleAlani.sec(yuva, this.oyun.kuleler)
+    this.kuleMenu.ac(this.kuleAlani.menuKonumu(yuva, null), this.menuDurumu(yuva))
     this.bildir(`Kule yıkıldı · +${bedel} altın`)
   }
 
@@ -417,6 +544,29 @@ export class GameScene extends UcBoyutSahne {
     })
   }
 
+  /**
+   * Dalga arasında "ne geliyor" bilgisi.
+   *
+   * Mantık canavar tipini doğuş anında rastgele seçtiği için birebir liste
+   * verilemiyor; sayı, şef bilgisi ve o dalgada ilk kez çıkacak tipler kesin.
+   */
+  private onizlemeyiTazele(): void {
+    if (this.oyun.asama !== 'ara') {
+      this.onizleme.gizle()
+      return
+    }
+    const sonraki = this.oyun.dalga + 1
+    const adet =
+      Math.max(1, Math.round(dalgaCanavarSayisi(sonraki) * this.oyun.zorluk.adetCarpani)) +
+      (patronDalgasiMi(sonraki) ? 1 : 0)
+    const yeniler = this.oyun.tipler.filter((t) => t.ilkDalga === sonraki && !t.patron).map((t) => t.ad)
+    const saniye = Math.ceil(this.oyun.dalgayaKalan / 1000)
+
+    const baslik = `Dalga ${sonraki} · ${adet} canavar${patronDalgasiMi(sonraki) ? ' · ŞEF' : ''}`
+    const alt = yeniler.length > 0 ? `Yeni: ${yeniler.join(', ')} · ${saniye}s` : `${saniye} saniye`
+    this.onizleme.goster(baslik, alt)
+  }
+
   private dalgaBasladi(dalga: number): void {
     setChip('wave', dalga)
     this.dunya.vakitGuncelle(dalga, DUNYALAR[this.oyun.dunyaSira].vakitBaslangic)
@@ -491,7 +641,7 @@ export class GameScene extends UcBoyutSahne {
       yasayan.add(canavar.id)
       let gorunum = this.canavarGorunumleri.get(canavar.id)
       if (!gorunum) {
-        gorunum = new Canavar3D(this.sahne, canavar, this.oyun.tipler[canavar.tip])
+        gorunum = new Canavar3D(this.sahne, canavar, this.oyun.tipler[canavar.tip], this.gercekGolge)
         this.canavarGorunumleri.set(canavar.id, gorunum)
       }
       gorunum.guncelle(canavar, delta, this.kamera.quaternion)
@@ -530,6 +680,8 @@ export class GameScene extends UcBoyutSahne {
       this.canavarGorunumleri.delete(isabet.canavarId)
       gorunum.ol()
       this.olenler.push(gorunum)
+      const bilgi = this.oyun.tipler[isabet.tip]
+      this.efektler.parcalanma(konum, bilgi.renk, Math.max(0.8, bilgi.boy / 40))
       sesler.patlama()
       this.hud.showGain(isabet.puan)
       this.efektler.yazi(konum.clone().setY(konum.y + 30), `+${isabet.puan}`, '#f8fafc')
@@ -550,6 +702,7 @@ export class GameScene extends UcBoyutSahne {
   }
 
   override yikil(): void {
+    this.kuleMenu?.bosalt()
     this.paneller?.yikil()
     this.efektler?.bosalt()
     super.yikil()

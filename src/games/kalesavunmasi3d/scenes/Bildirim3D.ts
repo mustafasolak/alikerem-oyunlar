@@ -12,8 +12,14 @@ import { FONT_FAMILY } from '../../kalesavunmasi/config/constants.ts'
 
 const TUVAL_EN = 768
 const TUVAL_BOY = 128
-/** Kameradan uzaklığı ve ekrandaki yeri (kamera birimi). */
-const UZAKLIK = 1
+/**
+ * Kameradan uzaklığı ve ekrandaki yeri (kamera birimi).
+ *
+ * Uzaklık bilerek 1 değil: kameranın yakın düzlemi 1 birimde ve tam orada duran
+ * yüzey kırpılıp hiç görünmüyordu. İki birim öteye alıp ölçüyü de iki katına
+ * çıkarınca ekranda kapladığı yer aynı kalıyor, kırpılma bitiyor.
+ */
+const UZAKLIK = 2
 const YUKARI = 0.3
 const GENISLIK = 1
 /** Tam görünür kaldığı süre ve sönme süresi (ms). */
@@ -35,8 +41,8 @@ export class Bildirim3D {
     this.sprite = new THREE.Sprite(
       new THREE.SpriteMaterial({ map: this.doku, transparent: true, depthTest: false, opacity: 0 }),
     )
-    this.sprite.scale.set(GENISLIK, (GENISLIK * TUVAL_BOY) / TUVAL_EN, 1)
-    this.sprite.position.set(0, YUKARI, -UZAKLIK)
+    this.sprite.scale.set(GENISLIK * UZAKLIK, (GENISLIK * UZAKLIK * TUVAL_BOY) / TUVAL_EN, 1)
+    this.sprite.position.set(0, YUKARI * UZAKLIK, -UZAKLIK)
     this.sprite.renderOrder = 10
     kamera.add(this.sprite)
   }

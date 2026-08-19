@@ -856,7 +856,7 @@ export const KATALOG: KatalogKaydi[] = [
     "ad": "Kale Savunması 3B",
     "ozet": "Aynı kale, bu kez üç boyutlu bir sahada.",
     "aciklama": "Yoldan gelen canavarları mızrakla vur, kule kur, kaleyi ayakta tut.",
-    "ipucu": "<b>Nereye dokunursan mızrak oraya gider</b> · <kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · <kbd>E</kbd> element · <b>Yuvaya dokun</b>, sonra alttaki panelden kule kur ya da yükselt · <b>uçan canavara mızrak değmez, yalnız kuleler vurur</b>",
+    "ipucu": "<b>Nereye dokunursan mızrak oraya gider</b> · <kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · <kbd>E</kbd> element · <kbd>C</kbd> kamera açısı · <b>Yuvaya dokun</b>, sonra alttaki panelden kule kur ya da yükselt · <b>uçan canavara mızrak değmez, yalnız kuleler vurur</b>",
     "emoji": "🏯",
     "kategori": "arcade",
     "etiketler": [
@@ -872,7 +872,7 @@ export const KATALOG: KatalogKaydi[] = [
     "tuval": {
       "genislik": 840,
       "yukseklik": 430,
-      "disPay": 360
+      "disPay": 390
     },
     "arayuz": {
       "aracCubugu": [
@@ -923,6 +923,10 @@ export const KATALOG: KatalogKaydi[] = [
         {
           "etiket": "🤖 Otomatik",
           "deger": "otomatik"
+        },
+        {
+          "etiket": "🎥 Kamera",
+          "deger": "kamera"
         },
         {
           "etiket": "⏸ Duraklat",

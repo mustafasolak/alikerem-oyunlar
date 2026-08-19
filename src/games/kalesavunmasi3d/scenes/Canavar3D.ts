@@ -25,7 +25,8 @@ import {
   PARLAMA_MS,
   YAYILMA_MESAFE,
 } from '../config/sahne3d.ts'
-import { birak, koyu, kure, kutu, malzeme } from './yapi.ts'
+import { bicimSec, bicimUygula } from './CanavarBicimleri.ts'
+import { acik, birak, golgeVer, koyu, kure, kutu, malzeme } from './yapi.ts'
 
 /** Yürürken bacak ve kol açısı (derece). */
 const BACAK_ACI = 26
@@ -64,7 +65,7 @@ export class Canavar3D {
   private olumKalan = 0
   private salinim = 0
 
-  constructor(sahne: THREE.Scene, canavar: Canavar, bilgi: CanavarTipi) {
+  constructor(sahne: THREE.Scene, canavar: Canavar, bilgi: CanavarTipi, gercekGolge = false) {
     this.bilgi = bilgi
     const { en, boy, renk } = bilgi
     const derinlik = en * GOVDE_DERINLIK_ORANI
@@ -73,7 +74,8 @@ export class Canavar3D {
 
     const govdeMalzeme = this.malzemeKur(renk)
     const koyuMalzeme = this.malzemeKur(koyu(renk, 0.35))
-    const kafaMalzeme = this.malzemeKur(koyu(renk, 0.12))
+    // Kafa gövdeden bir ton açık: aynı renkte olunca ikisi tek kütle gibi duruyordu.
+    const kafaMalzeme = this.malzemeKur(acik(renk, 0.22))
 
     const kalcaY = boy * 0.36
     const bacakBoy = boy * 0.36
@@ -87,11 +89,11 @@ export class Canavar3D {
     this.govde = new THREE.Group()
     const kutle = kutu(en, boy * 0.5, derinlik, govdeMalzeme)
     kutle.position.y = kalcaY + boy * 0.26
-    const kafa = kure(boy * 0.19, kafaMalzeme, 10)
-    kafa.position.y = kalcaY + boy * 0.62
+    const kafa = kure(boy * 0.21, kafaMalzeme, 12)
+    kafa.position.y = kalcaY + boy * 0.66
     const goz = kutu(en * 0.42, 4, 3, this.malzemeKur(0x111827))
     // Yüzün ön yüzeyinin biraz dışında: içeride kalırsa gövde yutuyor.
-    goz.position.set(0, kalcaY + boy * 0.64, -boy * 0.19 - 2)
+    goz.position.set(0, kalcaY + boy * 0.68, -boy * 0.21 - 2)
     this.govde.add(kutle, kafa, goz)
 
     const omuzY = kalcaY + boy * 0.46
@@ -120,7 +122,34 @@ export class Canavar3D {
     )
     this.golge.rotation.x = -Math.PI / 2
 
+    // Silueti tipe göre tamamla: boynuz, miğfer, kanat, pelerin…
+    bicimUygula(
+      bicimSec(bilgi),
+      {
+        govde: this.govde,
+        solBacak: this.solBacak,
+        sagBacak: this.sagBacak,
+        onKol: this.onKol,
+        arkaKol: this.arkaKol,
+        kutle,
+        kafa,
+      },
+      {
+        en,
+        boy,
+        renk,
+        kalcaY,
+        omuzY,
+        kafaY: kalcaY + boy * 0.66,
+        kafaR: boy * 0.21,
+        malzemeKur: (deger) => this.malzemeKur(deger),
+      },
+    )
+
     this.kok.add(this.solBacak, this.sagBacak, this.govde, this.golge)
+    // Gerçek gölge açıksa yassı daire gereksiz; ikisi birden tuhaf duruyor.
+    this.golge.visible = !gercekGolge
+    if (gercekGolge) golgeVer(this.govde, true, false)
 
     // Can barı: iki düzlem, her karede kameraya döner.
     this.bar = new THREE.Group()
@@ -130,7 +159,7 @@ export class Canavar3D {
     this.barDolu = kutu(BAR_EN, BAR_BOY - 2, 1, malzeme(0x22c55e))
     this.barDolu.position.z = 1
     this.bar.add(arka, this.barDolu)
-    this.bar.position.y = kalcaY + boy * 0.62 + BAR_PAY
+    this.bar.position.y = kalcaY + boy * 0.66 + BAR_PAY
     this.kok.add(this.bar)
 
     sahne.add(this.kok)

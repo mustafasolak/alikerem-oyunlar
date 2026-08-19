@@ -18,6 +18,7 @@ import {
   BUZ_ORAN,
   BUZ_SURE_MS,
   HASAR_BONUSU,
+  HEDEFLEME_KURALLARI,
   HIZ_ORANI,
   KALE_BONUSU,
   KRITIK_CARPAN_BONUSU,
@@ -130,6 +131,8 @@ export interface Kule {
   atisBirikim: number
   /** Bu kuleye toplam yatırılan altın; yıkım bedeli buradan hesaplanır. */
   yatirim: number
+  /** HEDEFLEME_KURALLARI dizisindeki sıra; 0 = en öndeki (varsayılan). */
+  hedefleme: number
 }
 
 export interface Isabet {
@@ -523,7 +526,7 @@ export class KaleSavunmasi {
 
     this.altin -= fiyat
     // İlk atış hemen gelsin, oyuncu aldığını görsün.
-    this.kuleler[yuva] = { yuva, tip, seviye: 1, atisBirikim: KULE_TIPLERI[tip].aralikMs[0], yatirim: fiyat }
+    this.kuleler[yuva] = { yuva, tip, seviye: 1, atisBirikim: KULE_TIPLERI[tip].aralikMs[0], yatirim: fiyat, hedefleme: 0 }
     return true
   }
 
@@ -630,7 +633,7 @@ export class KaleSavunmasi {
       if (kule.atisBirikim < bilgi.aralikMs[basamak]) continue
 
       const kuleX = KULE_YUVALARI[kule.yuva]
-      const hedef = this.enOndekiHedef(kuleX, bilgi.menzil[basamak])
+      const hedef = this.hedefSec(kuleX, bilgi.menzil[basamak], kule.hedefleme)
       if (!hedef) continue
 
       kule.atisBirikim = 0
@@ -639,14 +642,33 @@ export class KaleSavunmasi {
     }
   }
 
-  /** Menzildeki, kaleye en yakın canavar. */
-  private enOndekiHedef(kuleX: number, menzil: number): Canavar | null {
+  /**
+   * Menzildeki canavarlardan kuralın seçtiğini döndürür.
+   *
+   * Eşitlikte hep kaleye yakın olan kazanır: kural ne olursa olsun kule boşuna
+   * sallanmasın, sızmaya en yakın hedefe yönelsin.
+   */
+  private hedefSec(kuleX: number, menzil: number, kural: number): Canavar | null {
     let hedef: Canavar | null = null
+    let enIyi = -Infinity
     for (const c of this.canavarlar) {
       if (Math.abs(c.x - kuleX) > menzil) continue
-      if (!hedef || c.x < hedef.x) hedef = c
+      const deger =
+        kural === 1 ? c.can : kural === 2 ? this.tipler[c.tip].hiz : 0
+      if (!hedef || deger > enIyi || (deger === enIyi && c.x < hedef.x)) {
+        hedef = c
+        enIyi = deger
+      }
     }
     return hedef
+  }
+
+  /** Kulenin hedefleme kuralını bir sonrakine geçirir; yeni sırayı döner. */
+  hedeflemeDegistir(yuva: number): number {
+    const kule = this.kuleler[yuva]
+    if (!kule) return 0
+    kule.hedefleme = (kule.hedefleme + 1) % HEDEFLEME_KURALLARI.length
+    return kule.hedefleme
   }
 
   private okAt(kuleX: number, seviye: number, hedef: Canavar, hasar: number, tipBilgi: KuleTipi): void {

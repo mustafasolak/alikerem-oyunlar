@@ -529,6 +529,25 @@ export const KULE_TIPLERI: KuleTipi[] = [
 export const KULE_MAX_SEVIYE = 12
 
 /**
+ * Kulenin menzilindeki hangi canavarı seçeceği.
+ *
+ * Varsayılan "en öndeki": kaleye en yakın olanı vurur, yani sızmayı engeller.
+ * "En canlı" şefe yüklenir, "en hızlı" kaçmak üzere olanı durdurur. Kule başına
+ * seçilir; iki boyutlu sürüm bu seçimi göstermez, orada hep varsayılan geçerli.
+ */
+export interface HedeflemeKurali {
+  id: string
+  ad: string
+  simge: string
+}
+
+export const HEDEFLEME_KURALLARI: HedeflemeKurali[] = [
+  { id: 'on', ad: 'En öndeki', simge: '🎯' },
+  { id: 'can', ad: 'En canlı', simge: '💪' },
+  { id: 'hiz', ad: 'En hızlı', simge: '💨' },
+]
+
+/**
  * Kule yıkınca yatırılanın ne kadarı geri döner.
  * Tamamı dönse yuvayı bedelsiz deneyip durmak olurdu; yarısı geri gelince
  * yer değiştirmek mümkün ama bedeli var.

@@ -58,13 +58,13 @@ export default tanim({
   ozet: 'Aynı kale, bu kez üç boyutlu bir sahada.',
   aciklama: 'Yoldan gelen canavarları mızrakla vur, kule kur, kaleyi ayakta tut.',
   ipucu:
-    '<b>Nereye dokunursan mızrak oraya gider</b> · <kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · <kbd>E</kbd> element · <b>Yuvaya dokun</b>, sonra alttaki panelden kule kur ya da yükselt · <b>uçan canavara mızrak değmez, yalnız kuleler vurur</b>',
+    '<b>Nereye dokunursan mızrak oraya gider</b> · <kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · <kbd>E</kbd> element · <kbd>C</kbd> kamera açısı · <b>Yuvaya dokun</b>, sonra alttaki panelden kule kur ya da yükselt · <b>uçan canavara mızrak değmez, yalnız kuleler vurur</b>',
   emoji: '🏯',
   kategori: 'arcade',
   etiketler: ['Arcade', '3B', 'Savunma'],
   renk: ['#f59e0b', '#1e3a8a'],
   motor: 'ucboyut',
-  tuval: { genislik: 840, yukseklik: 430, disPay: 360 },
+  tuval: { genislik: 840, yukseklik: 430, disPay: 390 },
   arayuz: {
     aracCubugu: ZORLUKLAR.map((z) => ({ etiket: z.ad, deger: z.id })),
     rozetler: [
@@ -81,6 +81,7 @@ export default tanim({
       { etiket: '🗡 Saldır', deger: 'at' },
       { etiket: `${ELEMENT_SIMGE.normal} ${ELEMENT_ADI.normal}`, deger: 'element' },
       { etiket: '🤖 Otomatik', deger: 'otomatik' },
+      { etiket: '🎥 Kamera', deger: 'kamera' },
       { etiket: '⏸ Duraklat', deger: 'duraklat' },
     ],
     paneller: [

@@ -10,6 +10,7 @@
 import * as THREE from 'three'
 
 import {
+  GAME_WIDTH,
   VAKITLER,
   type VakitPaleti,
   vakitIndeksi,
@@ -35,15 +36,24 @@ import {
   TAS_ADET,
   YOL_YARI_EN,
 } from '../config/sahne3d.ts'
-import { doseme, koni, kure, kutu, malzeme, silindir } from './yapi.ts'
+import { doseme, golgeVer, koni, kure, kutu, malzeme, silindir } from './yapi.ts'
 
-/** Gökyüzü dokusunun çözünürlüğü — dikey geçiş için bu yeter. */
-const GOK_DOKU_BOY = 128
-const YILDIZ_ADET = 70
+/**
+ * Gökyüzü dokusunun çözünürlüğü.
+ *
+ * Geniş olması şart: dar tuvalde çizilen yıldız ekrana yayılınca nokta değil
+ * çizgi oluyordu.
+ */
+const GOK_DOKU_EN = 256
+const GOK_DOKU_BOY = 256
+const YILDIZ_ADET = 160
 /** Bulutların yüksekliği ve sürüklenme hızı (birim/saniye). */
 const BULUT_Y = 760
 const BULUT_HIZ = 9
 const BULUT_ADET = 5
+/** Gölge haritasının çözünürlüğü ve kapsadığı alanın yarısı. */
+const GOLGE_DOKU = 2048
+const GOLGE_ALAN = 660
 
 interface Agac {
   govde: THREE.Mesh
@@ -68,12 +78,12 @@ export class Dunya3D {
   private readonly bulutlar: THREE.Group[] = []
   private vakit = -1
 
-  constructor(sahne: THREE.Scene) {
+  constructor(sahne: THREE.Scene, gercekGolge = false) {
     this.sahne = sahne
     sahne.add(this.kok)
 
     this.gokTuval = document.createElement('canvas')
-    this.gokTuval.width = 2
+    this.gokTuval.width = GOK_DOKU_EN
     this.gokTuval.height = GOK_DOKU_BOY
     this.gokDoku = new THREE.CanvasTexture(this.gokTuval)
     sahne.background = this.gokDoku
@@ -81,8 +91,27 @@ export class Dunya3D {
 
     this.gokIsik = new THREE.HemisphereLight(0xffffff, 0x557733, GOK_ISIK_GUCU)
     this.gunes = new THREE.DirectionalLight(0xffffff, GUNES_GUCU)
-    this.gunes.position.set(GUNES_YONU.x, GUNES_YONU.y, GUNES_YONU.z)
-    this.kok.add(this.gokIsik, this.gunes)
+    // Işık sahanın ortasına baksın: gölge haritası da o kutuyu kapsıyor.
+    const merkez = new THREE.Vector3(0, 0, GAME_WIDTH / 2)
+    this.gunes.target.position.copy(merkez)
+    this.gunes.position.copy(merkez).add(new THREE.Vector3(GUNES_YONU.x, GUNES_YONU.y, GUNES_YONU.z))
+    this.kok.add(this.gokIsik, this.gunes, this.gunes.target)
+
+    if (gercekGolge) {
+      this.gunes.castShadow = true
+      this.gunes.shadow.mapSize.set(GOLGE_DOKU, GOLGE_DOKU)
+      const k = this.gunes.shadow.camera
+      k.left = -GOLGE_ALAN
+      k.right = GOLGE_ALAN
+      k.top = GOLGE_ALAN
+      k.bottom = -GOLGE_ALAN
+      k.near = 100
+      k.far = 2600
+      k.updateProjectionMatrix()
+      // Kendi üstüne düşen gölgenin çizgi çizgi görünmesini engeller.
+      this.gunes.shadow.bias = -0.0016
+      this.gunes.shadow.normalBias = 1.6
+    }
 
     const uzunluk = SAHA_ON - SAHA_ARKA
     const ortaZ = (SAHA_ON + SAHA_ARKA) / 2
@@ -92,6 +121,8 @@ export class Dunya3D {
     this.yol = doseme(YOL_YARI_EN * 2, uzunluk, 0x9a7b4f)
     this.yol.position.set(0, 0, ortaZ)
     this.kok.add(this.cim, this.yol)
+    if (gercekGolge) golgeVer(this.cim, false, true)
+    if (gercekGolge) golgeVer(this.yol, false, true)
 
     for (const yon of [-1, 1]) {
       const bordur = kutu(BORDUR_EN, BORDUR_BOY, uzunluk, 0x94a3b8)
@@ -104,6 +135,14 @@ export class Dunya3D {
     this.daglariKur()
     this.taslariKur()
     this.bulutlariKur()
+    // Ağaç ve taşlar gölge düşürsün; dağ ve bulut alanın dışında kalıyor.
+    if (gercekGolge) {
+      for (const agac of this.agaclar) {
+        golgeVer(agac.govde, true, false)
+        for (const kat of agac.yaprak) golgeVer(kat, true, false)
+      }
+      for (const tas of this.taslar) golgeVer(tas, true, true)
+    }
   }
 
   /** Yeni tur: vakti dalgaya göre baştan seçer. */
@@ -233,13 +272,14 @@ export class Dunya3D {
     gecis.addColorStop(0, renk(palet.gokUst))
     gecis.addColorStop(1, renk(palet.gokAlt))
     ctx.fillStyle = gecis
-    ctx.fillRect(0, 0, 2, GOK_DOKU_BOY)
+    ctx.fillRect(0, 0, GOK_DOKU_EN, GOK_DOKU_BOY)
 
     if (palet.yildizli) {
       ctx.fillStyle = '#ffffff'
       for (let i = 0; i < YILDIZ_ADET; i++) {
         ctx.globalAlpha = 0.3 + Math.random() * 0.6
-        ctx.fillRect(Math.random() * 2, Math.random() * GOK_DOKU_BOY * 0.6, 1, 1)
+        const r = Math.random() < 0.2 ? 2 : 1
+        ctx.fillRect(Math.random() * GOK_DOKU_EN, Math.random() * GOK_DOKU_BOY * 0.62, r, r)
       }
       ctx.globalAlpha = 1
     }

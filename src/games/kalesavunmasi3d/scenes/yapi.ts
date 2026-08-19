@@ -84,6 +84,20 @@ export function koyu(renk: number, oran: number): number {
 }
 
 /**
+ * Gölge bayraklarını topluca verir.
+ *
+ * three.js'te gölge nesne nesne açılıyor: düşüren ve alan ayrı bayraklar.
+ * Zemin yalnız alır, canavar ve yapılar hem düşürür hem alır.
+ */
+export function golgeVer(kok: THREE.Object3D, dusur: boolean, al: boolean): void {
+  kok.traverse((nesne) => {
+    if (!(nesne instanceof THREE.Mesh)) return
+    nesne.castShadow = dusur
+    nesne.receiveShadow = al
+  })
+}
+
+/**
  * Sahneden çıkan nesnenin geometri ve malzemesini GPU'dan bırakır.
  *
  * Dokulara dokunmaz: hasar yazısı gibi paylaşılan dokular önbellekte durur,

@@ -34,7 +34,7 @@ import {
   MIZRAKCI_BOY,
   yukseklik,
 } from '../config/sahne3d.ts'
-import { koni, kure, kutu, malzeme, silindir } from './yapi.ts'
+import { golgeVer, koni, kure, kutu, malzeme, silindir } from './yapi.ts'
 
 /** Sarsıntının en büyük kayması (dünya birimi). */
 const SARSINTI_GUC = 7
@@ -56,7 +56,7 @@ export class Kale3D {
   private aci = 0
   private titrek = 0
 
-  constructor(sahne: THREE.Scene) {
+  constructor(sahne: THREE.Scene, gercekGolge = false) {
     sahne.add(this.kok)
     this.duvarUstu = yukseklik(KALE_UST_Y)
     this.cikis = new THREE.Vector3(0, yukseklik(MIZRAK_CIKIS_Y), MIZRAK_CIKIS_X)
@@ -114,6 +114,7 @@ export class Kale3D {
     }
 
     this.onKol = this.mizrakciyiKur()
+    if (gercekGolge) golgeVer(this.kok, true, true)
   }
 
   /** Nişan açısını (derece) uygular. */

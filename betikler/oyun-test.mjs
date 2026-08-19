@@ -27,6 +27,7 @@ import {
   DUNYA_ESIGI,
   DURAK_X,
   GAME_WIDTH,
+  HEDEFLEME_KURALLARI,
   KALE_GENISLIK,
   HASAR_BONUSU,
   KALE_BONUSU,
@@ -747,6 +748,55 @@ function tohumlu(tohum) {
   oyun.altin = 0
   oyun.kuleAl(1, 0)
   esit('parasızken kule kurulmaz', oyun.kuleler[1], null)
+}
+
+// --- Kale Savunması: kule hedefleme kuralı ---
+{
+  const oyun = new KaleSavunmasi(tohumlu(61), 0, 1)
+  oyun.basla()
+  oyun.altin = 1000000
+  oyun.kuleAl(0, 0)
+  esit('yeni kule en öndekini vurur', oyun.kuleler[0].hedefleme, 0)
+
+  const yerdekiler = oyun.tipler.map((t, i) => ({ t, i })).filter(({ t }) => !t.patron && !t.ucar)
+  const hizli = yerdekiler.reduce((a, b) => (b.t.hiz > a.t.hiz ? b : a))
+  const yavas = yerdekiler.reduce((a, b) => (b.t.hiz < a.t.hiz ? b : a))
+
+  /** Kuralı uygular, tek atış attırır ve hangi canavarın canı gittiğini söyler. */
+  const vurulan = (kural, liste) => {
+    oyun.canavarlar.length = 0
+    oyun.atislar.length = 0
+    for (const c of liste) {
+      oyun.canavarlar.push({
+        id: c.id, tip: c.tip, x: c.x, can: c.can, maxCan: c.can, altin: 0, puan: 0,
+        durum: 'yuruyor', faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
+      })
+    }
+    oyun.kuleler[0].hedefleme = kural
+    oyun.kuleler[0].atisBirikim = KULE_TIPLERI[0].aralikMs[0]
+    // Ok hedefe varana kadar ilerlet; yeni dalga uzakta doğuyor, karışmıyor.
+    for (let i = 0; i < 40; i++) oyun.ilerlet(SIM_ADIM_MS)
+    const yaralı = oyun.canavarlar.find((c) => liste.some((l) => l.id === c.id) && c.can < c.maxCan)
+    return yaralı?.id ?? null
+  }
+
+  // İkisi kulenin iki yanında: ok yolda öbürüne çarpmasın, seçim net okunsun.
+  const on = { id: 801, tip: yavas.i, x: 140, can: 5000 }
+  const arka = { id: 802, tip: yavas.i, x: 320, can: 500000 }
+  esit('en öndeki kuralı öne vurur', vurulan(0, [on, arka]), 801)
+  esit('en canlı kuralı arkadaki güçlüye vurur', vurulan(1, [on, arka]), 802)
+
+  const hizliCanavar = { id: 803, tip: hizli.i, x: 320, can: 500000 }
+  const yavasCanavar = { id: 804, tip: yavas.i, x: 140, can: 500000 }
+  esit(
+    'en hızlı kuralı hızlıyı seçer',
+    vurulan(2, [hizliCanavar, yavasCanavar]),
+    hizli.t.hiz > yavas.t.hiz ? 803 : 804,
+  )
+
+  esit('kural sırayla dönüyor', oyun.hedeflemeDegistir(0), 0)
+  esit('boş yuvada kural değişmez', oyun.hedeflemeDegistir(3), 0)
+  kontrol('kural sayısı üç', HEDEFLEME_KURALLARI.length === 3)
 }
 
 // --- Kale Savunması: canavarlar dalgayla güçleniyor ---

@@ -23,7 +23,8 @@ import {
 } from '../../kalesavunmasi/config/constants.ts'
 import type { Kule } from '../../kalesavunmasi/systems/KaleSavunmasi.ts'
 import { YOL_YARI_EN } from '../config/sahne3d.ts'
-import { acik, birak, koni, kutu, malzeme, silindir } from './yapi.ts'
+import { kuleModeli, type KuleModeli } from './KuleModelleri.ts'
+import { birak, golgeVer, malzeme, silindir } from './yapi.ts'
 
 /** Kuleler yolun bu kadar yanında durur. */
 export const KULE_YANAL = YOL_YARI_EN + 66
@@ -33,6 +34,13 @@ const SEKI_BOY = ZEMIN_Y - KULE_TABAN_Y
 const ISARET_DONUS = 1.6
 /** Yükseltme sonrası zıplama süresi (ms). */
 const POP_MS = 320
+/** Büyücü kristalinin dönüş hızı (radyan/saniye) ve salınım süresi (ms). */
+const KRISTAL_DONUS = 1.1
+const KRISTAL_SALINIM_MS = 1600
+/** Tepe ışığının yanıp sönme süresi (ms). */
+const ISIK_MS = 900
+/** Menü kulenin tepesinden bu kadar yukarıda durur. */
+const MENU_PAY = 74
 
 export class Kuleler3D {
   /** Işın izleme hedefleri: seki ve kule gövdeleri. */
@@ -41,6 +49,8 @@ export class Kuleler3D {
   private readonly yuvalar: THREE.Group[] = []
   private readonly isaretler: THREE.Mesh[] = []
   private readonly kuleGruplari: (THREE.Group | null)[] = []
+  /** Hareketli parçalar (kristal, tepe ışığı) yuva sırasıyla. */
+  private readonly modeller: (KuleModeli | null)[] = []
   /** Hangi görünümün çizili olduğunu tutar: "tip:seviye". */
   private readonly imzalar: string[] = []
   private readonly secimHalkasi: THREE.Mesh
@@ -50,7 +60,11 @@ export class Kuleler3D {
   private popYuva = -1
   private zaman = 0
 
-  constructor(sahne: THREE.Scene) {
+  private readonly gercekGolge: boolean
+
+  constructor(sahne: THREE.Scene, gercekGolge = false) {
+    this.gercekGolge = gercekGolge
+
     for (let yuva = 0; yuva < KULE_YUVALARI.length; yuva++) {
       const grup = new THREE.Group()
       grup.position.set(KULE_YANAL, 0, KULE_YUVALARI[yuva])
@@ -73,8 +87,10 @@ export class Kuleler3D {
       this.isaretler.push(isaret)
       this.hedefler.push(isaret)
 
+      if (gercekGolge) golgeVer(seki, true, true)
       this.yuvalar.push(grup)
       this.kuleGruplari.push(null)
+      this.modeller.push(null)
       this.imzalar.push('')
       sahne.add(grup)
     }
@@ -141,6 +157,7 @@ export class Kuleler3D {
       if (!kule) continue
 
       const grup = this.kuleyiKur(kule)
+      if (this.gercekGolge) golgeVer(grup, true, true)
       this.yuvalar[yuva].add(grup)
       this.kuleGruplari[yuva] = grup
       for (const parca of grup.children) this.hedefler.push(parca)
@@ -159,6 +176,17 @@ export class Kuleler3D {
       if (!isaret.visible) continue
       isaret.rotation.z += (ISARET_DONUS * delta) / 1000
       isaret.position.y = SEKI_BOY + 20 + Math.sin(this.zaman / 420) * 4
+    }
+    for (const model of this.modeller) {
+      if (!model) continue
+      for (const parca of model.donenler) parca.rotation.y += (KRISTAL_DONUS * delta) / 1000
+      for (const parca of model.salinanlar) {
+        const temel = (parca.userData.temelY as number) ?? parca.position.y
+        parca.position.y = temel + Math.sin((this.zaman / KRISTAL_SALINIM_MS) * Math.PI * 2) * 5
+      }
+      for (const isik of model.isiklar) {
+        isik.scale.setScalar(0.75 + 0.35 * Math.sin((this.zaman / ISIK_MS) * Math.PI * 2))
+      }
     }
     if (this.popKalan > 0) {
       this.popKalan -= delta
@@ -200,63 +228,19 @@ export class Kuleler3D {
     grup.removeFromParent()
     birak(grup)
     this.kuleGruplari[yuva] = null
+    this.modeller[yuva] = null
   }
 
-  /** Seviyeye göre kule gövdesi, mazgal, çatı, bayrak ve tepe ışığı. */
+  /** Seviyeye ve tipe göre kule modeli; ayrıntı `KuleModelleri.ts` içinde. */
   private kuleyiKur(kule: Kule): THREE.Group {
-    const grup = new THREE.Group()
-    const g = kuleGorunum(kule.seviye)
-    const tip = KULE_TIPLERI[kule.tip]
-    const renk = acik(tip.renk, g.tonOran)
+    const model = kuleModeli(kule.tip, kule.seviye, SEKI_BOY)
+    this.modeller[kule.yuva] = model
+    return model.kok
+  }
 
-    const govde = kutu(g.en, g.boy, g.en, renk)
-    govde.position.y = SEKI_BOY + g.boy / 2
-    grup.add(govde)
-
-    // Mazgallar tepe hattında çepeçevre.
-    const mazgalEn = g.en / (g.mazgal + 1)
-    for (let i = 0; i <= g.mazgal; i++) {
-      for (const yon of [-1, 1]) {
-        const mazgal = kutu(mazgalEn * 0.7, 9, mazgalEn * 0.7, acik(renk, 0.25))
-        mazgal.position.set(
-          -g.en / 2 + mazgalEn * (i + 0.5),
-          SEKI_BOY + g.boy + 4.5,
-          (yon * g.en) / 2 - yon * mazgalEn * 0.4,
-        )
-        grup.add(mazgal)
-      }
-    }
-
-    if (g.cati > 0) {
-      const cati = koni(g.en * 0.78, g.cati, 0x1e3a8a, 4)
-      cati.rotation.y = Math.PI / 4
-      cati.position.y = SEKI_BOY + g.boy + g.cati / 2 + 8
-      grup.add(cati)
-    }
-    if (g.bayrak > 0) {
-      const direk = silindir(1.6, 1.6, g.bayrak, 0x78716c, 5)
-      direk.position.y = SEKI_BOY + g.boy + g.cati + g.bayrak / 2 + 6
-      const bez = kutu(15, 10, 1.2, tip.renk)
-      bez.position.set(8, SEKI_BOY + g.boy + g.cati + g.bayrak, 0)
-      grup.add(direk, bez)
-    }
-    if (g.susleme) {
-      const serit = kutu(g.en + 2, 5, g.en + 2, 0xfbbf24)
-      serit.position.y = SEKI_BOY + g.boy * 0.62
-      grup.add(serit)
-    }
-    if (g.takviye) {
-      for (const yon of [-1, 1]) {
-        const takviye = kutu(8, g.boy * 0.5, 8, 0x64748b)
-        takviye.position.set((yon * g.en) / 2, SEKI_BOY + g.boy * 0.25, (yon * g.en) / 2)
-        grup.add(takviye)
-      }
-    }
-    if (g.isik) {
-      const isik = new THREE.Mesh(new THREE.SphereGeometry(7, 10, 8), malzeme(0xfde047, { isik: 0xfde047 }))
-      isik.position.y = SEKI_BOY + g.boy + g.cati + g.bayrak + 16
-      grup.add(isik)
-    }
-    return grup
+  /** Menünün duracağı nokta: kulenin (ya da boş yuvanın) tepesinin üstü. */
+  menuKonumu(yuva: number, kule: Kule | null): THREE.Vector3 {
+    const boy = kule ? kuleGorunum(kule.seviye).boy * 1.15 + MENU_PAY : MENU_PAY
+    return new THREE.Vector3(KULE_YANAL, SEKI_BOY + boy, KULE_YUVALARI[yuva])
   }
 }

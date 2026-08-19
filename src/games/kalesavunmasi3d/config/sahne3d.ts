@@ -97,37 +97,82 @@ export const PARLAMA_MS = 130
 // --- Kamera ---
 
 export const KAMERA_FOV = 50
-/** Kameranın baktığı nokta: yolun ortasının biraz uzak yanı. */
-export const KAMERA_HEDEF = { x: 60, y: 80, z: GAME_WIDTH / 2 + 10 }
+/** Kamera değişirken geçişin yumuşama sabiti (ms). Küçük değer = sert geçiş. */
+export const KAMERA_YUMUSAMA = 190
+/** Zemine nişan alan kameralarda mızrak yerden bu kadar yukarısını hedefler. */
+export const ZEMIN_NISAN_PAYI = 14
+
+export interface KameraAyari {
+  /** Tuşta ve duyuruda görünen ad. */
+  ad: string
+  /** Hedeften kameraya bakan yön (birim vektöre yakın). */
+  yon: { x: number; y: number; z: number }
+  /** Kameranın baktığı nokta. */
+  hedef: { x: number; y: number; z: number }
+  /** Çerçeveye sığdırılacak kutu; kamera bunu görecek uzaklığa çekilir. */
+  cerceve: { x1: number; x2: number; y1: number; y2: number; z1: number; z2: number }
+  /** Kenarda kalsın diye eklenen boşluk çarpanı. */
+  pay: number
+  /**
+   * Nişan ışını hangi düzlemle kesişsin?
+   * 'yol' — yolun orta düzlemi (x=0): yandan bakan kameralarda canavarın
+   *         gövdesine yükseklik seçerek nişan alınır.
+   * 'zemin' — yer düzlemi (y=0): tepeden bakarken dokunulan noktanın yüksekliği
+   *         belirsizdir; orada "yere nişan al" doğru olan.
+   */
+  nisan: 'yol' | 'zemin'
+}
+
 /**
- * Hedeften kameraya bakan yön (birim vektöre yakın).
+ * Kamera açıları. Oyuncu 🎥 tuşuyla sırayla geçer.
  *
- * Eksi x: kamera yolun ön tarafında durur, kale solda kalır ve canavarlar
- * sağdan gelir — iki boyutlu sürümdeki okunuş korunuyor.
- *
- * Kamera bilerek yanda: duvarın ardına geçen her kamera, 234 birimlik surun
- * dibindeki canavarları göremiyor (sur onları kapatıyor). Yandan bakınca hem
- * kale hem yol aynı karede duruyor. z bileşeni küçük tutuldu; büyütünce kamera
- * kalenin dibine iniyor ve burç bütün ekranı kaplıyor.
+ * Hepsi yandan ya da tepeden bakar; duvarın ardına geçen kamera 234 birimlik
+ * surun dibindeki canavarları göremiyor.
  */
-export const KAMERA_YON = { x: -0.88, y: 0.34, z: -0.12 }
-/** Saha çerçeveye tam oturmasın, kenarda biraz boşluk kalsın. */
-export const KAMERA_PAY = 1.04
-/**
- * Kameranın çerçevelediği kutu.
- *
- * Doğuş noktası bilerek dışarıda: canavarlar iki boyutlu sürümdeki gibi
- * ekranın dışından yürüyerek giriyor. Bütün yolu sığdırmaya çalışmak kamerayı
- * gereksiz geriye atıp canavarları nokta hâline getiriyordu.
- */
-export const CERCEVE = { x1: -110, x2: 200, y1: 0, y2: 230, z1: 40, z2: 800 }
+export const KAMERALAR: KameraAyari[] = [
+  {
+    ad: 'Yandan',
+    yon: { x: -0.88, y: 0.34, z: -0.12 },
+    hedef: { x: 60, y: 80, z: GAME_WIDTH / 2 + 10 },
+    cerceve: { x1: -110, x2: 200, y1: 0, y2: 230, z1: 40, z2: 800 },
+    pay: 1.04,
+    nisan: 'yol',
+  },
+  {
+    // Yakın plan: sahanın yarısı görünür ama derinlik iyice okunur —
+    // canavar yaklaştıkça gözle görülür büyür.
+    ad: 'Yakın plan',
+    yon: { x: -0.82, y: 0.3, z: -0.24 },
+    hedef: { x: 20, y: 70, z: 340 },
+    cerceve: { x1: -100, x2: 190, y1: 0, y2: 230, z1: 60, z2: 620 },
+    pay: 1.02,
+    nisan: 'yol',
+  },
+  {
+    // Kuş bakışı: bütün yol tek karede, kule yerleşimi için en okunur açı.
+    ad: 'Kuş bakışı',
+    yon: { x: -0.26, y: 0.94, z: -0.04 },
+    hedef: { x: 20, y: 30, z: 440 },
+    cerceve: { x1: -130, x2: 220, y1: 0, y2: 110, z1: 10, z2: 870 },
+    pay: 1.02,
+    nisan: 'zemin',
+  },
+]
 
 // --- Işık ve hava ---
 
-export const GOK_ISIK_GUCU = 1.15
-export const GUNES_GUCU = 1.35
-/** Güneşin sahaya göre yönü. */
-export const GUNES_YONU = { x: -420, y: 900, z: -260 }
+// Gölge okunsun diye ortam ışığı biraz kısık, güneş biraz güçlü.
+export const GOK_ISIK_GUCU = 0.95
+export const GUNES_GUCU = 1.55
+/**
+ * Güneşin sahaya göre yönü (saha merkezine eklenir).
+ *
+ * Bilerek kameranın karşı tarafında: ışık kameranın arkasından vurunca gölgeler
+ * nesnelerin arkasına düşüyor ve hiç görünmüyordu. Buradan gelince gölgeler
+ * öne, kameraya doğru uzuyor. Yükseklik büyük tutuldu ki gölgeler kısa kalsın
+ * ve sahayı kaplamasın.
+ */
+export const GUNES_YONU = { x: 380, y: 1050, z: 220 }
 /** Sis bu uzaklıkta başlar ve şu uzaklıkta beyaza boğar. */
 export const SIS_YAKIN = 1100
 export const SIS_UZAK = 3400

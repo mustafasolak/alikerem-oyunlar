@@ -11,7 +11,7 @@
 import * as THREE from 'three'
 
 import { FONT_FAMILY } from '../../kalesavunmasi/config/constants.ts'
-import { birak, malzeme } from './yapi.ts'
+import { birak, kutu, malzeme } from './yapi.ts'
 
 interface Efekt {
   nesne: THREE.Object3D
@@ -31,6 +31,11 @@ const YAZI_MS = 780
 const ZINCIR_MS = 220
 const PATLAMA_MS = 360
 const SAPLANAN_MS = 2600
+/** Ölümde savrulan parça sayısı, süresi ve yerçekimi (birim/sn²). */
+const PARCA_ADET = 9
+const PARCA_MS = 720
+const YERCEKIMI = 620
+const TOZ_MS = 480
 
 export class Efektler3D {
   private readonly sahne: THREE.Scene
@@ -115,6 +120,50 @@ export class Efektler3D {
       nesne.scale.setScalar(0.4 + oran * 0.8)
       const m = (nesne as THREE.Mesh).material as THREE.MeshLambertMaterial
       m.opacity = 0.34 * (1 - oran)
+    })
+  }
+
+  /**
+   * Ölüm: gövde renginde parçalar savrulup yere düşer, yerinde toz bulutu kalır.
+   *
+   * Parçaların yeri her karede birikimle değil, süreden doğrudan hesaplanıyor
+   * (yol = hız·t − ½·g·t²); böylece kare atlasa da hareket aynı kalıyor.
+   */
+  parcalanma(konum: THREE.Vector3, renk: number, olcek = 1): void {
+    const grup = new THREE.Group()
+    grup.position.copy(konum)
+    const hizlar: THREE.Vector3[] = []
+    for (let i = 0; i < PARCA_ADET; i++) {
+      const boy = (3 + Math.random() * 4) * olcek
+      grup.add(kutu(boy, boy, boy, malzeme(renk, { saydam: 1 })))
+      hizlar.push(
+        new THREE.Vector3(
+          (Math.random() - 0.5) * 170,
+          70 + Math.random() * 150,
+          (Math.random() - 0.5) * 170,
+        ),
+      )
+    }
+    this.ekle(grup, PARCA_MS, (nesne, oran) => {
+      const t = (oran * PARCA_MS) / 1000
+      for (let i = 0; i < nesne.children.length; i++) {
+        const parca = nesne.children[i]
+        const hiz = hizlar[i]
+        parca.position.set(hiz.x * t, Math.max(2, hiz.y * t - 0.5 * YERCEKIMI * t * t), hiz.z * t)
+        parca.rotation.set(hiz.x * t * 0.04, 0, hiz.z * t * 0.04)
+        const m = (parca as THREE.Mesh).material as THREE.MeshLambertMaterial
+        m.opacity = 1 - oran * oran
+      }
+    })
+
+    const toz = new THREE.Mesh(
+      new THREE.SphereGeometry(10 * olcek, 10, 8),
+      malzeme(0xd6d3d1, { saydam: 0.45 }),
+    )
+    toz.position.copy(konum).setY(konum.y * 0.4 + 4)
+    this.ekle(toz, TOZ_MS, (nesne, oran) => {
+      nesne.scale.setScalar(0.6 + oran * 1.9)
+      ;((nesne as THREE.Mesh).material as THREE.MeshLambertMaterial).opacity = 0.45 * (1 - oran)
     })
   }
 
