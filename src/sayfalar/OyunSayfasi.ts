@@ -1,6 +1,6 @@
 /**
- * Oyun sayfası: kabuğu kurar, oyun modülünü tembel yükler, Phaser örneğini
- * açar ve sayfadan çıkılırken düzgün yıkar.
+ * Oyun sayfası: kabuğu kurar, oyun modülünü tembel yükler, motoru (Phaser ya
+ * da three.js) açar ve sayfadan çıkılırken düzgün yıkar.
  */
 
 import * as Phaser from 'phaser'
@@ -11,6 +11,7 @@ import { kabukHtml, temayiTemizle, temayiUygula } from '../cekirdek/OyunKabugu.t
 import { sonOynananaEkle } from '../cekirdek/tercihler.ts'
 import { yukleyiciBul } from '../cekirdek/yukleyiciler.ts'
 import type { Temizleyici } from '../cekirdek/yonlendirici.ts'
+import type { UcBoyutSahnesi } from '../cekirdek/tanim.ts'
 import { KATALOG_HARITASI } from '../uretilmis/katalog.ts'
 import { SITE_BASLIK } from '../cekirdek/site.ts'
 
@@ -22,6 +23,9 @@ import { SITE_BASLIK } from '../cekirdek/site.ts'
  * dünya koordinatları aynı kalıyor (oyun kodu değişmiyor) ama piksel sayısı
  * dört katına çıkıyor. Telefonda tahta zaten küçük, orada 1 kalıyor:
  * gereksiz yere dört kat doldurma maliyeti çıkmasın.
+ *
+ * Üç boyutlu oyunlarda bu hesap kullanılmaz: orada tuval kabın gerçek ölçüsüne
+ * kurulur, keskinliği `devicePixelRatio` verir.
  */
 const GENIS_EKRAN_ESIGI = 900
 const CIZIM_ORANI = 2
@@ -66,6 +70,7 @@ export async function oyunSayfasi(id: string): Promise<Temizleyici> {
   if (sahneKutusu) sahneKutusu.classList.add('yukleniyor')
 
   let oyun: Phaser.Game | null = null
+  let ucBoyut: UcBoyutSahnesi | null = null
   let iptal = false
 
   try {
@@ -75,28 +80,36 @@ export async function oyunSayfasi(id: string): Promise<Temizleyici> {
     if (iptal) return () => {}
 
     sahneKutusu?.classList.remove('yukleniyor')
-    const oran = cizimOrani()
-    const tuval = kayit.tuval
-    oyun = new Phaser.Game({
-      type: Phaser.AUTO,
-      parent: 'game',
-      width: tuval.genislik * oran,
-      height: tuval.yukseklik * oran,
-      transparent: true,
-      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-      scene: [GameScene as unknown as typeof Phaser.Scene],
-    })
 
-    if (oran !== 1) {
-      // Kamerayı aynı oranda yakınlaştır: sahneler yine kendi tuval
-      // ölçülerine göre çizer, yalnız piksel sayısı artar.
-      const kamerayiAyarla = (): void => {
-        for (const sahne of oyun?.scene.getScenes(false) ?? []) {
-          sahne.cameras.main?.setZoom(oran)
-          sahne.cameras.main?.centerOn(tuval.genislik / 2, tuval.yukseklik / 2)
+    if (kayit.motor === 'ucboyut') {
+      // Üç boyutlu oyun kendi tuvalini kurar; Phaser hiç açılmaz.
+      const Sahne = GameScene as unknown as new () => UcBoyutSahnesi
+      ucBoyut = new Sahne()
+      ucBoyut.baslat(sahneKutusu ?? kok)
+    } else {
+      const oran = cizimOrani()
+      const tuval = kayit.tuval
+      oyun = new Phaser.Game({
+        type: Phaser.AUTO,
+        parent: 'game',
+        width: tuval.genislik * oran,
+        height: tuval.yukseklik * oran,
+        transparent: true,
+        scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+        scene: [GameScene as unknown as typeof Phaser.Scene],
+      })
+
+      if (oran !== 1) {
+        // Kamerayı aynı oranda yakınlaştır: sahneler yine kendi tuval
+        // ölçülerine göre çizer, yalnız piksel sayısı artar.
+        const kamerayiAyarla = (): void => {
+          for (const sahne of oyun?.scene.getScenes(false) ?? []) {
+            sahne.cameras.main?.setZoom(oran)
+            sahne.cameras.main?.centerOn(tuval.genislik / 2, tuval.yukseklik / 2)
+          }
         }
+        oyun.events.once(Phaser.Core.Events.READY, kamerayiAyarla)
       }
-      oyun.events.once(Phaser.Core.Events.READY, kamerayiAyarla)
     }
   } catch (hata) {
     sahneKutusu?.classList.remove('yukleniyor')
@@ -114,6 +127,9 @@ export async function oyunSayfasi(id: string): Promise<Temizleyici> {
     // true: tuvali de kaldır — sahne dinleyicileri kabukla birlikte ölür
     oyun?.destroy(true)
     oyun = null
+    // 3D sahne WebGL bağlamını ve geometrileri kendi bırakır.
+    ucBoyut?.yikil()
+    ucBoyut = null
     temayiTemizle()
     kok.innerHTML = ''
     document.title = SITE_BASLIK

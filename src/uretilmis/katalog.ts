@@ -852,6 +852,103 @@ export const KATALOG: KatalogKaydi[] = [
     }
   },
   {
+    "id": "kalesavunmasi3d",
+    "ad": "Kale Savunması 3B",
+    "ozet": "Aynı kale, bu kez üç boyutlu bir sahada.",
+    "aciklama": "Yoldan gelen canavarları mızrakla vur, kule kur, kaleyi ayakta tut.",
+    "ipucu": "<b>Nereye dokunursan mızrak oraya gider</b> · <kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · <kbd>E</kbd> element · <b>Yuvaya dokun</b>, sonra alttaki panelden kule kur ya da yükselt · <b>uçan canavara mızrak değmez, yalnız kuleler vurur</b>",
+    "emoji": "🏯",
+    "kategori": "arcade",
+    "etiketler": [
+      "Arcade",
+      "3B",
+      "Savunma"
+    ],
+    "renk": [
+      "#f59e0b",
+      "#1e3a8a"
+    ],
+    "motor": "ucboyut",
+    "tuval": {
+      "genislik": 840,
+      "yukseklik": 430,
+      "disPay": 360
+    },
+    "arayuz": {
+      "aracCubugu": [
+        {
+          "etiket": "Kolay",
+          "deger": "kolay"
+        },
+        {
+          "etiket": "Orta",
+          "deger": "orta"
+        },
+        {
+          "etiket": "Zor",
+          "deger": "zor"
+        }
+      ],
+      "rozetler": [
+        {
+          "etiket": "Dalga",
+          "id": "wave",
+          "baslangic": "Hazır"
+        },
+        {
+          "etiket": "Kale",
+          "id": "castle",
+          "baslangic": "30"
+        },
+        {
+          "etiket": "Altın",
+          "id": "gold",
+          "baslangic": "45"
+        },
+        {
+          "etiket": "Süre",
+          "id": "timer",
+          "baslangic": "0:00"
+        }
+      ],
+      "pad": [
+        {
+          "etiket": "🗡 Saldır",
+          "deger": "at"
+        },
+        {
+          "etiket": "🗡 Mızrak",
+          "deger": "element"
+        },
+        {
+          "etiket": "🤖 Otomatik",
+          "deger": "otomatik"
+        },
+        {
+          "etiket": "⏸ Duraklat",
+          "deger": "duraklat"
+        }
+      ],
+      "paneller": [
+        {
+          "id": "kule",
+          "baslik": "Kuleler",
+          "ic": "<details class=\"katlanir\"><summary>6 yuva</summary><div class=\"toolbar\"><button class=\"btn\" type=\"button\" data-yuva=\"0\">1 · boş</button><button class=\"btn\" type=\"button\" data-yuva=\"1\">2 · boş</button><button class=\"btn\" type=\"button\" data-yuva=\"2\">3 · boş</button><button class=\"btn\" type=\"button\" data-yuva=\"3\">4 · boş</button><button class=\"btn\" type=\"button\" data-yuva=\"4\">5 · boş</button><button class=\"btn\" type=\"button\" data-yuva=\"5\">6 · boş</button></div>\n   <div class=\"toolbar\"><button class=\"btn\" type=\"button\" data-kule=\"0\" title=\"hızlı, tek hedef\">Okçu · <b>45</b></button><button class=\"btn\" type=\"button\" data-kule=\"1\" title=\"yavaş, alan hasarı\">Bombacı · <b>110</b></button><button class=\"btn\" type=\"button\" data-kule=\"2\" title=\"zırhı geçer, yavaşlatır\">Büyücü · <b>150</b></button>\n     <button class=\"btn\" type=\"button\" data-kule=\"yukselt\">⬆ Yükselt · <b>—</b></button>\n     <button class=\"btn\" type=\"button\" data-kule=\"yik\">⛏ Yık · <b>—</b></button>\n   </div></details>"
+        },
+        {
+          "id": "dunya",
+          "baslik": "Dünya",
+          "ic": "<details class=\"katlanir\"><summary>Dünya 1 · Dünya 2</summary><div class=\"toolbar\"><button class=\"btn\" type=\"button\" data-dunya=\"0\">Dünya 1</button><button class=\"btn\" type=\"button\" data-dunya=\"1\">Dünya 2</button></div></details>"
+        },
+        {
+          "id": "malzeme",
+          "baslik": "Yükseltme dükkânı",
+          "ic": "<details class=\"katlanir\"><summary>10 yükseltme</summary><div class=\"toolbar\"><button class=\"btn\" type=\"button\" data-yukseltme=\"tamir\" title=\"+8 kale canı\">🧱 Duvar tamiri · <b>40</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"hasar\" title=\"her seviyede +1 hasar\">⚔️ Mızrak hasarı · <b>70</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"hiz\" title=\"her seviyede bekleme %12 kısa\">⚡ Atış hızı · <b>60</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"kale\" title=\"her seviyede +8 azami can\">🛡 Kale duvarı · <b>90</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"kritiksans\" title=\"her seviyede +%4 kritik şansı\">🎯 Kritik şans · <b>120</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"kritikhasar\" title=\"her seviyede kritik çarpanı +0.25\">💥 Kritik hasar · <b>150</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"otomatik\" title=\"mızrakçı kendi nişan alıp atar\">🤖 Otomatik ateş · <b>220</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"alev\" title=\"vurduğunu yakar, zırhı geçer\">🔥 Alev mızrağı · <b>160</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"buz\" title=\"vurduğunu yavaşlatır\">❄️ Buz mızrağı · <b>190</b></button><button class=\"btn\" type=\"button\" data-yukseltme=\"simsek\" title=\"yakındaki canavarlara atlar\">⚡ Şimşek mızrağı · <b>260</b></button></div></details>"
+        }
+      ]
+    }
+  },
+  {
     "id": "kelimeavi",
     "ad": "Kelime Avı",
     "ozet": "Harf karmaşasında gizlenen kelimeleri bul ve işaretle.",

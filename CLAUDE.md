@@ -6,7 +6,7 @@ Her oyun tek kişilik; klavye + dokunmatik kontrol.
 Hedef: 60 FPS, masaüstü ve mobil tarayıcıda sorunsuz çalışması.
 
 ## Teknoloji
-- Phaser 4 (oyun motoru)
+- Phaser 4 (oyun motoru), three.js (üç boyutlu oyunlar)
 - TypeScript
 - Vite (dev sunucusu + çok sayfalı build)
 - Yayın: statik hosting (itch.io / Netlify / GitHub Pages) — `base: './'` sayesinde alt klasörde de çalışır
@@ -70,6 +70,18 @@ npm run yeni-oyun -- <id> <kategori>
 Klasör açılır, gerisi otomatik: katalog kaydı, sayfa kabuğu, adres, kart.
 **Elle kayıt tutulan hiçbir liste yok.** Kategoriler: arcade · mantik · kelime ·
 kagit · dikkat · yerlestirme.
+
+### Üç boyutlu oyun
+Phaser 4'te 3B çizim yok (yalnız `Mesh2D`). Üç boyutlu oyunlar `oyun.ts` içinde
+`motor: 'ucboyut'` verir; kabuk o zaman Phaser açmaz, sahne sınıfını `new` edip
+`baslat(kap)` çağırır, sayfadan çıkarken `yikil()` der. Sahneler
+`shared/UcBoyutSahne.ts`'ten türer: three.js tuvalini, kamerayı, kare döngüsünü
+ve ölçü değişimini o kurar; HUD, skor tablosu, ses ve süre sayacı ortak
+modüllerden gelir (hiçbiri Phaser'a bağlı değil).
+
+Örnek: `games/kalesavunmasi3d` — oyun mantığını (`systems/KaleSavunmasi.ts`) iki
+boyutlu sürümle paylaşır, yalnız çizimi başkadır. Sim tek eksenlidir; eksen
+eşlemesi `config/sahne3d.ts` başında yazılıdır (sim x → z, sim y → y).
 
 ### Dış bağlantılı oyun
 Başka bir adreste çalışan oyun için `oyun.ts` içinde `sahne` ve `tuval` yerine
@@ -155,7 +167,7 @@ yönlendirmelerle korunuyor; kırılmasınlar diye silinmemeli.
 - [x] Telefon uyumu: yatay taşma yok, tahta ilk ekrana sığıyor
 - [x] Herkese açık ortak skor tablosu (Vercel + Neon Postgres, günlük/haftalık/aylık)
 
-### Oyunlar — 53'ü de oynanabilir
+### Oyunlar — 54'ü de oynanabilir
 Arcade: 2048 · Yılan · Tetris · Match-3 · Şeker Patlatma · Bubble Shooter · Zuma ·
   Kale Savunması
 Mantık: Sudoku · Mayın Tarlası · Nonogram · Kakuro · Lights Out · Mantık Kapıları ·
@@ -167,6 +179,7 @@ Kâğıt/eşleştirme: Solitaire · Spider · FreeCell · Mahjong · Hafıza Kar
 Renk ayırma: Top Sıralama · Renk Sıralama · Su Şişesi
 Dikkat: Farkları Bul · Gizli Nesne · Resim Tamamlama
 Diğer: Mastermind · Labirent · Matematik Bulmacası · Sayı Piramidi
+Üç boyutlu: Kale Savunması 3B (three.js)
 Dış bağlantı: Robicraft (ayrı depo, Railway'de barınıyor)
 
 ### Kalan işler
@@ -179,6 +192,7 @@ Dış bağlantı: Robicraft (ayrı depo, Railway'de barınıyor)
 - [x] Kale Savunması: kolay/orta/zor zorluk seviyeleri
 - [x] Kale Savunması: kule tipleri (okçu / bombacı-alan / büyücü-zırh delici), 5 yuva
 - [x] Kale Savunması: kritik vuruş, hasar sayıları, sürekli can barları
+- [x] Kale Savunması 3B: three.js ile üç boyutlu sürüm (mantık paylaşılıyor)
 - [ ] Kale Savunması: 3. dünya (DUNYALAR tablosuna satır eklemek yeterli)
 - [ ] Mahjong tek katmanlı — gerçek kat yapısı yok
 - [ ] Tangram parçaları hâlâ kare — gerçek tangram parçaları çizilmeli

@@ -1,0 +1,157 @@
+/**
+ * Havadaki cisimler ve nişan izi.
+ *
+ * Mantık atışın yalnız derinliğini (sim x) ve yüksekliğini biliyor; yanal yer
+ * buradan veriliyor. Kule oku kulenin yanından çıkıp uçtukça yolun ortasına
+ * süzülüyor — mantığa dokunmadan "kuleden çıktı" hissi böyle veriliyor.
+ */
+
+import * as THREE from 'three'
+
+import {
+  COLORS,
+  ELEMENT_RENGI,
+  KULE_TIPLERI,
+  NISAN_NOKTA_ARALIK,
+} from '../../kalesavunmasi/config/constants.ts'
+import type { Atis } from '../../kalesavunmasi/systems/KaleSavunmasi.ts'
+import { yukseklik } from '../config/sahne3d.ts'
+import type { Efektler3D } from './Efektler3D.ts'
+import { KULE_YANAL } from './Kuleler3D.ts'
+import { birak, koni, kure, malzeme, silindir } from './yapi.ts'
+
+/** Kule okunun yanal kayması bu yol boyunca sıfıra iner. */
+const OK_YANAL_YOL = 260
+/** Yere saplanan mızrağın yerden yüksekliği. */
+const SAPLANAN_Y = 6
+
+interface AtisGorunum {
+  kok: THREE.Group
+  /** Doğduğu andaki yanal yer. */
+  yanal: number
+  basX: number
+}
+
+/** Mızrak gövdesi: sap + uç. Yerel ileri yönü +z. */
+function mizrakYap(ucRengi: number): THREE.Group {
+  const kok = new THREE.Group()
+  const sap = silindir(2.2, 2.2, 26, COLORS.MIZRAK_SAP, 6)
+  sap.rotation.x = Math.PI / 2
+  const uc = koni(4, 13, ucRengi, 6)
+  uc.rotation.x = Math.PI / 2
+  uc.position.z = 19
+  kok.add(sap, uc)
+  return kok
+}
+
+export class Atislar3D {
+  private readonly sahne: THREE.Scene
+  private readonly efektler: Efektler3D
+  private readonly gorunumler = new Map<number, AtisGorunum>()
+  private readonly nisanCizgisi: THREE.Points
+  private readonly hedefHalkasi: THREE.Mesh
+
+  constructor(sahne: THREE.Scene, efektler: Efektler3D) {
+    this.sahne = sahne
+    this.efektler = efektler
+
+    this.nisanCizgisi = new THREE.Points(
+      new THREE.BufferGeometry(),
+      new THREE.PointsMaterial({ color: COLORS.NISAN, size: 6, transparent: true, opacity: 0.7 }),
+    )
+    this.hedefHalkasi = new THREE.Mesh(
+      new THREE.TorusGeometry(10, 1.8, 6, 18),
+      malzeme(COLORS.NISAN, { saydam: 0.9, isik: COLORS.NISAN }),
+    )
+    sahne.add(this.nisanCizgisi, this.hedefHalkasi)
+  }
+
+  /** Mantıktaki atış listesini sahnedeki nesnelerle eşler. */
+  esle(atislar: readonly Atis[]): void {
+    const ucan = new Set<number>()
+    for (const atis of atislar) {
+      ucan.add(atis.id)
+      let gorunum = this.gorunumler.get(atis.id)
+      if (!gorunum) {
+        gorunum = this.gorunumYap(atis)
+        this.sahne.add(gorunum.kok)
+        this.gorunumler.set(atis.id, gorunum)
+      }
+      const yol = Math.abs(atis.x - gorunum.basX)
+      const yanal = gorunum.yanal * Math.max(0, 1 - yol / OK_YANAL_YOL)
+      gorunum.kok.position.set(yanal, yukseklik(atis.y), atis.x)
+      // Cisim uçtuğu yöne bakar: yerel +z, x ekseni etrafında açı kadar dönüyor.
+      gorunum.kok.rotation.x = Math.atan2(atis.vy, atis.vx)
+    }
+
+    for (const [id, gorunum] of this.gorunumler) {
+      if (ucan.has(id)) continue
+      gorunum.kok.removeFromParent()
+      birak(gorunum.kok)
+      this.gorunumler.delete(id)
+    }
+  }
+
+  /** Yere saplanan mızrak: efekt listesine devredilir, kendi kendine solar. */
+  saplanan(x: number, aci: number): void {
+    const kok = mizrakYap(COLORS.MIZRAK_UC)
+    kok.position.set(0, SAPLANAN_Y, x)
+    kok.rotation.x = aci
+    this.efektler.saplanan(kok)
+  }
+
+  /** Nişan izi: kesik noktalar ve düşeceği yerde halka. */
+  nisaniCiz(yol: { x: number; y: number }[]): void {
+    const [bas, son] = yol
+    const uzunluk = Math.hypot(son.x - bas.x, son.y - bas.y)
+    const adet = Math.max(2, Math.floor(uzunluk / NISAN_NOKTA_ARALIK))
+    const dizi = new Float32Array(adet * 3)
+    for (let i = 0; i < adet; i++) {
+      const oran = i / (adet - 1)
+      dizi[i * 3] = 0
+      dizi[i * 3 + 1] = yukseklik(bas.y + (son.y - bas.y) * oran)
+      dizi[i * 3 + 2] = bas.x + (son.x - bas.x) * oran
+    }
+    this.nisanCizgisi.geometry.setAttribute('position', new THREE.BufferAttribute(dizi, 3))
+    this.nisanCizgisi.geometry.computeBoundingSphere()
+    this.hedefHalkasi.position.set(0, yukseklik(son.y), son.x)
+  }
+
+  /** Hedef halkası hep kameraya dönük dursun. */
+  kamerayaBak(yon: THREE.Quaternion): void {
+    this.hedefHalkasi.quaternion.copy(yon)
+  }
+
+  temizle(): void {
+    for (const gorunum of this.gorunumler.values()) {
+      gorunum.kok.removeFromParent()
+      birak(gorunum.kok)
+    }
+    this.gorunumler.clear()
+  }
+
+  /** Mızrak mı, ok mu, gülle mi, büyü topu mu — atışın taşıdığı özelliklerden. */
+  private gorunumYap(atis: Atis): AtisGorunum {
+    if (atis.tur === 'mizrak') {
+      const kok = mizrakYap(ELEMENT_RENGI[atis.element])
+      // Kritik atış uçarken de belli olsun.
+      if (atis.kritik) kok.add(kure(7, malzeme(0xfde047, { saydam: 0.5, isik: 0xfde047 }), 8))
+      return { kok, yanal: 0, basX: atis.x }
+    }
+
+    const kok = new THREE.Group()
+    if (atis.alan > 0) {
+      kok.add(kure(6, KULE_TIPLERI[1].renk, 8))
+    } else if (atis.zirhDelici) {
+      kok.add(kure(5, malzeme(KULE_TIPLERI[2].renk, { isik: KULE_TIPLERI[2].renk }), 8))
+    } else {
+      const sap = silindir(1.5, 1.5, 20, COLORS.OK_SAP, 5)
+      sap.rotation.x = Math.PI / 2
+      const uc = koni(3, 8, COLORS.OK_UC, 5)
+      uc.rotation.x = Math.PI / 2
+      uc.position.z = 14
+      kok.add(sap, uc)
+    }
+    return { kok, yanal: KULE_YANAL, basX: atis.x }
+  }
+}

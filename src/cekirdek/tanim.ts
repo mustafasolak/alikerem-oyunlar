@@ -58,6 +58,21 @@ export interface Arayuz {
 /** Sahne sınıfı; Phaser tipine bağlanmamak için asgari imza. */
 export type SahneYapici = new () => object
 
+/** Oyunu hangi motor çizer. */
+export type Motor = 'phaser' | 'ucboyut'
+
+/**
+ * 3D motorlu sahnelerin sözleşmesi.
+ *
+ * Phaser sahnelerini kabuk `new Phaser.Game(...)` ile kurar; üç boyutlu
+ * oyunlarda ise sahne kendi tuvalini açar. Kabuk yalnız bu iki çağrıyı bilir,
+ * three.js'e hiç dokunmaz — kütüphane oyunun kendi parçasıyla iner.
+ */
+export interface UcBoyutSahnesi {
+  baslat(kap: HTMLElement): void
+  yikil(): void
+}
+
 export interface OyunTanimi {
   id: string
   ad: string
@@ -80,6 +95,11 @@ export interface OyunTanimi {
     disPay: number
   }
   arayuz?: Arayuz
+  /**
+   * Çizim motoru. Verilmezse Phaser. 'ucboyut' olan oyunlarda `sahne`
+   * yükleyicisinin döndürdüğü sınıf `UcBoyutSahnesi` sözleşmesini uygular.
+   */
+  motor?: Motor
   /**
    * Tembel: oyun açılana kadar sahne kodu indirilmez.
    * Dış bağlantılı oyunlarda bulunmaz.
