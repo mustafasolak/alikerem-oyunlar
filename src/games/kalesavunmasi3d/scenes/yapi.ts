@@ -27,6 +27,20 @@ export function malzeme(renk: number, secenek: MalzemeSecenek = {}): THREE.MeshL
   })
 }
 
+/**
+ * Işıktan etkilenmeyen düz renk.
+ *
+ * Can barı gibi arayüz parçaları için: gece olunca kararmasınlar, hep aynı
+ * parlaklıkta okunsunlar.
+ */
+export function duz(renk: number, saydam?: number): THREE.MeshBasicMaterial {
+  return new THREE.MeshBasicMaterial({
+    color: renk,
+    transparent: saydam !== undefined,
+    opacity: saydam ?? 1,
+  })
+}
+
 export function kutu(en: number, boy: number, derinlik: number, renk: number | THREE.Material): THREE.Mesh {
   return new THREE.Mesh(
     new THREE.BoxGeometry(en, boy, derinlik),

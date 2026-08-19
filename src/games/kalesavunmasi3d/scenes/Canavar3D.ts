@@ -26,7 +26,7 @@ import {
   YAYILMA_MESAFE,
 } from '../config/sahne3d.ts'
 import { bicimSec, bicimUygula } from './CanavarBicimleri.ts'
-import { acik, birak, golgeVer, koyu, kure, kutu, malzeme } from './yapi.ts'
+import { acik, birak, duz, golgeVer, koyu, kure, kutu, malzeme } from './yapi.ts'
 
 /** Yürürken bacak ve kol açısı (derece). */
 const BACAK_ACI = 26
@@ -155,8 +155,8 @@ export class Canavar3D {
     this.bar = new THREE.Group()
     // Bar malzemeleri listeye girmez: isabet parlaması ve ölüm solması
     // gövdeye ait, bara değil.
-    const arka = kutu(BAR_EN, BAR_BOY, 1, malzeme(0x1f2937))
-    this.barDolu = kutu(BAR_EN, BAR_BOY - 2, 1, malzeme(0x22c55e))
+    const arka = kutu(BAR_EN, BAR_BOY, 1, duz(0x0f172a))
+    this.barDolu = kutu(BAR_EN, BAR_BOY - 2, 1, duz(0x22c55e))
     this.barDolu.position.z = 1
     this.bar.add(arka, this.barDolu)
     this.bar.position.y = kalcaY + boy * 0.66 + BAR_PAY
@@ -230,7 +230,7 @@ export class Canavar3D {
     const oran = Math.max(0, Math.min(1, canavar.can / canavar.maxCan))
     this.barDolu.scale.x = Math.max(0.001, oran)
     this.barDolu.position.x = -(BAR_EN * (1 - oran)) / 2
-    ;(this.barDolu.material as THREE.MeshLambertMaterial).color.setHex(
+    ;(this.barDolu.material as THREE.MeshBasicMaterial).color.setHex(
       oran > 0.5 ? 0x22c55e : oran > 0.25 ? 0xf59e0b : 0xef4444,
     )
     this.bar.quaternion.copy(kameraYonu)

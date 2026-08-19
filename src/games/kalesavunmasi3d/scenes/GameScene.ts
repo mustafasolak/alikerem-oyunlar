@@ -39,6 +39,7 @@ import { KaleSavunmasi, type Isabet } from '../../kalesavunmasi/systems/KaleSavu
 import { KAMERALAR, KAMERA_YUMUSAMA, ZEMIN_NISAN_PAYI, type KameraAyari, yukseklik } from '../config/sahne3d.ts'
 import { Atislar3D } from './Atislar3D.ts'
 import { Bildirim3D } from './Bildirim3D.ts'
+import { Dukkan3D, type DukkanSatiri } from './Dukkan3D.ts'
 import { Canavar3D } from './Canavar3D.ts'
 import { Dunya3D } from './Dunya3D.ts'
 import { Efektler3D } from './Efektler3D.ts'
@@ -60,7 +61,10 @@ export class GameScene extends UcBoyutSahne {
   private paneller!: Paneller3D
   private bildirim!: Bildirim3D
   private kuleMenu!: KuleMenu3D
+  private dukkan!: Dukkan3D
   private onizleme!: Onizleme3D
+  /** Dükkânı açarken oyunu biz mi duraklattık? Kapanınca ona göre sürdürülür. */
+  private dukkanDuraklatti = false
   /**
    * Gerçek gölge açık mı? Telefonda kapalı: gölge haritası her karede ikinci
    * bir çizim demek, orada yassı daire gölgeler yetiyor.
@@ -108,6 +112,7 @@ export class GameScene extends UcBoyutSahne {
     this.sahne.add(this.kamera)
     this.bildirim = new Bildirim3D(this.kamera)
     this.onizleme = new Onizleme3D(this.kamera)
+    this.dukkan = new Dukkan3D(this.kamera)
     this.atislar = new Atislar3D(this.sahne, this.efektler)
     this.kamerayiOturt(true)
 
@@ -120,6 +125,7 @@ export class GameScene extends UcBoyutSahne {
     this.tus(['KeyP', 'Escape'], () => this.duraklatDegistir())
     this.tus('KeyE', () => this.elementDegistir())
     this.tus('KeyC', () => this.kameraDegistir())
+    this.tus('KeyM', () => this.dukkanDegistir())
     this.tuslariYakala(['Space', 'ArrowUp', 'ArrowDown'])
 
     this.padDugmesi('at', () => this.at())
@@ -154,6 +160,7 @@ export class GameScene extends UcBoyutSahne {
     this.efektler.temizle()
     this.kuleAlani.sifirla()
     this.kuleMenu.kapat()
+    this.dukkaniKapat()
     this.dunya.sifirla(1, DUNYALAR[this.oyun.dunyaSira].vakitBaslangic)
     this.bildirim.temizle()
     this.onizleme.gizle()
@@ -181,6 +188,8 @@ export class GameScene extends UcBoyutSahne {
     this.menuyuTazele()
     this.bildirim.guncelle(delta)
     this.onizlemeyiTazele()
+    this.dukkan.yerlestir(this.kamera)
+    this.dukkan.tazele(this.dukkanSatirlari(), this.oyun.altin)
     this.efektler.guncelle(delta, this.kamera.quaternion)
     this.paneller.tazele(this.kuleAlani.seciliYuva)
     this.gostergeleriTazele()
@@ -319,6 +328,24 @@ export class GameScene extends UcBoyutSahne {
     if (this.bitti || this.yaziyor) return
     this.isinlayici.setFromCamera(new THREE.Vector2(x, y), this.kamera)
 
+    // Dükkân her şeyin önünde: açıkken dokunuş oyuna geçmez.
+    if (this.dukkan.acik) {
+      const vurus = this.isinlayici.intersectObject(this.dukkan.panel, false)[0]
+      if (vurus?.uv) {
+        const eylem = this.dukkan.eylem(vurus.uv)
+        if (eylem?.tur === 'kapat') this.dukkaniKapat()
+        else if (eylem?.tur === 'al') this.yukseltmeAl(eylem.id)
+        else sesler.tik()
+      } else {
+        this.dukkaniKapat()
+      }
+      return
+    }
+    if (this.isinlayici.intersectObject(this.dukkan.dugme, false).length > 0) {
+      this.dukkanDegistir()
+      return
+    }
+
     const secili = this.kuleAlani.seciliYuva
     if (this.kuleMenu.acik && secili !== null) {
       const vurus = this.isinlayici.intersectObject(this.kuleMenu.nesne, false)[0]
@@ -350,6 +377,48 @@ export class GameScene extends UcBoyutSahne {
     else if (eylem === 'yik') this.kuleYik()
     else if (eylem === 'hedef') this.hedeflemeDegistir(yuva)
     else this.kuleAl(Number(eylem.slice(4)))
+  }
+
+  /** ☰ düğmesi: dükkânı açar/kapatır. Açılınca oyun durur, kapanınca sürer. */
+  private dukkanDegistir(): void {
+    if (this.bitti || this.yaziyor) return
+    if (this.dukkan.acik) {
+      this.dukkaniKapat()
+      return
+    }
+    this.kuleMenu.kapat()
+    this.kuleAlani.sec(null, this.oyun.kuleler)
+    this.dukkan.ac()
+    // Alışveriş yaparken canavarlar yürümesin; süre de dursun.
+    this.dukkanDuraklatti = this.oyun.calisiyor
+    if (this.dukkanDuraklatti) {
+      this.oyun.duraklatDegistir()
+      this.sayac.durdur()
+    }
+    sesler.tik()
+  }
+
+  private dukkaniKapat(): void {
+    if (!this.dukkan.acik) return
+    this.dukkan.kapat()
+    if (this.dukkanDuraklatti) {
+      this.oyun.devam()
+      this.sayac.basla()
+    }
+    this.dukkanDuraklatti = false
+  }
+
+  /** Dükkân satırları: yükseltmeler, güncel fiyat ve seviyeyle. */
+  private dukkanSatirlari(): DukkanSatiri[] {
+    return YUKSELTMELER.map((y) => ({
+      id: y.id,
+      etiket: y.etiket,
+      ozet: y.ozet,
+      seviye: this.oyun.yukseltmeSeviyesi(y.id),
+      maxSeviye: y.maxSeviye,
+      fiyat: this.oyun.yukseltmeFiyatiSimdi(y.id),
+      alinabilir: this.oyun.yukseltmeAlinabilir(y.id),
+    }))
   }
 
   private hedeflemeDegistir(yuva: number): void {
@@ -395,6 +464,7 @@ export class GameScene extends UcBoyutSahne {
     sesler.tik()
     if (yeni === null) {
       this.kuleMenu.kapat()
+    this.dukkaniKapat()
       return
     }
     this.kuleMenu.ac(this.kuleAlani.menuKonumu(yeni, this.oyun.kuleler[yeni]), this.menuDurumu(yeni))
@@ -703,6 +773,7 @@ export class GameScene extends UcBoyutSahne {
 
   override yikil(): void {
     this.kuleMenu?.bosalt()
+    this.dukkan?.bosalt()
     this.paneller?.yikil()
     this.efektler?.bosalt()
     super.yikil()

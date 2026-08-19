@@ -164,6 +164,31 @@ export const KAMERALAR: KameraAyari[] = [
 // Gölge okunsun diye ortam ışığı biraz kısık, güneş biraz güçlü.
 export const GOK_ISIK_GUCU = 0.95
 export const GUNES_GUCU = 1.55
+
+/**
+ * Vakte göre ışık ayarı.
+ *
+ * Gece paletindeki gök rengi neredeyse siyah; olduğu gibi ışığa verilince
+ * canavarların gölgede kalan yüzü kapkara oluyor ve sahada ne olduğu
+ * seçilmiyordu. Gece için gök ışığının rengi açılıyor, her yeri eşit aydınlatan
+ * bir taban ışık ekleniyor, yönlü ışık (ay) biraz kısılıyor.
+ */
+export interface VakitIsigi {
+  /** Yarımküre ışığının gücü. */
+  gok: number
+  /** Gök renginin ışığa verilirken açılma oranı (0..1). */
+  gokAcilma: number
+  /** Yönlü ışık (güneş/ay) gücü. */
+  yonlu: number
+  /** Taban (ortam) ışığı — hiçbir yüz kapkara kalmasın. */
+  taban: number
+}
+
+export const VAKIT_ISIGI: VakitIsigi[] = [
+  { gok: 0.95, gokAcilma: 0, yonlu: 1.55, taban: 0.06 },
+  { gok: 1.0, gokAcilma: 0.2, yonlu: 1.3, taban: 0.16 },
+  { gok: 1.15, gokAcilma: 0.55, yonlu: 1.05, taban: 0.34 },
+]
 /**
  * Güneşin sahaya göre yönü (saha merkezine eklenir).
  *

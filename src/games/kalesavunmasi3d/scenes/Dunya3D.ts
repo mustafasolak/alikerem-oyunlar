@@ -34,9 +34,10 @@ import {
   SIS_UZAK,
   SIS_YAKIN,
   TAS_ADET,
+  VAKIT_ISIGI,
   YOL_YARI_EN,
 } from '../config/sahne3d.ts'
-import { doseme, golgeVer, koni, kure, kutu, malzeme, silindir } from './yapi.ts'
+import { acik, doseme, golgeVer, koni, kure, kutu, malzeme, silindir } from './yapi.ts'
 
 /**
  * Gökyüzü dokusunun çözünürlüğü.
@@ -69,6 +70,8 @@ export class Dunya3D {
   private readonly gokDoku: THREE.CanvasTexture
   private readonly gokIsik: THREE.HemisphereLight
   private readonly gunes: THREE.DirectionalLight
+  /** Her yeri eşit aydınlatan taban ışık; gece yükseliyor. */
+  private readonly tabanIsik: THREE.AmbientLight
   private readonly cim: THREE.Mesh
   private readonly yol: THREE.Mesh
   private readonly bordurler: THREE.Mesh[] = []
@@ -90,6 +93,8 @@ export class Dunya3D {
     sahne.fog = new THREE.Fog(0xffffff, SIS_YAKIN, SIS_UZAK)
 
     this.gokIsik = new THREE.HemisphereLight(0xffffff, 0x557733, GOK_ISIK_GUCU)
+    this.tabanIsik = new THREE.AmbientLight(0xffffff, 0.06)
+    this.kok.add(this.tabanIsik)
     this.gunes = new THREE.DirectionalLight(0xffffff, GUNES_GUCU)
     // Işık sahanın ortasına baksın: gölge haritası da o kutuyu kapsıyor.
     const merkez = new THREE.Vector3(0, 0, GAME_WIDTH / 2)
@@ -248,9 +253,14 @@ export class Dunya3D {
 
   private renkleriTazele(palet: VakitPaleti): void {
     this.gokDokusunuCiz(palet)
-    this.gokIsik.color.setHex(palet.gokAlt)
-    this.gokIsik.groundColor.setHex(palet.cim)
+    // Işık gücü ve gök renginin açıklığı vakte göre: gece sahne okunur kalsın.
+    const ayar = VAKIT_ISIGI[Math.min(VAKIT_ISIGI.length - 1, this.vakit)]
+    this.gokIsik.color.setHex(acik(palet.gokAlt, ayar.gokAcilma))
+    this.gokIsik.groundColor.setHex(acik(palet.cim, ayar.gokAcilma * 0.5))
+    this.gokIsik.intensity = ayar.gok
     this.gunes.color.setHex(palet.isik)
+    this.gunes.intensity = ayar.yonlu
+    this.tabanIsik.intensity = ayar.taban
     ;(this.cim.material as THREE.MeshLambertMaterial).color.setHex(palet.cim)
     ;(this.yol.material as THREE.MeshLambertMaterial).color.setHex(palet.yol)
     for (const bordur of this.bordurler) (bordur.material as THREE.MeshLambertMaterial).color.setHex(palet.tas)
