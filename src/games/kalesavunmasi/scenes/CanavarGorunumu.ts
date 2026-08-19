@@ -46,6 +46,8 @@ export class CanavarGorunumu {
   private readonly durumOrtusu: Phaser.GameObjects.Rectangle
   private readonly barArka: Phaser.GameObjects.Rectangle
   private readonly barDolu: Phaser.GameObjects.Rectangle
+  /** Şef kalkanı çubuğu; şef olmayanlarda kurulmaz. */
+  private readonly kalkanBar: Phaser.GameObjects.Rectangle | null
   private readonly barEn: number
   /** Ayak (uçanlarda gövde alt) hattı. */
   private readonly ayakY: number
@@ -124,6 +126,14 @@ export class CanavarGorunumu {
       .rectangle(-this.barEn / 2, barY, this.barEn, CANAVAR_BAR_BOY, COLORS.CAN_BAR_DOLU)
       .setOrigin(0, 0.5)
       .setRounded(2)
+    // Şefin kalkanı can barının üstünde ayrı bir mavi şerit: kalkan dururken
+    // canın neden düşmediği görünsün.
+    this.kalkanBar = this.bilgi.patron
+      ? scene.add
+          .rectangle(-this.barEn / 2, barY - CANAVAR_BAR_BOY - 1, this.barEn, CANAVAR_BAR_BOY - 1, 0x38bdf8)
+          .setOrigin(0, 0.5)
+          .setRounded(2)
+      : null
 
 
     const susler: Phaser.GameObjects.GameObject[] = []
@@ -170,6 +180,7 @@ export class CanavarGorunumu {
       this.parlama,
       this.barArka,
       this.barDolu,
+      ...(this.kalkanBar ? [this.kalkanBar] : []),
     ])
     this.solBacak.setVisible(!this.bilgi.ucar)
     this.sagBacak.setVisible(!this.bilgi.ucar)
@@ -231,6 +242,10 @@ export class CanavarGorunumu {
     const oran = Math.max(0, canavar.can) / canavar.maxCan
     this.barDolu.setDisplaySize(Math.max(1, this.barEn * oran), CANAVAR_BAR_BOY)
     this.barDolu.setFillStyle(oran < 0.4 ? COLORS.CAN_BAR_AZ : COLORS.CAN_BAR_DOLU)
+    if (!this.kalkanBar) return
+    const kalkanOran = canavar.maxKalkan > 0 ? Math.max(0, canavar.kalkan) / canavar.maxKalkan : 0
+    this.kalkanBar.setVisible(kalkanOran > 0)
+    this.kalkanBar.setDisplaySize(Math.max(1, this.barEn * kalkanOran), CANAVAR_BAR_BOY - 1)
   }
 
   /** İsabet: beyaz parlama + hafif geri sekme. */

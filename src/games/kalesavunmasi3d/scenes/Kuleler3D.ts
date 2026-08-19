@@ -41,6 +41,8 @@ const KRISTAL_SALINIM_MS = 1600
 const ISIK_MS = 900
 /** Menü kulenin tepesinden bu kadar yukarıda durur. */
 const MENU_PAY = 74
+/** Sersem kulenin üstünde dönen halkanın hızı (radyan/saniye). */
+const SERSEM_DONUS = 3.4
 
 export class Kuleler3D {
   /** Işın izleme hedefleri: seki ve kule gövdeleri. */
@@ -51,6 +53,8 @@ export class Kuleler3D {
   private readonly kuleGruplari: (THREE.Group | null)[] = []
   /** Hareketli parçalar (kristal, tepe ışığı) yuva sırasıyla. */
   private readonly modeller: (KuleModeli | null)[] = []
+  /** Şef şokuyla sersemleyen kulenin üstünde dönen halka. */
+  private readonly sersemler: THREE.Mesh[] = []
   /** Hangi görünümün çizili olduğunu tutar: "tip:seviye". */
   private readonly imzalar: string[] = []
   private readonly secimHalkasi: THREE.Mesh
@@ -88,6 +92,16 @@ export class Kuleler3D {
       this.hedefler.push(isaret)
 
       if (gercekGolge) golgeVer(seki, true, true)
+      // Sersemleme göstergesi: şok yiyen kule ateş edemez, bu görünsün.
+      const sersem = new THREE.Mesh(
+        new THREE.TorusGeometry(15, 3, 6, 16),
+        malzeme(0xfbbf24, { saydam: 0.9, isik: 0x92400e }),
+      )
+      sersem.rotation.x = -Math.PI / 2
+      sersem.visible = false
+      grup.add(sersem)
+      this.sersemler.push(sersem)
+
       this.yuvalar.push(grup)
       this.kuleGruplari.push(null)
       this.modeller.push(null)
@@ -147,6 +161,11 @@ export class Kuleler3D {
   tazele(kuleler: (Kule | null)[]): void {
     for (let yuva = 0; yuva < this.yuvalar.length; yuva++) {
       const kule = kuleler[yuva]
+      const sersem = this.sersemler[yuva]
+      sersem.visible = (kule?.sersem ?? 0) > 0
+      if (sersem.visible && kule) {
+        sersem.position.y = SEKI_BOY + kuleGorunum(kule.seviye).boy + 34
+      }
       const imza = kule ? `${kule.tip}:${kule.seviye}` : ''
       if (imza === this.imzalar[yuva]) continue
 
@@ -172,6 +191,9 @@ export class Kuleler3D {
 
   guncelle(delta: number): void {
     this.zaman += delta
+    for (const sersem of this.sersemler) {
+      if (sersem.visible) sersem.rotation.z += (SERSEM_DONUS * delta) / 1000
+    }
     for (const isaret of this.isaretler) {
       if (!isaret.visible) continue
       isaret.rotation.z += (ISARET_DONUS * delta) / 1000

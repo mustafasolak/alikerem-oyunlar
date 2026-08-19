@@ -36,6 +36,8 @@ const PARCA_ADET = 9
 const PARCA_MS = 720
 const YERCEKIMI = 620
 const TOZ_MS = 480
+/** Şef şok halkasının süresi (ms). */
+const SOK_MS = 700
 
 export class Efektler3D {
   private readonly sahne: THREE.Scene
@@ -174,6 +176,21 @@ export class Efektler3D {
     this.ekle(toz, TOZ_MS, (nesne, oran) => {
       nesne.scale.setScalar(0.6 + oran * 1.9)
       ;((nesne as THREE.Mesh).material as THREE.MeshLambertMaterial).opacity = 0.45 * (1 - oran)
+    })
+  }
+
+  /** Şef şoku: yerde büyüyüp sönen halka. */
+  sok(konum: THREE.Vector3, yaricap: number): void {
+    const halka = new THREE.Mesh(
+      new THREE.TorusGeometry(yaricap, 6, 6, 28),
+      malzeme(0xf87171, { saydam: 0.75, isik: 0x7f1d1d }),
+    )
+    halka.rotation.x = -Math.PI / 2
+    halka.position.copy(konum).setY(4)
+    halka.scale.setScalar(0.2)
+    this.ekle(halka, SOK_MS, (nesne, oran) => {
+      nesne.scale.setScalar(0.2 + oran * 0.9)
+      ;((nesne as THREE.Mesh).material as THREE.MeshLambertMaterial).opacity = 0.75 * (1 - oran)
     })
   }
 

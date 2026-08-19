@@ -27,6 +27,11 @@ import {
   KRITIK_TABAN_CARPAN,
   KRITIK_TABAN_SANS,
   OTOMATIK_BEKLEME_ORANI,
+  SEF_IYILESME_BEKLEME_MS,
+  SEF_IYILESME_ORANI,
+  SEF_KALKAN_BEKLEME_MS,
+  SEF_KALKAN_ORANI,
+  SEF_KALKAN_YENILENME,
   SIMSEK_HASAR,
   SIMSEK_HEDEF,
   SIMSEK_MENZIL,
@@ -64,6 +69,8 @@ import {
   MIZRAK_TEMAS,
   OK_HIZI,
   SIM_ADIM_MS,
+  SOK_MENZIL,
+  SOK_SURE_MS,
   TIP_KAYMA_DALGA,
   ZEMIN_Y,
   canavarAyakY,
@@ -97,6 +104,12 @@ export interface Canavar {
   yanmaTik: number
   /** Buz: kalan yavaşlama süresi (ms). */
   yavaslikKalan: number
+  /** Şef kalkanı; hasar önce buradan düşer. Şef olmayanlarda hep 0. */
+  kalkan: number
+  /** Şefin azami kalkanı. */
+  maxKalkan: number
+  /** Son isabetten bu yana geçen süre (ms) — kalkan ve iyileşme buna bakar. */
+  isabetsizSure: number
 }
 
 /** Havadaki cisim: oyuncunun mızrağı ya da kulenin oku. */
@@ -131,6 +144,8 @@ export interface Kule {
   atisBirikim: number
   /** Bu kuleye toplam yatırılan altın; yıkım bedeli buradan hesaplanır. */
   yatirim: number
+  /** Şef şoku: bu süre boyunca (ms) kule ateş edemez. */
+  sersem: number
   /** HEDEFLEME_KURALLARI dizisindeki sıra; 0 = en öndeki (varsayılan). */
   hedefleme: number
 }
@@ -157,6 +172,8 @@ export interface AdimSonucu {
   kaleVuruldu: boolean
   /** Bu adımda kule ok attı mı? */
   kuleAtti: boolean
+  /** Ölen şefin şok dalgaları; sahne halka çizip kuleleri sarsar. */
+  soklar: { x: number; yaricap: number }[]
   /** Şimşeğin atladığı yollar; sahne çizgi çizer. */
   zincirler: { x1: number; y1: number; x2: number; y2: number }[]
   /** Bomba patlamaları; sahne halka çizer. */
@@ -177,6 +194,7 @@ function bosSonuc(): AdimSonucu {
     saplananlar: [],
     kaleVuruldu: false,
     kuleAtti: false,
+    soklar: [],
     zincirler: [],
     patlamalar: [],
     yeniDalga: null,
@@ -526,7 +544,15 @@ export class KaleSavunmasi {
 
     this.altin -= fiyat
     // İlk atış hemen gelsin, oyuncu aldığını görsün.
-    this.kuleler[yuva] = { yuva, tip, seviye: 1, atisBirikim: KULE_TIPLERI[tip].aralikMs[0], yatirim: fiyat, hedefleme: 0 }
+    this.kuleler[yuva] = {
+      yuva,
+      tip,
+      seviye: 1,
+      atisBirikim: KULE_TIPLERI[tip].aralikMs[0],
+      yatirim: fiyat,
+      hedefleme: 0,
+      sersem: 0,
+    }
     return true
   }
 
@@ -629,6 +655,11 @@ export class KaleSavunmasi {
       if (!kule) continue
       const bilgi = KULE_TIPLERI[kule.tip]
       const basamak = kule.seviye - 1
+      // Şef şoku: sersem kule ne nişan alır ne ateş eder.
+      if (kule.sersem > 0) {
+        kule.sersem = Math.max(0, kule.sersem - dt)
+        continue
+      }
       kule.atisBirikim = Math.min(kule.atisBirikim + dt, bilgi.aralikMs[basamak])
       if (kule.atisBirikim < bilgi.aralikMs[basamak]) continue
 
@@ -743,6 +774,9 @@ export class KaleSavunmasi {
       yanmaKalan: 0,
       yanmaTik: 0,
       yavaslikKalan: 0,
+      kalkan: bilgi.patron ? Math.round(can * SEF_KALKAN_ORANI) : 0,
+      maxKalkan: bilgi.patron ? Math.round(can * SEF_KALKAN_ORANI) : 0,
+      isabetsizSure: 0,
     })
   }
 
@@ -833,6 +867,13 @@ export class KaleSavunmasi {
     // Zırh delici (büyücü) zırhı tamamen yok sayar.
     const zirh = m.zirhDelici ? 0 : this.tipler[c.tip].zirh
     const gecen = Math.max(1, m.hasar - zirh)
+    c.isabetsizSure = 0
+    // Şef kalkanı hasarı önce yutar; kırılınca artık cana işler.
+    if (c.kalkan > 0) {
+      c.kalkan = Math.max(0, c.kalkan - gecen)
+      sonuc.isabetler.push({ canavarId: c.id, x, y, tip: c.tip, oldu: false, puan: 0, hasar: gecen, kritik: m.kritik })
+      return
+    }
     c.can -= gecen
     if (m.yavaslatir) c.yavaslikKalan = BUZ_SURE_MS
 
@@ -886,6 +927,22 @@ export class KaleSavunmasi {
   }
 
   /** Canavarı listeden çıkarır, ödülünü verir ve isabet olayını yazar. */
+  /**
+   * Şef vurulmadıkça toparlanır: önce kalkanı dolar, sonra canı.
+   * Şef olmayan canavarda hiçbir şey yapmaz.
+   */
+  private sefiIyilestir(c: Canavar, dt: number): void {
+    if (c.maxKalkan === 0) return
+    c.isabetsizSure += dt
+    const sn = dt / 1000
+    if (c.isabetsizSure >= SEF_KALKAN_BEKLEME_MS && c.kalkan < c.maxKalkan) {
+      c.kalkan = Math.min(c.maxKalkan, c.kalkan + SEF_KALKAN_YENILENME * sn)
+    }
+    if (c.isabetsizSure >= SEF_IYILESME_BEKLEME_MS && c.can < c.maxCan) {
+      c.can = Math.min(c.maxCan, c.can + c.maxCan * SEF_IYILESME_ORANI * sn)
+    }
+  }
+
   private oldur(c: Canavar, y: number, sonuc: AdimSonucu, hasar = 0, kritik = false): void {
     sonuc.isabetler.push({ canavarId: c.id, x: c.x, y, tip: c.tip, oldu: true, puan: c.puan, hasar, kritik })
     this.skor += c.puan
@@ -893,6 +950,19 @@ export class KaleSavunmasi {
     this.oldurulen++
     const yer = this.canavarlar.indexOf(c)
     if (yer >= 0) this.canavarlar.splice(yer, 1)
+    // Şef ölürken çevresindeki kuleleri sersemletir: dalga bitti sanıp
+    // rahatlayan oyuncu bir süre kulesiz kalıyor.
+    if (this.tipler[c.tip].patron) this.sokDalgasi(c.x, sonuc)
+  }
+
+  /** Şef şoku: menzildeki kuleler bir süre ateş edemez. */
+  private sokDalgasi(x: number, sonuc: AdimSonucu): void {
+    for (const kule of this.kuleler) {
+      if (!kule) continue
+      if (Math.abs(KULE_YUVALARI[kule.yuva] - x) > SOK_MENZIL) continue
+      kule.sersem = SOK_SURE_MS
+    }
+    sonuc.soklar.push({ x, yaricap: SOK_MENZIL })
   }
 
   /** Yanma ve yavaşlama sayaçlarını ilerletir; yanma hasarını uygular. */
@@ -900,6 +970,7 @@ export class KaleSavunmasi {
     for (let i = this.canavarlar.length - 1; i >= 0; i--) {
       const c = this.canavarlar[i]
       if (c.yavaslikKalan > 0) c.yavaslikKalan = Math.max(0, c.yavaslikKalan - dt)
+      this.sefiIyilestir(c, dt)
       if (c.yanmaKalan <= 0) continue
 
       c.yanmaKalan = Math.max(0, c.yanmaKalan - dt)

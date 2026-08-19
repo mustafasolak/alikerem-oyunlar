@@ -856,7 +856,7 @@ export const KATALOG: KatalogKaydi[] = [
     "ad": "Kale Savunması 3B",
     "ozet": "Aynı kale, bu kez üç boyutlu bir sahada.",
     "aciklama": "Yoldan gelen canavarları mızrakla vur, kule kur, kaleyi ayakta tut.",
-    "ipucu": "<b>Nereye dokunursan mızrak oraya gider</b> · <kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · <kbd>E</kbd> element · <kbd>C</kbd> kamera açısı · <kbd>M</kbd> ya da sağ üstteki <b>☰</b> dükkân (açıkken oyun durur) · <b>Yuvaya dokun</b>, sonra alttaki panelden kule kur ya da yükselt · <b>uçan canavara mızrak değmez, yalnız kuleler vurur</b>",
+    "ipucu": "<b>Nereye dokunursan mızrak oraya gider</b> · <b>sürükle</b> kamerayı çevirir · <kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · <kbd>E</kbd> element · <kbd>C</kbd> kamera açısı · <kbd>M</kbd> ya da sağ üstteki <b>☰</b> dükkân (açıkken oyun durur) · <b>Yuvaya dokun</b>, sonra alttaki panelden kule kur ya da yükselt · <b>uçan canavara mızrak değmez, yalnız kuleler vurur</b>",
     "emoji": "🏯",
     "kategori": "arcade",
     "etiketler": [

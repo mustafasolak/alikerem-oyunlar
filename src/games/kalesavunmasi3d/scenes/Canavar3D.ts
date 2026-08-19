@@ -59,6 +59,8 @@ export class Canavar3D {
   private readonly bar: THREE.Group
   private readonly barDolu: THREE.Mesh
   private readonly golge: THREE.Mesh
+  /** Şef kalkanı barı; şef olmayanlarda kurulmaz. */
+  private readonly kalkanBar: THREE.Mesh | null
   private readonly malzemeler: THREE.MeshLambertMaterial[] = []
   private readonly yanal: number
   private parlamaKalan = 0
@@ -162,6 +164,15 @@ export class Canavar3D {
     this.bar.position.y = kalcaY + boy * 0.66 + BAR_PAY
     this.kok.add(this.bar)
 
+    // Şefin kalkanı can barının üstünde ayrı bir mavi şerit.
+    if (bilgi.patron) {
+      this.kalkanBar = kutu(BAR_EN, BAR_BOY - 3, 1, duz(0x38bdf8))
+      this.kalkanBar.position.set(0, BAR_BOY + 1, 1)
+      this.bar.add(this.kalkanBar)
+    } else {
+      this.kalkanBar = null
+    }
+
     sahne.add(this.kok)
     this.yerlestir(canavar)
   }
@@ -233,6 +244,12 @@ export class Canavar3D {
     ;(this.barDolu.material as THREE.MeshBasicMaterial).color.setHex(
       oran > 0.5 ? 0x22c55e : oran > 0.25 ? 0xf59e0b : 0xef4444,
     )
+    if (this.kalkanBar) {
+      const kalkanOran = canavar.maxKalkan > 0 ? Math.max(0, canavar.kalkan / canavar.maxKalkan) : 0
+      this.kalkanBar.visible = kalkanOran > 0
+      this.kalkanBar.scale.x = Math.max(0.001, kalkanOran)
+      this.kalkanBar.position.x = -(BAR_EN * (1 - kalkanOran)) / 2
+    }
     this.bar.quaternion.copy(kameraYonu)
 
     this.durumRengi(canavar, delta)

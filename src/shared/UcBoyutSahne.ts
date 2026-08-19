@@ -212,7 +212,10 @@ export abstract class UcBoyutSahne implements UcBoyutSahnesi {
   }
 
   /** Tuvale gelen dokunuşu bağlar; koordinat -1..1 aralığında (three.js kuralı). */
-  protected tuvalOlayi(tur: 'pointerdown' | 'pointermove' | 'pointerup', isle: (x: number, y: number) => void): void {
+  protected tuvalOlayi(
+    tur: 'pointerdown' | 'pointermove' | 'pointerup' | 'pointerleave' | 'pointercancel',
+    isle: (x: number, y: number) => void,
+  ): void {
     const tuval = this.cizici.domElement
     const olayIsle = (olay: PointerEvent): void => {
       const kutu = tuval.getBoundingClientRect()

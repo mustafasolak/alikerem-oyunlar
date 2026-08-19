@@ -36,7 +36,15 @@ import {
   ZORLUKLAR,
   patronDalgasiMi,
 } from '../config/constants.ts'
-import { acikDunyaSayisi, dunyaAcikMi, dunyayaKalan, oldurulenEkle, sonrakiDunyayaKalan } from '../systems/Ilerleme.ts'
+import {
+  acikDunyaSayisi,
+  dalgaRekoru,
+  dalgaRekoruYaz,
+  dunyaAcikMi,
+  dunyayaKalan,
+  oldurulenEkle,
+  sonrakiDunyayaKalan,
+} from '../systems/Ilerleme.ts'
 import { KaleSavunmasi, type Isabet } from '../systems/KaleSavunmasi.ts'
 import { ArkaPlan } from './ArkaPlan.ts'
 import { CanavarGorunumu } from './CanavarGorunumu.ts'
@@ -599,7 +607,11 @@ export class GameScene extends TemelSahne {
 
   private oyunuBitir(): void {
     this.ilerlemeyiKaydet()
-    const ozet = `${DUNYALAR[this.oyun.dunyaSira].ad} · ${this.oyun.dalga}. dalga · ${this.oyun.oldurulen} canavar · Skor: ${this.oyun.skor}`
+    const yeniRekor = dalgaRekoruYaz(this.oyun.dunyaSira, this.oyun.zorlukSira, this.oyun.dalga)
+    const rekor = dalgaRekoru(this.oyun.dunyaSira, this.oyun.zorlukSira)
+    const ozet = `${DUNYALAR[this.oyun.dunyaSira].ad} · ${this.oyun.dalga}. dalga · ${this.oyun.oldurulen} canavar · Skor: ${this.oyun.skor}${
+      yeniRekor ? ' · 🏆 yeni dalga rekoru!' : ` · en iyi ${rekor}. dalga`
+    }`
     this.turuBitir({
       baslik: 'Kale düştü',
       ozet,

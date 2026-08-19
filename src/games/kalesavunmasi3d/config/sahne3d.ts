@@ -99,6 +99,21 @@ export const PARLAMA_MS = 130
 export const KAMERA_FOV = 50
 /** Kamera değişirken geçişin yumuşama sabiti (ms). Küçük değer = sert geçiş. */
 export const KAMERA_YUMUSAMA = 190
+/**
+ * Parmakla/fareyle sürükleyince kamera dönüyor.
+ *
+ * Sapma (yatay) ve eğim (dikey) seçili açının üstüne ekleniyor; kamera açısı
+ * değiştirilince sıfırlanıyor. Sapma sınırlı: kamera duvarın arkasına geçerse
+ * surun dibindeki canavarlar görünmez oluyor. Eşik, dokunuşun ne zaman atış
+ * değil çevirme sayılacağını söylüyor (tuval genişliğine oranla).
+ */
+export const SURUKLE_ESIGI = 0.025
+export const SURUKLE_SAPMA_HIZI = 2.6
+export const SURUKLE_EGIM_HIZI = 1.5
+export const SAPMA_SINIRI = (55 * Math.PI) / 180
+export const EGIM_ALT = (12 * Math.PI) / 180
+export const EGIM_UST = (78 * Math.PI) / 180
+
 /** Zemine nişan alan kameralarda mızrak yerden bu kadar yukarısını hedefler. */
 export const ZEMIN_NISAN_PAYI = 14
 

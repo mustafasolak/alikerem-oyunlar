@@ -649,6 +649,29 @@ export const KULE_TIPLERI: KuleTipi[] = [
   },
 ]
 
+/**
+ * Şef mekaniği.
+ *
+ * Şef artık "canı çok olan büyük canavar" değil: önünde kırılan bir kalkanı
+ * var, vurulmadığı sürece kendini iyileştiriyor ve ölürken çevredeki kuleleri
+ * kısa süre sersemletiyor. Yani şefe kesintisiz yüklenmek gerekiyor —
+ * yarım bırakılan şef kaldığı yerden toparlanıyor.
+ */
+/** Kalkan, şefin azami canının bu kadarı. */
+export const SEF_KALKAN_ORANI = 0.4
+/** Kalkan saniyede bu kadar yenilenir. */
+export const SEF_KALKAN_YENILENME = 6
+/** Son isabetten sonra kalkanın yenilenmeye başlaması için geçmesi gereken süre. */
+export const SEF_KALKAN_BEKLEME_MS = 2200
+/** Şef saniyede azami canının bu kadarını iyileştirir. */
+export const SEF_IYILESME_ORANI = 0.02
+/** İyileşmenin başlaması için isabetsiz geçmesi gereken süre. */
+export const SEF_IYILESME_BEKLEME_MS = 3200
+/** Şef ölünce bu yarıçaptaki kuleler sersemler. */
+export const SOK_MENZIL = 260
+/** Sersemleme süresi (ms). */
+export const SOK_SURE_MS = 2000
+
 export const KULE_MAX_SEVIYE = 12
 
 /**

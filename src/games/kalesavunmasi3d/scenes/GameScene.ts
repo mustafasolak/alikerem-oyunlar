@@ -35,11 +35,24 @@ import {
   ZORLUKLAR,
   patronDalgasiMi,
 } from '../../kalesavunmasi/config/constants.ts'
-import { acikDunyaSayisi, dunyaAcikMi, oldurulenEkle, sonrakiDunyayaKalan } from '../../kalesavunmasi/systems/Ilerleme.ts'
+import {
+  acikDunyaSayisi,
+  dalgaRekoru,
+  dalgaRekoruYaz,
+  dunyaAcikMi,
+  oldurulenEkle,
+  sonrakiDunyayaKalan,
+} from '../../kalesavunmasi/systems/Ilerleme.ts'
 import { KaleSavunmasi, type Isabet } from '../../kalesavunmasi/systems/KaleSavunmasi.ts'
 import {
+  EGIM_ALT,
+  EGIM_UST,
   KAMERALAR,
   KAMERA_YUMUSAMA,
+  SAPMA_SINIRI,
+  SURUKLE_EGIM_HIZI,
+  SURUKLE_ESIGI,
+  SURUKLE_SAPMA_HIZI,
   ZEMIN_NISAN_PAYI,
   kaliteSec,
   type KameraAyari,
@@ -93,6 +106,13 @@ export class GameScene extends UcBoyutSahne {
 
   /** Seçili kamera açısı ve geçişin gittiği yer. */
   private kameraSira = 0
+  /** Sürükleyerek eklenen bakış açısı (radyan). */
+  private sapmaEk = 0
+  private egimEk = 0
+  /** Sürükleme durumu: dokunuş atışa mı gidecek, kamerayı mı çevirecek? */
+  private surukleAcik = false
+  private suruklendi = false
+  private sonNokta = { x: 0, y: 0 }
   private readonly kameraKonumu = new THREE.Vector3()
   private readonly bakisHedefi = new THREE.Vector3()
   private readonly bakis = new THREE.Vector3()
@@ -130,8 +150,11 @@ export class GameScene extends UcBoyutSahne {
     this.atislar = new Atislar3D(this.sahne, this.efektler)
     this.kamerayiOturt(true)
 
-    this.tuvalOlayi('pointermove', (x, y) => this.nisanla(x, y))
+    this.tuvalOlayi('pointermove', (x, y) => this.tuvalHareketi(x, y))
     this.tuvalOlayi('pointerdown', (x, y) => this.dokun(x, y))
+    this.tuvalOlayi('pointerup', (x, y) => this.dokunusuBirak(x, y))
+    this.tuvalOlayi('pointerleave', () => this.suruklemeyiBitir())
+    this.tuvalOlayi('pointercancel', () => this.suruklemeyiBitir())
 
     this.tus('Space', () => this.at())
     this.tus(['ArrowUp', 'KeyW'], () => this.oyun.aciDegistir(-ACI_ADIM))
@@ -231,6 +254,11 @@ export class GameScene extends UcBoyutSahne {
       )
       sesler.patlama()
     }
+    for (const sok of sonuc.soklar) {
+      this.efektler.sok(new THREE.Vector3(0, 0, sok.x), sok.yaricap)
+      sesler.patlama()
+      this.bildir('Şef şoku! Kuleler sersemledi')
+    }
     if (sonuc.kaleVuruldu) {
       this.kale.sarsil()
       sesler.yanlis()
@@ -259,6 +287,8 @@ export class GameScene extends UcBoyutSahne {
   /** 🎥 tuşu: sıradaki açıya geçer. Geçiş yumuşak, dünya gözle döner. */
   private kameraDegistir(): void {
     this.kameraSira = (this.kameraSira + 1) % KAMERALAR.length
+    this.sapmaEk = 0
+    this.egimEk = 0
     writeScore(KAMERA_ANAHTARI, this.kameraSira + 1)
     this.kamerayiOturt()
     sesler.tik()
@@ -274,7 +304,7 @@ export class GameScene extends UcBoyutSahne {
    */
   private kamerayiOturt(anlik = false): void {
     const ayar = this.kameraAyari
-    const yon = new THREE.Vector3(ayar.yon.x, ayar.yon.y, ayar.yon.z).normalize()
+    const yon = this.bakisYonu(ayar)
     const hedef = new THREE.Vector3(ayar.hedef.x, ayar.hedef.y, ayar.hedef.z)
     const ileri = yon.clone().negate()
     const sag = new THREE.Vector3().crossVectors(ileri, new THREE.Vector3(0, 1, 0)).normalize()
@@ -304,6 +334,19 @@ export class GameScene extends UcBoyutSahne {
     this.kamera.position.copy(this.kameraKonumu)
     this.bakis.copy(this.bakisHedefi)
     this.kamera.lookAt(this.bakis)
+  }
+
+  /**
+   * Seçili açının yönüne sürükleme ekini uygular.
+   *
+   * Yön küresel koordinata çevrilip sapma ve eğim ekleniyor; eğim dar bir
+   * aralıkta tutuluyor ki kamera ne yere gömülsün ne de tepeye dikilsin.
+   */
+  private bakisYonu(ayar: KameraAyari): THREE.Vector3 {
+    const temel = new THREE.Vector3(ayar.yon.x, ayar.yon.y, ayar.yon.z).normalize()
+    const sapma = Math.atan2(temel.z, temel.x) + this.sapmaEk
+    const egim = Math.max(EGIM_ALT, Math.min(EGIM_UST, Math.asin(temel.y) + this.egimEk))
+    return new THREE.Vector3(Math.cos(egim) * Math.cos(sapma), Math.sin(egim), Math.cos(egim) * Math.sin(sapma))
   }
 
   /** Kamerayı hedefine doğru yumuşatarak taşır (kare süresinden bağımsız). */
@@ -355,6 +398,7 @@ export class GameScene extends UcBoyutSahne {
       } else {
         this.dukkaniKapat()
       }
+      this.suruklemeyiBitir()
       return
     }
     if (this.isinlayici.intersectObject(this.dukkan.dugme, false).length > 0) {
@@ -383,8 +427,41 @@ export class GameScene extends UcBoyutSahne {
       this.yuvaSec(secili ?? 0)
       return
     }
-    this.nisanla(x, y)
-    this.at()
+    // Buraya gelen dokunuş ya atış ya kamera çevirme; hangisi olduğu
+    // parmak kalkınca belli oluyor.
+    this.surukleAcik = true
+    this.suruklendi = false
+    this.sonNokta = { x, y }
+  }
+
+  /** Fare/parmak hareketi: basılıysa kamerayı çevirir, değilse nişan alır. */
+  private tuvalHareketi(x: number, y: number): void {
+    if (!this.surukleAcik) {
+      this.nisanla(x, y)
+      return
+    }
+    const dx = x - this.sonNokta.x
+    const dy = y - this.sonNokta.y
+    if (!this.suruklendi && Math.abs(dx) + Math.abs(dy) < SURUKLE_ESIGI) return
+    this.suruklendi = true
+    this.sonNokta = { x, y }
+    this.sapmaEk = Math.max(-SAPMA_SINIRI, Math.min(SAPMA_SINIRI, this.sapmaEk - dx * SURUKLE_SAPMA_HIZI))
+    this.egimEk += dy * SURUKLE_EGIM_HIZI
+    this.kamerayiOturt(true)
+  }
+
+  /** Parmak kalktı: sürüklenmediyse bu bir atıştı. */
+  private dokunusuBirak(x: number, y: number): void {
+    if (this.surukleAcik && !this.suruklendi) {
+      this.nisanla(x, y)
+      this.at()
+    }
+    this.suruklemeyiBitir()
+  }
+
+  private suruklemeyiBitir(): void {
+    this.surukleAcik = false
+    this.suruklendi = false
   }
 
   /** Menü satırının karşılığı. */
@@ -678,7 +755,12 @@ export class GameScene extends UcBoyutSahne {
 
   private oyunuBitir(): void {
     this.ilerlemeyiKaydet()
-    const ozet = `${DUNYALAR[this.oyun.dunyaSira].ad} · ${this.oyun.dalga}. dalga · ${this.oyun.oldurulen} canavar · Skor: ${this.oyun.skor}`
+    // Dalga rekoru dünya ve zorluk başına tutuluyor: asıl kovalanan sayı bu.
+    const yeniRekor = dalgaRekoruYaz(this.oyun.dunyaSira, this.oyun.zorlukSira, this.oyun.dalga)
+    const rekor = dalgaRekoru(this.oyun.dunyaSira, this.oyun.zorlukSira)
+    const ozet = `${DUNYALAR[this.oyun.dunyaSira].ad} · ${this.oyun.dalga}. dalga · ${this.oyun.oldurulen} canavar · Skor: ${this.oyun.skor}${
+      yeniRekor ? ' · 🏆 yeni dalga rekoru!' : ` · en iyi ${rekor}. dalga`
+    }`
     this.turuBitir({
       baslik: 'Kale düştü',
       ozet,

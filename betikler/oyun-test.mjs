@@ -28,6 +28,11 @@ import {
   DURAK_X,
   GAME_WIDTH,
   HEDEFLEME_KURALLARI,
+  SEF_IYILESME_BEKLEME_MS,
+  SEF_KALKAN_BEKLEME_MS,
+  SEF_KALKAN_ORANI,
+  SOK_MENZIL,
+  SOK_SURE_MS,
   KALE_GENISLIK,
   HASAR_BONUSU,
   KALE_BONUSU,
@@ -797,6 +802,84 @@ function tohumlu(tohum) {
   esit('kural sırayla dönüyor', oyun.hedeflemeDegistir(0), 0)
   esit('boş yuvada kural değişmez', oyun.hedeflemeDegistir(3), 0)
   kontrol('kural sayısı üç', HEDEFLEME_KURALLARI.length === 3)
+}
+
+// --- Kale Savunması: şef mekaniği (kalkan, iyileşme, şok dalgası) ---
+{
+  const oyun = new KaleSavunmasi(tohumlu(71), 0, 1)
+  oyun.basla()
+  oyun.altin = 1000000
+  const sefTip = oyun.tipler.findIndex((t) => t.patron)
+
+  // Doğan şefin kalkanı canının belli bir oranı kadar
+  const sefKoy = (x = 400) => {
+    const can = 200
+    oyun.canavarlar.push({
+      id: 950, tip: sefTip, x, can, maxCan: can, altin: 0, puan: 0,
+      durum: 'yuruyor', faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
+      kalkan: Math.round(can * SEF_KALKAN_ORANI), maxKalkan: Math.round(can * SEF_KALKAN_ORANI), isabetsizSure: 0,
+    })
+    return oyun.canavarlar.at(-1)
+  }
+  const vur = (hedef, hasar) => {
+    oyun.atislar.push({
+      id: 60, x: hedef.x, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar, tur: 'mizrak', element: 'normal',
+      kritik: false, alan: 0, zirhDelici: true, yavaslatir: false,
+    })
+    return oyun.ilerlet(SIM_ADIM_MS)
+  }
+
+  const sef = sefKoy()
+  const kalkanBaslangic = sef.kalkan
+  kontrol('şefin kalkanı var', kalkanBaslangic > 0, `kalkan ${kalkanBaslangic}`)
+  vur(sef, 20)
+  esit('hasar önce kalkandan düşer', sef.can, 200)
+  kontrol('kalkan azaldı', sef.kalkan < kalkanBaslangic, `${kalkanBaslangic} → ${sef.kalkan}`)
+
+  // Kalkanı kır, sonra cana işlesin
+  sef.kalkan = 0
+  vur(sef, 20)
+  kontrol('kalkan bitince can gider', sef.can < 200, `can ${sef.can}`)
+
+  // Vurulmayınca kalkan yenileniyor
+  const canOnce = sef.can
+  sef.kalkan = 0
+  sef.isabetsizSure = SEF_KALKAN_BEKLEME_MS
+  for (let i = 0; i < 60; i++) oyun.ilerlet(SIM_ADIM_MS)
+  kontrol('vurulmayan şefin kalkanı doluyor', sef.kalkan > 0, `kalkan ${sef.kalkan.toFixed(1)}`)
+
+  // Uzun süre vurulmayınca canı da toparlıyor
+  sef.isabetsizSure = SEF_IYILESME_BEKLEME_MS
+  for (let i = 0; i < 60; i++) oyun.ilerlet(SIM_ADIM_MS)
+  kontrol('vurulmayan şef iyileşiyor', sef.can > canOnce, `${canOnce.toFixed(1)} → ${sef.can.toFixed(1)}`)
+
+  // Sıradan canavarın kalkanı yok ve iyileşmiyor
+  oyun.canavarlar.length = 0
+  const sivilTip = oyun.tipler.findIndex((t) => !t.patron && !t.ucar)
+  oyun.canavarlar.push({
+    id: 951, tip: sivilTip, x: 400, can: 10, maxCan: 40, altin: 0, puan: 0,
+    durum: 'yuruyor', faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
+    kalkan: 0, maxKalkan: 0, isabetsizSure: 99999,
+  })
+  for (let i = 0; i < 60; i++) oyun.ilerlet(SIM_ADIM_MS)
+  esit('sıradan canavar iyileşmez', oyun.canavarlar[0].can, 10)
+
+  // Şef ölünce menzildeki kule sersemler
+  oyun.canavarlar.length = 0
+  oyun.atislar.length = 0
+  oyun.kuleAl(0, 0)
+  oyun.kuleAl(5, 0)
+  const yakin = sefKoy(KULE_YUVALARI[0] + 40)
+  yakin.kalkan = 0
+  yakin.can = 1
+  const sonuc = vur(yakin, 50)
+  kontrol('şef şoku bildirildi', sonuc.soklar.length === 1, `${sonuc.soklar.length} şok`)
+  esit('yakındaki kule sersemledi', oyun.kuleler[0].sersem, SOK_SURE_MS)
+  esit('uzaktaki kule etkilenmedi', oyun.kuleler[5].sersem, 0)
+  kontrol(
+    'şok menzili dışındaki yuva gerçekten uzak',
+    Math.abs(KULE_YUVALARI[5] - yakin.x) > SOK_MENZIL,
+  )
 }
 
 // --- Kale Savunması: canavarlar dalgayla güçleniyor ---

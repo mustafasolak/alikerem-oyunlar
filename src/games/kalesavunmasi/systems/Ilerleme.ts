@@ -13,6 +13,23 @@ import { DUNYALAR, DUNYA_ESIGI } from '../config/constants.ts'
 
 const ANAHTAR = 'kalesavunmasi:toplam-oldurulen'
 
+/**
+ * Dalga rekoru: dünya ve zorluk başına ulaşılan en ileri dalga.
+ *
+ * Skor tablosu tek bir sayı tutuyor; "kaçıncı dalgaya kadar dayandım" ise
+ * oyuncunun asıl kovaladığı şey. Cihazda saklanıyor, sunucuya gitmiyor.
+ */
+export function dalgaRekoru(dunya: number, zorluk: number): number {
+  return readScore(`kalesavunmasi:rekor:${dunya}:${zorluk}`)
+}
+
+/** Rekoru günceller; yeni rekorsa true döner. */
+export function dalgaRekoruYaz(dunya: number, zorluk: number, dalga: number): boolean {
+  if (dalga <= dalgaRekoru(dunya, zorluk)) return false
+  writeScore(`kalesavunmasi:rekor:${dunya}:${zorluk}`, dalga)
+  return true
+}
+
 export function toplamOldurulen(): number {
   return readScore(ANAHTAR)
 }
