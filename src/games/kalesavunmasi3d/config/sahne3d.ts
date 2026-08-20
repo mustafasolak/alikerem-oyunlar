@@ -286,10 +286,12 @@ export function kaliteSec(ekranGenisligi: number, cekirdek: number, esik: number
 }
 
 /**
- * Serbest kule yerleştirmenin yanal sınırları.
+ * Serbest kule yerleştirmenin yanal sınırları — yolun iki yanı da serbest.
  *
- * Kule yalnız yolun uzak yanındaki çime kurulabiliyor: yakın tarafa kurulan
- * kule kamerayla saha arasına girip yolu kapatıyordu.
+ * Sınır mutlak değer üzerinden bakılıyor: yakın ya da uzak taraf fark etmiyor,
+ * yeter ki yolun üstüne değil kenarındaki çime kurulsun. Yakın tarafa kurulan
+ * kule kameraya yakın olduğu için yolun bir kısmını örtebilir; kule yola
+ * dönük duruyor ve kamera çevrilerek arkası görülebiliyor.
  */
 export const KULE_YANAL_MIN = YOL_YARI_EN + 40
 export const KULE_YANAL_MAX = YOL_YARI_EN + 235

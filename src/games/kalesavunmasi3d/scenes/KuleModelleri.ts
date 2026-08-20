@@ -273,21 +273,23 @@ function zipkinKulesi(g: ReturnType<typeof kuleGorunum>, tabanY: number, renk: n
   const tepe = tabanY + g.boy + 12
   const kaide = silindir(en * 0.18, en * 0.24, 12, AHSAP_ACIK, 10)
   kaide.position.y = tepe
-  const kiris = kutu(en * 1.5, 4, 4, acik(renk, 0.2))
+  // Yay kolları namluya dik: zıpkın -x'e bakarken kollar z ekseninde açılıyor.
+  const kiris = kutu(4, 4, en * 1.5, acik(renk, 0.2))
   kiris.position.set(0, tepe + 12, 0)
-  kiris.rotation.z = 0.12
   for (const yon of [-1, 1]) {
-    const kol = kutu(en * 0.7, 5, 5, AHSAP)
-    kol.position.set(yon * en * 0.38, tepe + 12, 0)
-    kol.rotation.z = yon * -0.28
+    const kol = kutu(5, 5, en * 0.7, AHSAP)
+    kol.position.set(0, tepe + 12, yon * en * 0.38)
+    kol.rotation.x = yon * 0.28
     kok.add(kol)
   }
+  // Zıpkın yola doğru bakar (yerel -x); kule yakın tarafa kurulursa grup
+  // yarım tur dönüyor ve namlu yine yola çevriliyor.
   const zipkin = silindir(2.4, 2.4, en * 1.1, acik(renk, 0.4), 8)
-  zipkin.rotation.x = Math.PI / 2
-  zipkin.position.set(0, tepe + 12, -en * 0.2)
+  zipkin.rotation.z = Math.PI / 2
+  zipkin.position.set(-en * 0.2, tepe + 12, 0)
   const uc = koni(5, 12, TAS_ACIK, 6)
-  uc.rotation.x = -Math.PI / 2
-  uc.position.set(0, tepe + 12, -en * 0.75)
+  uc.rotation.z = Math.PI / 2
+  uc.position.set(-en * 0.75, tepe + 12, 0)
   kok.add(kaide, kiris, zipkin, uc)
 
   if (g.bayrak > 0) bayrak(kok, tepe + 20, g.bayrak * 0.8, renk)

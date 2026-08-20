@@ -549,7 +549,9 @@ export class GameScene extends UcBoyutSahne {
   private kurmaNoktasi(): boolean {
     const zemin = new THREE.Vector3()
     if (!this.isinlayici.ray.intersectPlane(this.zeminDuzlemi, zemin)) return false
-    if (zemin.x < KULE_YANAL_MIN || zemin.x > KULE_YANAL_MAX) return false
+    // Yolun iki yanı da serbest: işaret mutlak uzaklığa bakıyor.
+    const uzaklik = Math.abs(zemin.x)
+    if (uzaklik < KULE_YANAL_MIN || uzaklik > KULE_YANAL_MAX) return false
     if (!this.oyun.kuleKurulabilirMi(zemin.z)) {
       sesler.yanlis()
       this.bildir(this.oyun.kuleler.length >= MAX_KULE ? 'Kule sayısı doldu' : 'Buraya kule sığmaz')

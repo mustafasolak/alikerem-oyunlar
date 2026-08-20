@@ -205,6 +205,9 @@ export class Kuleler3D {
   private gorunumKur(kule: Kule, imza: string, zipla: boolean): void {
     const grup = new THREE.Group()
     grup.position.set(kule.yanal, 0, kule.x)
+    // Kule hep yola bakar: yakın tarafa kurulan yarım tur döner, böylece
+    // havanı ve zıpkını yolun karşısına değil canavarlara çevirir.
+    grup.rotation.y = kule.yanal < 0 ? Math.PI : 0
     grup.userData.kuleId = kule.id
 
     const seki = silindir(YUVA_EN * 0.62, YUVA_EN * 0.72, SEKI_BOY, 0x6b7280, 12)
