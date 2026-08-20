@@ -598,6 +598,12 @@ export interface KuleTipi {
   yavaslatir: boolean
   /** Atışın görünümü. */
   atisTuru: 'ok' | 'bomba' | 'buyu'
+  /**
+   * Uçan hedefe vururken hasar bu kadar katlanır.
+   * 1 = fark yok. Hava savar kule bunun için var: uçanlar yerdekilerden
+   * hızlı geliyor ve mızrak onlara işlemiyor.
+   */
+  ucusCarpani: number
 }
 
 /** Oyuncu ilk kuleyi hemen kurabilsin: mekanik ilk saniyede görünür olsun. */
@@ -616,6 +622,7 @@ export const KULE_TIPLERI: KuleTipi[] = [
     zirhDelici: false,
     yavaslatir: false,
     atisTuru: 'ok',
+    ucusCarpani: 1,
   },
   {
     // Bombacı: yavaş ama düştüğü yerin çevresindeki herkesi vurur.
@@ -631,6 +638,7 @@ export const KULE_TIPLERI: KuleTipi[] = [
     zirhDelici: false,
     yavaslatir: false,
     atisTuru: 'bomba',
+    ucusCarpani: 1,
   },
   {
     // Büyücü: zırhı yok sayar ve vurduğunu yavaşlatır.
@@ -646,6 +654,23 @@ export const KULE_TIPLERI: KuleTipi[] = [
     zirhDelici: true,
     yavaslatir: true,
     atisTuru: 'buyu',
+    ucusCarpani: 1,
+  },
+  {
+    // Hava savar: yerdekilere vasat, uçanlara ölümcül. Uçan canavara mızrak
+    // değmediği için tek çare kuleler; bu kule o boşluğu kapatıyor.
+    ad: 'Zıpkın Kulesi',
+    ozet: 'uçanlara üç kat hasar',
+    fiyat: [90, 150, 240, 370, 550, 800, 1150, 1600, 2200, 3000, 4100, 5500],
+    hasar: [2, 3, 5, 7, 10, 13, 17, 22, 29, 38, 49, 63],
+    aralikMs: [1600, 1350, 1150, 980, 850, 740, 650, 580, 520, 470, 430, 400],
+    menzil: [210, 245, 280, 315, 350, 385, 420, 455, 485, 512, 536, 558],
+    renk: 0x14b8a6,
+    alan: 0,
+    zirhDelici: false,
+    yavaslatir: false,
+    atisTuru: 'ok',
+    ucusCarpani: 3,
   },
 ]
 

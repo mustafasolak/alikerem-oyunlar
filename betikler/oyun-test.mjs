@@ -963,15 +963,67 @@ function tohumlu(tohum) {
   )
 }
 
+// --- Kale Savunması: hava savar kule ---
+{
+  const oyun = new KaleSavunmasi(tohumlu(83), 0, 1)
+  oyun.basla()
+  oyun.altin = 1000000
+  const zipkinTip = KULE_TIPLERI.findIndex((k) => k.ucusCarpani > 1)
+  const ucanTip = oyun.tipler.findIndex((t) => t.ucar)
+  const yerdeTip = oyun.tipler.findIndex((t) => !t.ucar && !t.patron)
+
+  const koy = (tip, x, id) => {
+    oyun.canavarlar.push({
+      id, tip, x, can: 100000, maxCan: 100000, altin: 0, puan: 0,
+      durum: 'yuruyor', faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
+      kalkan: 0, maxKalkan: 0, isabetsizSure: 0,
+    })
+    return oyun.canavarlar.at(-1)
+  }
+  /** Kule bir kez atsın ve okun hasarını döndürsün. */
+  const atisHasari = (tip) => {
+    oyun.atislar.length = 0
+    oyun.kuleler.fill(null)
+    oyun.altin = 1000000
+    oyun.kuleAl(0, tip)
+    oyun.kuleler[0].atisBirikim = KULE_TIPLERI[tip].aralikMs[0]
+    oyun.ilerlet(SIM_ADIM_MS)
+    return oyun.atislar[0]?.hasar ?? 0
+  }
+
+  // Menzilde yalnız uçan varken
+  oyun.canavarlar.length = 0
+  koy(ucanTip, KULE_YUVALARI[0] + 60, 861)
+  const ucanaZipkin = atisHasari(zipkinTip)
+  const ucanaOkcu = atisHasari(0)
+  kontrol('zıpkın uçana okçudan çok vuruyor', ucanaZipkin > ucanaOkcu, `${ucanaZipkin} > ${ucanaOkcu}`)
+  esit('çarpan tabloyla uyuşuyor', ucanaZipkin, KULE_TIPLERI[zipkinTip].hasar[0] * KULE_TIPLERI[zipkinTip].ucusCarpani)
+
+  // Yerdekine çarpan uygulanmıyor
+  oyun.canavarlar.length = 0
+  koy(yerdeTip, KULE_YUVALARI[0] + 60, 862)
+  esit('yerdekine çarpan yok', atisHasari(zipkinTip), KULE_TIPLERI[zipkinTip].hasar[0])
+
+  // Uçan öncelikli: daha yakında yerdeki olsa bile uçanı seçiyor
+  oyun.canavarlar.length = 0
+  const yakinYer = koy(yerdeTip, KULE_YUVALARI[0] + 20, 863)
+  const uzakUcan = koy(ucanTip, KULE_YUVALARI[0] + 120, 864)
+  const hasar = atisHasari(zipkinTip)
+  esit('uçan hedef seçildi', hasar, KULE_TIPLERI[zipkinTip].hasar[0] * KULE_TIPLERI[zipkinTip].ucusCarpani)
+  kontrol('yerdeki daha yakındı', Math.abs(yakinYer.x - KULE_YUVALARI[0]) < Math.abs(uzakUcan.x - KULE_YUVALARI[0]))
+}
+
 // --- Kale Savunması: kule tipleri ---
 {
-  esit('üç kule tipi var', KULE_TIPLERI.length, 3)
-  const [okcu, bombaci, buyucu] = KULE_TIPLERI
+  esit('dört kule tipi var', KULE_TIPLERI.length, 4)
+  const [okcu, bombaci, buyucu, zipkin] = KULE_TIPLERI
   esit('okçu tek hedef', okcu.alan, 0)
   kontrol('bombacı alan hasarı veriyor', bombaci.alan > 0)
   kontrol('bombacı okçudan yavaş', bombaci.aralikMs[0] > okcu.aralikMs[0])
   kontrol('bombacı vuruşu daha ağır', bombaci.hasar[0] > okcu.hasar[0])
   kontrol('büyücü zırhı geçiyor', buyucu.zirhDelici)
+  kontrol('zıpkın uçana kat kat vuruyor', zipkin.ucusCarpani > 1, `çarpan ${zipkin.ucusCarpani}`)
+  kontrol('diğerlerinde uçuş çarpanı yok', [okcu, bombaci, buyucu].every((k) => k.ucusCarpani === 1))
   kontrol('büyücü yavaşlatıyor', buyucu.yavaslatir)
   kontrol('büyücü okçudan pahalı', buyucu.fiyat[0] > okcu.fiyat[0])
 
@@ -998,7 +1050,7 @@ function tohumlu(tohum) {
     esit(`${KULE_TIPLERI[tip].ad} kuruldu`, oyun.kuleAl(tip, tip), true)
     esit(`${KULE_TIPLERI[tip].ad} yuvada`, oyun.kuleler[tip].tip, tip)
   }
-  esit('üç yuva dolu', oyun.kuleler.filter(Boolean).length, 3)
+  esit('her tip bir yuvada', oyun.kuleler.filter(Boolean).length, KULE_TIPLERI.length)
 }
 
 {

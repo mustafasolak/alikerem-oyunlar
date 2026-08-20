@@ -48,6 +48,7 @@ import {
   EGIM_ALT,
   EGIM_UST,
   KAMERALAR,
+  KAMERA_FOV,
   KAMERA_YUMUSAMA,
   SAPMA_SINIRI,
   SURUKLE_EGIM_HIZI,
@@ -304,6 +305,26 @@ export class GameScene extends UcBoyutSahne {
    */
   private kamerayiOturt(anlik = false): void {
     const ayar = this.kameraAyari
+    const istenenFov = ayar.fov ?? KAMERA_FOV
+    if (this.kamera.fov !== istenenFov) {
+      this.kamera.fov = istenenFov
+      this.kamera.updateProjectionMatrix()
+    }
+    // Sabit konumlu açıda çerçeve hesabı yok: kamera yerinde durur, sürükleme
+    // bakış yönünü çevirir.
+    if (ayar.sabitKonum) {
+      const konum = new THREE.Vector3(ayar.sabitKonum.x, ayar.sabitKonum.y, ayar.sabitKonum.z)
+      const hedef = new THREE.Vector3(ayar.hedef.x, ayar.hedef.y, ayar.hedef.z)
+      const uzunluk = konum.distanceTo(hedef)
+      const ileri = this.aciUygula(hedef.clone().sub(konum).normalize())
+      this.kameraKonumu.copy(konum)
+      this.bakisHedefi.copy(konum).addScaledVector(ileri, uzunluk)
+      if (!anlik) return
+      this.kamera.position.copy(this.kameraKonumu)
+      this.bakis.copy(this.bakisHedefi)
+      this.kamera.lookAt(this.bakis)
+      return
+    }
     const yon = this.bakisYonu(ayar)
     const hedef = new THREE.Vector3(ayar.hedef.x, ayar.hedef.y, ayar.hedef.z)
     const ileri = yon.clone().negate()
@@ -343,10 +364,21 @@ export class GameScene extends UcBoyutSahne {
    * aralıkta tutuluyor ki kamera ne yere gömülsün ne de tepeye dikilsin.
    */
   private bakisYonu(ayar: KameraAyari): THREE.Vector3 {
-    const temel = new THREE.Vector3(ayar.yon.x, ayar.yon.y, ayar.yon.z).normalize()
+    // Kamera hedefin üstünde kalsın: alt sınır pozitif.
+    return this.aciUygula(new THREE.Vector3(ayar.yon.x, ayar.yon.y, ayar.yon.z).normalize(), EGIM_ALT)
+  }
+
+  /**
+   * Bir yöne sürükleme ekini (sapma + eğim) uygular.
+   * `altSinir` eğimin inebileceği en düşük açı; sabit konumlu kamerada aşağı
+   * bakmak serbest, çerçeveli kamerada kamera yerin altına inmemeli.
+   */
+  private aciUygula(temel: THREE.Vector3, altSinir = -EGIM_UST): THREE.Vector3 {
     const sapma = Math.atan2(temel.z, temel.x) + this.sapmaEk
-    const egim = Math.max(EGIM_ALT, Math.min(EGIM_UST, Math.asin(temel.y) + this.egimEk))
-    return new THREE.Vector3(Math.cos(egim) * Math.cos(sapma), Math.sin(egim), Math.cos(egim) * Math.sin(sapma))
+    const yatay = Math.hypot(temel.x, temel.z)
+    const egim = Math.atan2(temel.y, yatay) + this.egimEk
+    const sinirli = Math.max(altSinir, Math.min(EGIM_UST, egim))
+    return new THREE.Vector3(Math.cos(sinirli) * Math.cos(sapma), Math.sin(sinirli), Math.cos(sinirli) * Math.sin(sapma))
   }
 
   /** Kamerayı hedefine doğru yumuşatarak taşır (kare süresinden bağımsız). */

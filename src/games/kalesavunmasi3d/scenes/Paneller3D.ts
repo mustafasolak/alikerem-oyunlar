@@ -120,7 +120,9 @@ export class Paneller3D {
       this.yuvaButonlari.push(dugme)
       this.dinle(dugme, () => this.kanca.yuvaSec(yuva))
     }
-    for (const anahtar of ['0', '1', '2', 'yukselt', 'yik']) {
+    // Kule tipleri tablodan gelir: yeni tip eklenince düğmesi kendiliğinden bağlanır.
+    const anahtarlar = [...KULE_TIPLERI.map((_, i) => String(i)), 'yukselt', 'yik']
+    for (const anahtar of anahtarlar) {
       const dugme = document.querySelector<HTMLButtonElement>(`#kule button[data-kule="${anahtar}"]`)
       if (!dugme) continue
       this.kuleButonlari.set(anahtar, dugme)

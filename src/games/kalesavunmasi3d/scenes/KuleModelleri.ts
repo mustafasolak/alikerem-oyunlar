@@ -253,6 +253,46 @@ function buyucuKulesi(g: ReturnType<typeof kuleGorunum>, tabanY: number, renk: n
   }
 }
 
+/** Zıpkın kulesi: kare gövde, tepesinde yola bakan dev arbalet. */
+function zipkinKulesi(g: ReturnType<typeof kuleGorunum>, tabanY: number, renk: number, model: KuleModeli): void {
+  const kok = model.kok
+  const en = g.en * 0.94
+  const yari = en / 2
+
+  const govde = kutu(en, g.boy, en, TAS)
+  govde.position.y = tabanY + g.boy / 2
+  kok.add(govde)
+  kusaklar(kok, tabanY, g.boy, yari, false)
+  kapiVePencere(kok, tabanY, g.boy, yari)
+
+  const platform = kutu(en + 10, 6, en + 10, AHSAP)
+  platform.position.y = tabanY + g.boy + 3
+  kok.add(platform)
+
+  // Arbalet: kaide, iki yay kolu ve namludaki zıpkın.
+  const tepe = tabanY + g.boy + 12
+  const kaide = silindir(en * 0.18, en * 0.24, 12, AHSAP_ACIK, 10)
+  kaide.position.y = tepe
+  const kiris = kutu(en * 1.5, 4, 4, acik(renk, 0.2))
+  kiris.position.set(0, tepe + 12, 0)
+  kiris.rotation.z = 0.12
+  for (const yon of [-1, 1]) {
+    const kol = kutu(en * 0.7, 5, 5, AHSAP)
+    kol.position.set(yon * en * 0.38, tepe + 12, 0)
+    kol.rotation.z = yon * -0.28
+    kok.add(kol)
+  }
+  const zipkin = silindir(2.4, 2.4, en * 1.1, acik(renk, 0.4), 8)
+  zipkin.rotation.x = Math.PI / 2
+  zipkin.position.set(0, tepe + 12, -en * 0.2)
+  const uc = koni(5, 12, TAS_ACIK, 6)
+  uc.rotation.x = -Math.PI / 2
+  uc.position.set(0, tepe + 12, -en * 0.75)
+  kok.add(kaide, kiris, zipkin, uc)
+
+  if (g.bayrak > 0) bayrak(kok, tepe + 20, g.bayrak * 0.8, renk)
+}
+
 /**
  * Verilen tip ve seviye için kule modelini kurar.
  * `tabanY` sekinin üst hattı — kule oradan yükselir.
@@ -264,6 +304,7 @@ export function kuleModeli(tip: number, seviye: number, tabanY: number): KuleMod
 
   if (tip === 1) bombaciKulesi(g, tabanY, renk, model)
   else if (tip === 2) buyucuKulesi(g, tabanY, renk, model)
+  else if (tip === 3) zipkinKulesi(g, tabanY, renk, model)
   else okcuKulesi(g, tabanY, renk, model)
 
   // Altın kuşak ve tepe ışığı bütün tiplerde ortak.

@@ -129,6 +129,13 @@ export interface KameraAyari {
   /** Kenarda kalsın diye eklenen boşluk çarpanı. */
   pay: number
   /**
+   * Verilirse kamera bu noktada sabit durur ve `hedef`e bakar; çerçeve
+   * hesabı yapılmaz. Sur üstü görünümü böyle: kamera oyuncunun durduğu yerde.
+   */
+  sabitKonum?: { x: number; y: number; z: number }
+  /** Bu açıya özel görüş açısı; verilmezse KAMERA_FOV. */
+  fov?: number
+  /**
    * Nişan ışını hangi düzlemle kesişsin?
    * 'yol' — yolun orta düzlemi (x=0): yandan bakan kameralarda canavarın
    *         gövdesine yükseklik seçerek nişan alınır.
@@ -162,6 +169,23 @@ export const KAMERALAR: KameraAyari[] = [
     cerceve: { x1: -100, x2: 190, y1: 0, y2: 230, z1: 60, z2: 620 },
     pay: 1.02,
     nisan: 'yol',
+  },
+  {
+    /**
+     * Sur üstü: kamera mızrakçının durduğu yerde, aşağı bakıyor.
+     *
+     * Dik bakması şart — surun tepesinden ileriye bakan her kamera, duvarın
+     * dibindeki canavarları duvarın arkasında bırakıyor. Bu açıyla yolun
+     * kaleye yakın yarısı avuç içi gibi görünüyor.
+     */
+    ad: 'Sur üstü',
+    yon: { x: 0, y: 1, z: 0 },
+    hedef: { x: 0, y: 0, z: 337 },
+    cerceve: { x1: -110, x2: 200, y1: 0, y2: 200, z1: 100, z2: 600 },
+    pay: 1,
+    sabitKonum: { x: 0, y: 480, z: 60 },
+    fov: 52,
+    nisan: 'zemin',
   },
   {
     // Kuş bakışı: bütün yol tek karede, kule yerleşimi için en okunur açı.

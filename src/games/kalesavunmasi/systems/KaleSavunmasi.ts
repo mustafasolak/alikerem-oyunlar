@@ -664,7 +664,8 @@ export class KaleSavunmasi {
       if (kule.atisBirikim < bilgi.aralikMs[basamak]) continue
 
       const kuleX = KULE_YUVALARI[kule.yuva]
-      const hedef = this.hedefSec(kuleX, bilgi.menzil[basamak], kule.hedefleme)
+      // Hava savar kule menzilinde uçan varsa önce onu alır.
+      const hedef = this.hedefSec(kuleX, bilgi.menzil[basamak], kule.hedefleme, bilgi.ucusCarpani > 1)
       if (!hedef) continue
 
       kule.atisBirikim = 0
@@ -679,10 +680,19 @@ export class KaleSavunmasi {
    * Eşitlikte hep kaleye yakın olan kazanır: kural ne olursa olsun kule boşuna
    * sallanmasın, sızmaya en yakın hedefe yönelsin.
    */
-  private hedefSec(kuleX: number, menzil: number, kural: number): Canavar | null {
+  private hedefSec(kuleX: number, menzil: number, kural: number, ucanOncelikli = false): Canavar | null {
+    if (ucanOncelikli) {
+      const ucan = this.hedefAra(kuleX, menzil, kural, true)
+      if (ucan) return ucan
+    }
+    return this.hedefAra(kuleX, menzil, kural, false)
+  }
+
+  private hedefAra(kuleX: number, menzil: number, kural: number, yalnizUcan: boolean): Canavar | null {
     let hedef: Canavar | null = null
     let enIyi = -Infinity
     for (const c of this.canavarlar) {
+      if (yalnizUcan && !this.tipler[c.tip].ucar) continue
       if (Math.abs(c.x - kuleX) > menzil) continue
       const deger =
         kural === 1 ? c.can : kural === 2 ? this.tipler[c.tip].hiz : 0
@@ -709,6 +719,8 @@ export class KaleSavunmasi {
     // Gövdenin ortasına nişan al (uçanlarda havadaki gövdeye).
     const hedefY = canavarAyakY(bilgi) - bilgi.boy * 0.5
     const uzaklik = Math.hypot(hedef.x - kuleX, hedefY - baslangicY) || 1
+    // Hava savar kulenin oku uçana çok daha ağır iniyor.
+    const carpan = bilgi.ucar ? tipBilgi.ucusCarpani : 1
 
     this.atislar.push({
       id: this.sonrakiId++,
@@ -716,7 +728,7 @@ export class KaleSavunmasi {
       y: baslangicY,
       vx: ((hedef.x - kuleX) / uzaklik) * OK_HIZI,
       vy: ((hedefY - baslangicY) / uzaklik) * OK_HIZI,
-      hasar,
+      hasar: Math.round(hasar * carpan),
       tur: 'ok',
       element: 'normal',
       kritik: false,

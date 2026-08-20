@@ -16,7 +16,7 @@ import * as THREE from 'three'
 import { FONT_FAMILY, KULE_TIPLERI } from '../../kalesavunmasi/config/constants.ts'
 import type { Kule } from '../../kalesavunmasi/systems/KaleSavunmasi.ts'
 
-export type MenuEylem = 'kule0' | 'kule1' | 'kule2' | 'yukselt' | 'hedef' | 'yik'
+export type MenuEylem = `kule${number}` | 'yukselt' | 'hedef' | 'yik'
 
 export interface MenuDurum {
   yuva: number
@@ -31,13 +31,11 @@ export interface MenuDurum {
 }
 
 const TUVAL_EN = 512
-const TUVAL_BOY = 400
+const TUVAL_BOY = 470
 /** Başlık şeridinin tuvaldeki payı. */
-const BASLIK_ORANI = 0.22
+const BASLIK_ORANI = 0.19
 /** Menü ekranın kaçta kaçını kaplasın (yükseklik). */
-const EKRAN_ORANI = 0.33
-/** Satır sayısı — üç seçenek. */
-const SATIR = 3
+const EKRAN_ORANI = 0.36
 
 interface Satir {
   simge: string
@@ -117,11 +115,13 @@ export class KuleMenu3D {
   eylem(uv: THREE.Vector2, kuleVarMi: boolean): MenuEylem | null {
     const ust = 1 - uv.y
     if (ust < BASLIK_ORANI) return null
-    const sira = Math.floor(((ust - BASLIK_ORANI) / (1 - BASLIK_ORANI)) * SATIR)
-    if (sira < 0 || sira >= SATIR) return null
+    const adet = this.satirlar.length
+    const sira = Math.floor(((ust - BASLIK_ORANI) / (1 - BASLIK_ORANI)) * adet)
+    if (sira < 0 || sira >= adet) return null
     if (!this.satirlar[sira]?.acik) return null
-    if (kuleVarMi) return (['yukselt', 'hedef', 'yik'] as const)[sira]
-    return (['kule0', 'kule1', 'kule2'] as const)[sira]
+    if (kuleVarMi) return (['yukselt', 'hedef', 'yik'] as const)[sira] ?? null
+    // Boş yuvada satırlar kule tiplerinden geliyor; sıra doğrudan tip.
+    return `kule${sira}` as MenuEylem
   }
 
   bosalt(): void {
@@ -134,7 +134,7 @@ export class KuleMenu3D {
   // --- İçerik ---
 
   private bosSatirlar(durum: MenuDurum): Satir[] {
-    const simgeler = ['🏹', '💣', '🔮']
+    const simgeler = ['🏹', '💣', '🔮', '🎯']
     return KULE_TIPLERI.map((tip, i) => ({
       simge: simgeler[i] ?? '🏰',
       ad: tip.ad.replace(' Kulesi', ''),
@@ -144,6 +144,7 @@ export class KuleMenu3D {
     }))
   }
 
+  /** Kurulu kule satırları — sıraları `eylem()` ile aynı: yükselt, hedef, yık. */
   private doluSatirlar(durum: MenuDurum): Satir[] {
     const fiyat = durum.yukseltmeFiyati
     return [
@@ -191,7 +192,7 @@ export class KuleMenu3D {
     ctx.fillText(`${durum.altin} 🪙`, TUVAL_EN - 30, baslikBoy / 2 + 6)
 
     // Satırlar
-    const satirBoy = (TUVAL_BOY - baslikBoy - 16) / SATIR
+    const satirBoy = (TUVAL_BOY - baslikBoy - 16) / Math.max(1, this.satirlar.length)
     for (let i = 0; i < this.satirlar.length; i++) {
       const s = this.satirlar[i]
       const y = baslikBoy + i * satirBoy + 4
