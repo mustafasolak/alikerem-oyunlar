@@ -856,7 +856,7 @@ export const KATALOG: KatalogKaydi[] = [
     "ad": "Kale Savunması 3B",
     "ozet": "Aynı kale, bu kez üç boyutlu bir sahada.",
     "aciklama": "Yoldan gelen canavarları mızrakla vur, kule kur, kaleyi ayakta tut.",
-    "ipucu": "<b>Nereye dokunursan mızrak oraya gider</b> · <b>sürükle</b> kamerayı çevirir · <kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · <kbd>E</kbd> element · <kbd>C</kbd> kamera açısı · <kbd>M</kbd> ya da sağ üstteki <b>☰</b> dükkân (açıkken oyun durur) · <b>Yuvaya dokun</b>, sonra alttaki panelden kule kur ya da yükselt · <b>uçan canavara mızrak değmez, yalnız kuleler vurur</b>",
+    "ipucu": "<b>Nereye dokunursan mızrak oraya gider</b> · <b>sürükle</b> kamerayı çevirir · <kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · <kbd>E</kbd> element · <kbd>C</kbd> kamera açısı · <kbd>M</kbd> ya da sağ üstteki <b>☰</b> dükkân (açıkken oyun durur) · <b>Yol kenarındaki çime dokun</b>, açılan menüden kule kur; kuleye dokununca yükselt/yık · <b>uçan canavara mızrak değmez, yalnız kuleler vurur</b>",
     "emoji": "🏯",
     "kategori": "arcade",
     "etiketler": [
@@ -937,7 +937,7 @@ export const KATALOG: KatalogKaydi[] = [
         {
           "id": "kule",
           "baslik": "Kuleler",
-          "ic": "<details class=\"katlanir\"><summary>6 yuva</summary><div class=\"toolbar\"><button class=\"btn\" type=\"button\" data-yuva=\"0\">1 · boş</button><button class=\"btn\" type=\"button\" data-yuva=\"1\">2 · boş</button><button class=\"btn\" type=\"button\" data-yuva=\"2\">3 · boş</button><button class=\"btn\" type=\"button\" data-yuva=\"3\">4 · boş</button><button class=\"btn\" type=\"button\" data-yuva=\"4\">5 · boş</button><button class=\"btn\" type=\"button\" data-yuva=\"5\">6 · boş</button></div>\n   <div class=\"toolbar\"><button class=\"btn\" type=\"button\" data-kule=\"0\" title=\"hızlı, tek hedef\">Okçu · <b>45</b></button><button class=\"btn\" type=\"button\" data-kule=\"1\" title=\"yavaş, alan hasarı\">Bombacı · <b>110</b></button><button class=\"btn\" type=\"button\" data-kule=\"2\" title=\"zırhı geçer, yavaşlatır\">Büyücü · <b>150</b></button><button class=\"btn\" type=\"button\" data-kule=\"3\" title=\"uçanlara üç kat hasar\">Zıpkın · <b>90</b></button>\n     <button class=\"btn\" type=\"button\" data-kule=\"yukselt\">⬆ Yükselt · <b>—</b></button>\n     <button class=\"btn\" type=\"button\" data-kule=\"yik\">⛏ Yık · <b>—</b></button>\n   </div></details>"
+          "ic": "<details class=\"katlanir\"><summary>4 kule tipi</summary><div class=\"toolbar\"><button class=\"btn\" type=\"button\" data-kule=\"0\" title=\"hızlı, tek hedef\">Okçu · <b>45</b></button><button class=\"btn\" type=\"button\" data-kule=\"1\" title=\"yavaş, alan hasarı\">Bombacı · <b>110</b></button><button class=\"btn\" type=\"button\" data-kule=\"2\" title=\"zırhı geçer, yavaşlatır\">Büyücü · <b>150</b></button><button class=\"btn\" type=\"button\" data-kule=\"3\" title=\"uçanlara üç kat hasar\">Zıpkın · <b>90</b></button>\n     <button class=\"btn\" type=\"button\" data-kule=\"yukselt\">⬆ Yükselt · <b>—</b></button>\n     <button class=\"btn\" type=\"button\" data-kule=\"yik\">⛏ Yık · <b>—</b></button>\n   </div></details>"
         },
         {
           "id": "dunya",

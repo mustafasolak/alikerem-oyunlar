@@ -16,10 +16,9 @@ import {
   KULE_TIPLERI,
   NISAN_NOKTA_ARALIK,
 } from '../../kalesavunmasi/config/constants.ts'
-import type { Atis } from '../../kalesavunmasi/systems/KaleSavunmasi.ts'
+import type { Atis, Kule } from '../../kalesavunmasi/systems/KaleSavunmasi.ts'
 import { SERIT_ARALIK, seritX, yukseklik } from '../config/sahne3d.ts'
 import type { Efektler3D } from './Efektler3D.ts'
-import { KULE_YANAL } from './Kuleler3D.ts'
 import { birak, koni, kure, malzeme, silindir } from './yapi.ts'
 
 /** Kule okunun yanal kayması bu yol boyunca sıfıra iner. */
@@ -94,13 +93,13 @@ export class Atislar3D {
   }
 
   /** Mantıktaki atış listesini sahnedeki nesnelerle eşler. */
-  esle(atislar: readonly Atis[]): void {
+  esle(atislar: readonly Atis[], kuleler: readonly Kule[] = []): void {
     const ucan = new Set<number>()
     for (const atis of atislar) {
       ucan.add(atis.id)
       let gorunum = this.gorunumler.get(atis.id)
       if (!gorunum) {
-        gorunum = this.gorunumYap(atis)
+        gorunum = this.gorunumYap(atis, kuleler)
         this.sahne.add(gorunum.kok)
         this.gorunumler.set(atis.id, gorunum)
       }
@@ -160,7 +159,7 @@ export class Atislar3D {
   }
 
   /** Mızrak mı, ok mu, gülle mi, büyü topu mu — atışın taşıdığı özelliklerden. */
-  private gorunumYap(atis: Atis): AtisGorunum {
+  private gorunumYap(atis: Atis, kuleler: readonly Kule[]): AtisGorunum {
     if (atis.tur === 'mizrak') {
       const renk = ELEMENT_RENGI[atis.element]
       const kok = mizrakYap(renk)
@@ -189,7 +188,8 @@ export class Atislar3D {
       uc.position.z = 14
       kok.add(sap, uc, iz(0xe2e8f0, 2.2))
     }
-    // Ok kulenin yanından çıkıp hedefin şeridine süzülüyor.
-    return { kok, yanal: KULE_YANAL, hedefYanal: seritX(atis.serit), basX: atis.x }
+    // Ok, atan kulenin yanından çıkıp hedefin şeridine süzülüyor.
+    const kule = kuleler.find((k) => Math.abs(k.x - atis.x) < 2)
+    return { kok, yanal: kule?.yanal ?? 0, hedefYanal: seritX(atis.serit), basX: atis.x }
   }
 }

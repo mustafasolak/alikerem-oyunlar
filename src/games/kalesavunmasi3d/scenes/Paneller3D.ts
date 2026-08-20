@@ -13,20 +13,19 @@ import {
   ELEMENT_SIMGE,
   KULE_MAX_SEVIYE,
   KULE_TIPLERI,
-  KULE_YUVALARI,
   YUKSELTMELER,
   ZORLUKLAR,
 } from '../../kalesavunmasi/config/constants.ts'
 import { dunyaAcikMi, dunyayaKalan } from '../../kalesavunmasi/systems/Ilerleme.ts'
-import type { KaleSavunmasi } from '../../kalesavunmasi/systems/KaleSavunmasi.ts'
+import type { KaleSavunmasi, Kule } from '../../kalesavunmasi/systems/KaleSavunmasi.ts'
 import { butonGrubu } from '../../../shared/dom.ts'
 
 export interface PanelKanca {
   yukseltmeAl(id: string): void
   dunyaSec(sira: number): void
   zorlukSec(sira: number): void
-  yuvaSec(yuva: number): void
-  kuleAl(tip: number): void
+  /** Sahnede seçili boş noktaya kule kurar. */
+  kuleKur(tip: number): void
   kuleYukselt(): void
   kuleYik(): void
 }
@@ -35,7 +34,7 @@ export class Paneller3D {
   private readonly oyun: KaleSavunmasi
   private readonly kanca: PanelKanca
   private readonly malzemeButonlari = new Map<string, HTMLButtonElement>()
-  private readonly yuvaButonlari: HTMLButtonElement[] = []
+
   private readonly kuleButonlari = new Map<string, HTMLButtonElement>()
   private readonly temizleyiciler: (() => void)[] = []
   private dunyayiIsaretle?: (deger: string) => void
@@ -51,14 +50,14 @@ export class Paneller3D {
   }
 
   /** Her karede çağrılır; durum değişmediyse DOM'a hiç yazılmaz. */
-  tazele(seciliYuva: number | null): void {
+  tazele(secili: Kule | null, kurmaNoktasiVar: boolean): void {
     const seviyeler = YUKSELTMELER.map((y) => this.oyun.yukseltmeSeviyesi(y.id)).join(',')
-    const kuleler = this.oyun.kuleler.map((k) => (k ? `${k.tip}.${k.seviye}` : '-')).join(',')
-    const yeni = `${this.oyun.altin}|${this.oyun.kaleCani}|${this.oyun.asama}|${seviyeler}|${kuleler}|${seciliYuva}`
+    const kuleler = this.oyun.kuleler.map((k) => `${k.tip}.${k.seviye}`).join(',')
+    const yeni = `${this.oyun.altin}|${this.oyun.kaleCani}|${this.oyun.asama}|${seviyeler}|${kuleler}|${secili?.id ?? -1}|${kurmaNoktasiVar}`
     if (yeni === this.imza) return
     this.imza = yeni
     this.malzemeleriTazele()
-    this.kuleleriTazele(seciliYuva)
+    this.kuleleriTazele(secili, kurmaNoktasiVar)
   }
 
   /** Element ve otomatik düğmelerinin yazısını güncel duruma çeker. */
@@ -114,12 +113,6 @@ export class Paneller3D {
   }
 
   private kuleleriBagla(): void {
-    for (let yuva = 0; yuva < KULE_YUVALARI.length; yuva++) {
-      const dugme = document.querySelector<HTMLButtonElement>(`#kule button[data-yuva="${yuva}"]`)
-      if (!dugme) continue
-      this.yuvaButonlari.push(dugme)
-      this.dinle(dugme, () => this.kanca.yuvaSec(yuva))
-    }
     // Kule tipleri tablodan gelir: yeni tip eklenince düğmesi kendiliğinden bağlanır.
     const anahtarlar = [...KULE_TIPLERI.map((_, i) => String(i)), 'yukselt', 'yik']
     for (const anahtar of anahtarlar) {
@@ -129,7 +122,7 @@ export class Paneller3D {
       this.dinle(dugme, () => {
         if (anahtar === 'yukselt') this.kanca.kuleYukselt()
         else if (anahtar === 'yik') this.kanca.kuleYik()
-        else this.kanca.kuleAl(Number(anahtar))
+        else this.kanca.kuleKur(Number(anahtar))
       })
     }
   }
@@ -171,22 +164,17 @@ export class Paneller3D {
     }
   }
 
-  /** Yuva düğmeleri kulenin durumunu, eylem düğmeleri fiyatı gösterir. */
-  private kuleleriTazele(seciliYuva: number | null): void {
-    for (let yuva = 0; yuva < this.yuvaButonlari.length; yuva++) {
-      const dugme = this.yuvaButonlari[yuva]
-      const kule = this.oyun.kuleler[yuva]
-      dugme.setAttribute('aria-pressed', String(yuva === seciliYuva))
-      dugme.textContent = kule ? `${yuva + 1} · Lv${kule.seviye}` : `${yuva + 1} · boş`
-      dugme.title = kule ? KULE_TIPLERI[kule.tip].ad : 'Boş yuva'
-    }
-
-    const kule = seciliYuva === null ? null : this.oyun.kuleler[seciliYuva]
+  /**
+   * Kule düğmeleri: tip düğmeleri ancak sahada boş bir nokta seçiliyken,
+   * yükselt/yık ancak bir kule seçiliyken çalışır.
+   */
+  private kuleleriTazele(kule: Kule | null, kurmaNoktasiVar: boolean): void {
     for (let tip = 0; tip < KULE_TIPLERI.length; tip++) {
       const dugme = this.kuleButonlari.get(String(tip))
       if (!dugme) continue
       const fiyat = KULE_TIPLERI[tip].fiyat[0]
-      dugme.disabled = seciliYuva === null || kule !== null || this.oyun.altin < fiyat
+      dugme.disabled = !kurmaNoktasiVar || this.oyun.altin < fiyat
+      dugme.title = kurmaNoktasiVar ? KULE_TIPLERI[tip].ozet : 'Önce sahada çime dokun'
       const durum = dugme.querySelector('b')
       if (durum) durum.textContent = String(fiyat)
     }
@@ -201,7 +189,7 @@ export class Paneller3D {
 
     const yik = this.kuleButonlari.get('yik')
     if (yik) {
-      const bedel = seciliYuva === null ? null : this.oyun.kuleYikimBedeli(seciliYuva)
+      const bedel = kule ? this.oyun.kuleYikimBedeli(kule.id) : null
       yik.disabled = bedel === null
       const durum = yik.querySelector('b')
       if (durum) durum.textContent = bedel === null ? '—' : `+${bedel}`

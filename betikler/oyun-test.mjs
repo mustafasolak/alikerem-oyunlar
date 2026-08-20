@@ -28,6 +28,10 @@ import {
   DURAK_X,
   GAME_WIDTH,
   HEDEFLEME_KURALLARI,
+  KULE_ARA_MESAFE,
+  KULE_MAX_X,
+  KULE_MIN_X,
+  MAX_KULE,
   SEF_IYILESME_BEKLEME_MS,
   SEF_KALKAN_BEKLEME_MS,
   SEF_KALKAN_ORANI,
@@ -723,36 +727,83 @@ function tohumlu(tohum) {
   kontrol('zincir çizgisi bildirildi', sonuc2.zincirler.length > 0)
 }
 
+
+/**
+ * Kule testleri için yuva köprüsü.
+ *
+ * Mantık kuleyi artık serbest konumla tutuyor; testlerin çoğu eski altı yuva
+ * düzeniyle yazılmıştı. Bu iki yardımcı yuva sırasını konuma çeviriyor.
+ */
+const kuleKur = (oyun, yuva, tip) => oyun.kuleKur(KULE_YUVALARI[yuva], tip) !== null
+const yuvada = (oyun, yuva) => oyun.kuleler.find((k) => k.x === KULE_YUVALARI[yuva]) ?? null
+const yuvaId = (oyun, yuva) => yuvada(oyun, yuva)?.id ?? -1
+
+// --- Kale Savunması: serbest kule yerleştirme ---
+{
+  const oyun = new KaleSavunmasi(tohumlu(64), 0, 1)
+  oyun.basla()
+  oyun.altin = 1000000
+
+  kontrol('sahanın ortasına kurulabilir', oyun.kuleKurulabilirMi((KULE_MIN_X + KULE_MAX_X) / 2))
+  esit('kalenin dibine kurulamaz', oyun.kuleKurulabilirMi(KULE_MIN_X - 1), false)
+  esit('sahanın dışına kurulamaz', oyun.kuleKurulabilirMi(KULE_MAX_X + 1), false)
+
+  const kule = oyun.kuleKur(300, 0, 180)
+  kontrol('kule kuruldu ve kimliği var', kule !== null && kule.id > 0)
+  esit('kule istenen yerde', kule.x, 300)
+  esit('yanal yer korunuyor', kule.yanal, 180)
+  esit('sahada bir kule var', oyun.kuleler.length, 1)
+
+  esit('çok yakına ikinci kule olmaz', oyun.kuleKur(300 + KULE_ARA_MESAFE - 5, 0), null)
+  kontrol('yeterince uzağa kurulabilir', oyun.kuleKur(300 + KULE_ARA_MESAFE + 5, 0) !== null)
+
+  // Tavan: kalanları serpiştirip sınırı doldur
+  let x = KULE_MIN_X
+  while (oyun.kuleler.length < MAX_KULE && x <= KULE_MAX_X) {
+    oyun.kuleKur(x, 0)
+    x += KULE_ARA_MESAFE
+  }
+  esit('kule sayısı tavanda', oyun.kuleler.length, MAX_KULE)
+  esit('tavan dolunca yeni kule olmaz', oyun.kuleKurulabilirMi(KULE_MAX_X), false)
+
+  // Yıkınca yer açılıyor
+  const sonKule = oyun.kuleler.at(-1)
+  const yeri = sonKule.x
+  esit('kule yıkıldı', oyun.kuleYik(sonKule.id), true)
+  esit('kule listeden çıktı', oyun.kuleBul(sonKule.id), null)
+  kontrol('yıkılan yer yeniden kurulabilir', oyun.kuleKurulabilirMi(yeri))
+}
+
 // --- Kale Savunması: kule yükseltme ---
 {
   const oyun = new KaleSavunmasi(tohumlu(99))
   oyun.basla()
   oyun.altin = 1000000
-  oyun.kuleAl(0, 0)
-  esit('kule Lv1', oyun.kuleler[0].seviye, 1)
+  kuleKur(oyun, 0, 0)
+  esit('kule Lv1', yuvada(oyun, 0).seviye, 1)
 
   const fiyat = KULE_TIPLERI[0].fiyat[1]
   const altinOnce = oyun.altin
-  esit('kule yükseldi', oyun.kuleYukselt(0), true)
-  esit('seviye 2 oldu', oyun.kuleler[0].seviye, 2)
+  esit('kule yükseldi', oyun.kuleYukselt(yuvaId(oyun, 0)), true)
+  esit('seviye 2 oldu', yuvada(oyun, 0).seviye, 2)
   esit('yükseltme parası düştü', oyun.altin, altinOnce - fiyat)
 
   // Tavana kadar çık: her basamak bir kez yükselmeli.
   // Döngü sınırlı — yükseltme beklenmedik biçimde başarısız olursa test
   // kilitlenmesin, açıkça patlasın.
-  for (let adim = 0; adim < KULE_MAX_SEVIYE && oyun.kuleler[0].seviye < KULE_MAX_SEVIYE; adim++) {
-    const hedef = oyun.kuleler[0].seviye + 1
-    esit(`Lv${hedef}'e yükseldi`, oyun.kuleYukselt(0), true)
-    esit(`seviye ${hedef} oldu`, oyun.kuleler[0].seviye, hedef)
+  for (let adim = 0; adim < KULE_MAX_SEVIYE && yuvada(oyun, 0).seviye < KULE_MAX_SEVIYE; adim++) {
+    const hedef = yuvada(oyun, 0).seviye + 1
+    esit(`Lv${hedef}'e yükseldi`, oyun.kuleYukselt(yuvaId(oyun, 0)), true)
+    esit(`seviye ${hedef} oldu`, yuvada(oyun, 0).seviye, hedef)
   }
-  esit('en üst seviyede durur', oyun.kuleler[0].seviye, KULE_MAX_SEVIYE)
-  esit('en üstte yükseltme olmaz', oyun.kuleYukselt(0), false)
-  esit('en üstte fiyat yok', oyun.kuleFiyati(0, 0), null)
-  esit('boş yuva yükseltilmez', oyun.kuleYukselt(1), false)
+  esit('en üst seviyede durur', yuvada(oyun, 0).seviye, KULE_MAX_SEVIYE)
+  esit('en üstte yükseltme olmaz', oyun.kuleYukselt(yuvaId(oyun, 0)), false)
+  esit('en üstte fiyat yok', oyun.kuleFiyati(yuvaId(oyun, 0)), null)
+  esit('kule olmayan kimlik yükseltilmez', oyun.kuleYukselt(-1), false)
 
   oyun.altin = 0
-  oyun.kuleAl(1, 0)
-  esit('parasızken kule kurulmaz', oyun.kuleler[1], null)
+  kuleKur(oyun, 1, 0)
+  esit('parasızken kule kurulmaz', yuvada(oyun, 1), null)
 }
 
 // --- Kale Savunması: kule hedefleme kuralı ---
@@ -760,8 +811,8 @@ function tohumlu(tohum) {
   const oyun = new KaleSavunmasi(tohumlu(61), 0, 1)
   oyun.basla()
   oyun.altin = 1000000
-  oyun.kuleAl(0, 0)
-  esit('yeni kule en öndekini vurur', oyun.kuleler[0].hedefleme, 0)
+  kuleKur(oyun, 0, 0)
+  esit('yeni kule en öndekini vurur', yuvada(oyun, 0).hedefleme, 0)
 
   const yerdekiler = oyun.tipler.map((t, i) => ({ t, i })).filter(({ t }) => !t.patron && !t.ucar)
   const hizli = yerdekiler.reduce((a, b) => (b.t.hiz > a.t.hiz ? b : a))
@@ -777,8 +828,8 @@ function tohumlu(tohum) {
         durum: 'yuruyor', serit: 0, faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
       })
     }
-    oyun.kuleler[0].hedefleme = kural
-    oyun.kuleler[0].atisBirikim = KULE_TIPLERI[0].aralikMs[0]
+    yuvada(oyun, 0).hedefleme = kural
+    yuvada(oyun, 0).atisBirikim = KULE_TIPLERI[0].aralikMs[0]
     // Ok hedefe varana kadar ilerlet; yeni dalga uzakta doğuyor, karışmıyor.
     for (let i = 0; i < 40; i++) oyun.ilerlet(SIM_ADIM_MS)
     const yaralı = oyun.canavarlar.find((c) => liste.some((l) => l.id === c.id) && c.can < c.maxCan)
@@ -799,8 +850,8 @@ function tohumlu(tohum) {
     hizli.t.hiz > yavas.t.hiz ? 803 : 804,
   )
 
-  esit('kural sırayla dönüyor', oyun.hedeflemeDegistir(0), 0)
-  esit('boş yuvada kural değişmez', oyun.hedeflemeDegistir(3), 0)
+  esit('kural sırayla dönüyor', oyun.hedeflemeDegistir(yuvaId(oyun, 0)), 0)
+  esit('kule olmayan kimlikte kural değişmez', oyun.hedeflemeDegistir(-1), 0)
   kontrol('kural sayısı üç', HEDEFLEME_KURALLARI.length === 3)
 }
 
@@ -867,15 +918,15 @@ function tohumlu(tohum) {
   // Şef ölünce menzildeki kule sersemler
   oyun.canavarlar.length = 0
   oyun.atislar.length = 0
-  oyun.kuleAl(0, 0)
-  oyun.kuleAl(5, 0)
+  kuleKur(oyun, 0, 0)
+  kuleKur(oyun, 5, 0)
   const yakin = sefKoy(KULE_YUVALARI[0] + 40)
   yakin.kalkan = 0
   yakin.can = 1
   const sonuc = vur(yakin, 50)
   kontrol('şef şoku bildirildi', sonuc.soklar.length === 1, `${sonuc.soklar.length} şok`)
-  esit('yakındaki kule sersemledi', oyun.kuleler[0].sersem, SOK_SURE_MS)
-  esit('uzaktaki kule etkilenmedi', oyun.kuleler[5].sersem, 0)
+  esit('yakındaki kule sersemledi', yuvada(oyun, 0).sersem, SOK_SURE_MS)
+  esit('uzaktaki kule etkilenmedi', yuvada(oyun, 5).sersem, 0)
   kontrol(
     'şok menzili dışındaki yuva gerçekten uzak',
     Math.abs(KULE_YUVALARI[5] - yakin.x) > SOK_MENZIL,
@@ -983,10 +1034,10 @@ function tohumlu(tohum) {
   /** Kule bir kez atsın ve okun hasarını döndürsün. */
   const atisHasari = (tip) => {
     oyun.atislar.length = 0
-    oyun.kuleler.fill(null)
+    oyun.kuleler.length = 0
     oyun.altin = 1000000
-    oyun.kuleAl(0, tip)
-    oyun.kuleler[0].atisBirikim = KULE_TIPLERI[tip].aralikMs[0]
+    kuleKur(oyun, 0, tip)
+    yuvada(oyun, 0).atisBirikim = KULE_TIPLERI[tip].aralikMs[0]
     oyun.ilerlet(SIM_ADIM_MS)
     return oyun.atislar[0]?.hasar ?? 0
   }
@@ -1067,11 +1118,11 @@ function tohumlu(tohum) {
   oyun.canavarlar.length = 0
   oyun.atislar.length = 0
   oyun.altin = 1000000
-  oyun.kuleler.fill(null)
-  oyun.kuleAl(0, 0)
+  oyun.kuleler.length = 0
+  kuleKur(oyun, 0, 0)
   const uzaktaki = koy(2, 942)
   uzaktaki.x = KULE_YUVALARI[0] + 50
-  oyun.kuleler[0].atisBirikim = KULE_TIPLERI[0].aralikMs[0]
+  yuvada(oyun, 0).atisBirikim = KULE_TIPLERI[0].aralikMs[0]
   oyun.ilerlet(SIM_ADIM_MS)
   esit('ok hedefin şeridine çıktı', oyun.atislar[0]?.serit, 2)
   for (let i = 0; i < 30; i++) oyun.ilerlet(SIM_ADIM_MS)
@@ -1112,10 +1163,10 @@ function tohumlu(tohum) {
   oyun.basla()
   oyun.altin = 1000000
   for (let tip = 0; tip < KULE_TIPLERI.length; tip++) {
-    esit(`${KULE_TIPLERI[tip].ad} kuruldu`, oyun.kuleAl(tip, tip), true)
-    esit(`${KULE_TIPLERI[tip].ad} yuvada`, oyun.kuleler[tip].tip, tip)
+    esit(`${KULE_TIPLERI[tip].ad} kuruldu`, kuleKur(oyun, tip, tip), true)
+    esit(`${KULE_TIPLERI[tip].ad} yuvada`, yuvada(oyun, tip).tip, tip)
   }
-  esit('her tip bir yuvada', oyun.kuleler.filter(Boolean).length, KULE_TIPLERI.length)
+  esit('her tip bir yuvada', oyun.kuleler.length, KULE_TIPLERI.length)
 }
 
 {
@@ -1174,39 +1225,39 @@ function tohumlu(tohum) {
   oyun.basla()
   oyun.altin = 1000000
 
-  esit('boş yuvanın yıkım bedeli yok', oyun.kuleYikimBedeli(0), null)
-  esit('boş yuva yıkılmaz', oyun.kuleYik(0), false)
+  esit('olmayan kulenin yıkım bedeli yok', oyun.kuleYikimBedeli(-1), null)
+  esit('olmayan kule yıkılmaz', oyun.kuleYik(-1), false)
 
   const alisFiyati = KULE_TIPLERI[0].fiyat[0]
-  oyun.kuleAl(0, 0)
-  esit('yatırım alış fiyatı', oyun.kuleler[0].yatirim, alisFiyati)
-  esit('yıkım bedeli yatırımın yarısı', oyun.kuleYikimBedeli(0), Math.floor(alisFiyati * KULE_YIKIM_ORANI))
+  kuleKur(oyun, 0, 0)
+  esit('yatırım alış fiyatı', yuvada(oyun, 0).yatirim, alisFiyati)
+  esit('yıkım bedeli yatırımın yarısı', oyun.kuleYikimBedeli(yuvaId(oyun, 0)), Math.floor(alisFiyati * KULE_YIKIM_ORANI))
 
   // Yükseltme yatırımı büyütüyor, yıkım bedeli de büyüyor
   const yukseltmeFiyat = KULE_TIPLERI[0].fiyat[1]
-  oyun.kuleYukselt(0)
-  esit('yatırım yükseltmeyi de sayıyor', oyun.kuleler[0].yatirim, alisFiyati + yukseltmeFiyat)
+  oyun.kuleYukselt(yuvaId(oyun, 0))
+  esit('yatırım yükseltmeyi de sayıyor', yuvada(oyun, 0).yatirim, alisFiyati + yukseltmeFiyat)
   esit(
     'yıkım bedeli büyüdü',
-    oyun.kuleYikimBedeli(0),
+    oyun.kuleYikimBedeli(yuvaId(oyun, 0)),
     Math.floor((alisFiyati + yukseltmeFiyat) * KULE_YIKIM_ORANI),
   )
 
   // Yıkınca altın geri geliyor, yuva boşalıyor
-  const bedel = oyun.kuleYikimBedeli(0)
+  const bedel = oyun.kuleYikimBedeli(yuvaId(oyun, 0))
   const altinOnce = oyun.altin
-  esit('kule yıkıldı', oyun.kuleYik(0), true)
-  esit('yuva boşaldı', oyun.kuleler[0], null)
+  esit('kule yıkıldı', oyun.kuleYik(yuvaId(oyun, 0)), true)
+  esit('yuva boşaldı', yuvada(oyun, 0), null)
   esit('altın geri geldi', oyun.altin, altinOnce + bedel)
 
   // Yıkım kârlı olmamalı: harcananın tamamı dönmüyor
   kontrol('geri dönen harcanandan az', bedel < alisFiyati + yukseltmeFiyat, `${bedel} < ${alisFiyati + yukseltmeFiyat}`)
 
   // Boşalan yuvaya başka tip kurulabiliyor
-  esit('yerine başka tip kuruldu', oyun.kuleAl(0, 2), true)
-  esit('yeni tip yuvada', oyun.kuleler[0].tip, 2)
-  esit('yeni kule 1. seviyeden başlıyor', oyun.kuleler[0].seviye, 1)
-  esit('yeni kulenin yatırımı kendi fiyatı', oyun.kuleler[0].yatirim, KULE_TIPLERI[2].fiyat[0])
+  esit('yerine başka tip kuruldu', kuleKur(oyun, 0, 2), true)
+  esit('yeni tip yuvada', yuvada(oyun, 0).tip, 2)
+  esit('yeni kule 1. seviyeden başlıyor', yuvada(oyun, 0).seviye, 1)
+  esit('yeni kulenin yatırımı kendi fiyatı', yuvada(oyun, 0).yatirim, KULE_TIPLERI[2].fiyat[0])
 }
 
 // --- Kale Savunması: nişan işaretçinin gösterdiği yere düşüyor ---
@@ -1699,15 +1750,15 @@ function tohumlu(tohum) {
   esit('oyun başlangıç altınıyla açılır', oyun.altin, BASLANGIC_ALTIN)
 
   oyun.altin = 0
-  esit('parasız kule alınmaz', oyun.kuleAl(0, 0), false)
+  esit('parasız kule alınmaz', kuleKur(oyun, 0, 0), false)
 
   oyun.altin = 200
-  esit('kule kuruldu', oyun.kuleAl(0, 0), true)
+  esit('kule kuruldu', kuleKur(oyun, 0, 0), true)
   esit('altından fiyat düştü', oyun.altin, 200 - KULE_TIPLERI[0].fiyat[0])
-  esit('kule 1. seviyede başlar', oyun.kuleler[0].seviye, 1)
-  esit('dolu yuvaya ikinci kule olmaz', oyun.kuleAl(0, 0), false)
-  esit('olmayan yuvaya kule olmaz', oyun.kuleAl(9, 0), false)
-  esit('boş yuvanın fiyatı ilk basamak', oyun.kuleFiyati(1, 0), KULE_TIPLERI[0].fiyat[0])
+  esit('kule 1. seviyede başlar', yuvada(oyun, 0).seviye, 1)
+  esit('aynı noktaya ikinci kule olmaz', kuleKur(oyun, 0, 0), false)
+  esit('saha dışına kule olmaz', oyun.kuleKur(-50, 0) !== null, false)
+  esit('kule olmayan kimliğin fiyatı yok', oyun.kuleFiyati(-1), null)
 
   // Menzile canavar girince kule kendiliğinden ok atar
   let kuleAtti = false

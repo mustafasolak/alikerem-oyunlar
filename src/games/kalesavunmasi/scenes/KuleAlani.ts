@@ -176,7 +176,7 @@ export class KuleAlani {
       const x = KULE_YUVALARI[yuva]
       const kule = kuleler[yuva]
       this.yuvaCiz(x, yuva === this.secili)
-      if (kule) this.kuleCiz(x, kule)
+      if (kule) this.kuleCiz(x, kule, yuva)
       else this.bosYuvaCiz(x, altin)
     }
     // Zıplama bir kez oynasın: çizimden sonra seviyeleri not et.
@@ -254,7 +254,7 @@ export class KuleAlani {
    * Seviyeye göre kule: Lv1 kısa ve sade, Lv2 daha yüksek + çatılı,
    * Lv3 en yüksek + bayraklı, altın şeritli, tabanı taş takviyeli.
    */
-  private kuleCiz(x: number, kule: Kule): void {
+  private kuleCiz(x: number, kule: Kule, yuva: number): void {
     const bilgi = KULE_TIPLERI[kule.tip]
     const g = kuleGorunum(kule.seviye)
     const renk = acikTon(bilgi.renk, g.tonOran)
@@ -346,7 +346,7 @@ export class KuleAlani {
 
     this.kap.add(kule3)
     // Yükseltme belli olsun: yeni görünüm bir kez zıplayıp yerine otursun.
-    if (this.oncekiSeviyeler[kule.yuva] >= kule.seviye) return
+    if (this.oncekiSeviyeler[yuva] >= kule.seviye) return
     kule3.setScale(0.7)
     this.scene.tweens.add({ targets: kule3, scale: 1, duration: KULE_POP_MS, ease: 'Back.easeOut' })
   }
@@ -388,7 +388,7 @@ export class KuleAlani {
           .setOrigin(0.5),
       )
       this.yukseltmeSatiri(merkezX, satirY, kule, altin)
-      this.yikimSatiri(merkezX, satirY + MENU_SATIR_BOY, kule.yuva, yikimBedeli)
+      this.yikimSatiri(merkezX, satirY + MENU_SATIR_BOY, yuva, yikimBedeli)
       return
     }
 

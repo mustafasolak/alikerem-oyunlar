@@ -30,6 +30,7 @@ import {
   GENIS_EKRAN_ESIGI,
   VARSAYILAN_ZORLUK,
   KULE_TIPLERI,
+  MAX_KULE,
   OVERLAY_GECIKME_MS,
   YUKSELTMELER,
   ZEMIN_Y,
@@ -44,7 +45,7 @@ import {
   oldurulenEkle,
   sonrakiDunyayaKalan,
 } from '../../kalesavunmasi/systems/Ilerleme.ts'
-import { KaleSavunmasi, type Isabet } from '../../kalesavunmasi/systems/KaleSavunmasi.ts'
+import { KaleSavunmasi, type Isabet, type Kule } from '../../kalesavunmasi/systems/KaleSavunmasi.ts'
 import {
   EGIM_ALT,
   EGIM_UST,
@@ -54,6 +55,8 @@ import {
   SAPMA_SINIRI,
   SURUKLE_EGIM_HIZI,
   SURUKLE_ESIGI,
+  KULE_YANAL_MAX,
+  KULE_YANAL_MIN,
   SERIT_ADET,
   SURUKLE_SAPMA_HIZI,
   ZEMIN_NISAN_PAYI,
@@ -114,6 +117,8 @@ export class GameScene extends UcBoyutSahne {
   /** Sürükleyerek eklenen bakış açısı (radyan). */
   private sapmaEk = 0
   private egimEk = 0
+  /** Kule kurmak için seçilen boş nokta (menü oradayken dolu). */
+  private kurulacakNokta: { x: number; yanal: number } | null = null
   /** Sürükleme durumu: dokunuş atışa mı gidecek, kamerayı mı çevirecek? */
   private surukleAcik = false
   private suruklendi = false
@@ -180,8 +185,7 @@ export class GameScene extends UcBoyutSahne {
       yukseltmeAl: (id) => this.yukseltmeAl(id),
       dunyaSec: (sira) => this.dunyaSec(sira),
       zorlukSec: (sira) => this.zorlukSec(sira),
-      yuvaSec: (yuva) => this.yuvaSec(yuva),
-      kuleAl: (tip) => this.kuleAl(tip),
+      kuleKur: (tip) => this.kuleKur(tip),
       kuleYukselt: () => this.kuleYukselt(),
       kuleYik: () => this.kuleYik(),
     })
@@ -201,7 +205,7 @@ export class GameScene extends UcBoyutSahne {
     this.atislar.temizle()
     this.efektler.temizle()
     this.kuleAlani.sifirla()
-    this.kuleMenu.kapat()
+    this.menuyuKapat()
     this.dukkaniKapat()
     this.dunya.sifirla(1, DUNYALAR[this.oyun.dunyaSira].vakitBaslangic)
     this.mesaleleriAyarla()
@@ -234,7 +238,7 @@ export class GameScene extends UcBoyutSahne {
     this.dukkan.yerlestir(this.kamera)
     this.dukkan.tazele(this.dukkanSatirlari(), this.oyun.altin)
     this.efektler.guncelle(delta, this.kamera.quaternion)
-    this.paneller.tazele(this.kuleAlani.seciliYuva)
+    this.paneller.tazele(this.seciliKule, this.kurulacakNokta !== null)
     this.gostergeleriTazele()
     this.canavarlariGuncelle(delta)
 
@@ -273,7 +277,7 @@ export class GameScene extends UcBoyutSahne {
     if (sonuc.yeniDalga !== null) this.dalgaBasladi(sonuc.yeniDalga)
 
     this.canavarlariEsle(delta)
-    this.atislar.esle(this.oyun.atislar)
+    this.atislar.esle(this.oyun.atislar, this.oyun.kuleler)
 
     if (sonuc.oyunBitti) this.oyunuBitir()
   }
@@ -462,27 +466,29 @@ export class GameScene extends UcBoyutSahne {
       return
     }
 
-    const secili = this.kuleAlani.seciliYuva
-    if (this.kuleMenu.acik && secili !== null) {
+    if (this.kuleMenu.acik) {
       const vurus = this.isinlayici.intersectObject(this.kuleMenu.nesne, false)[0]
       if (vurus?.uv) {
-        const eylem = this.kuleMenu.eylem(vurus.uv, this.oyun.kuleler[secili] !== null)
-        if (eylem) this.menuEylemi(eylem, secili)
+        const eylem = this.kuleMenu.eylem(vurus.uv, this.seciliKule !== null)
+        if (eylem) this.menuEylemi(eylem)
         else sesler.tik()
         return
       }
     }
 
     const kesisenler = this.isinlayici.intersectObjects(this.kuleAlani.hedefler, false)
-    const yuva = kesisenler.length > 0 ? this.kuleAlani.yuvaBul(kesisenler[0].object) : null
-    if (yuva !== null) {
-      this.yuvaSec(yuva)
+    const kuleId = kesisenler.length > 0 ? this.kuleAlani.kuleIdBul(kesisenler[0].object) : null
+    if (kuleId !== null) {
+      this.kuleSec(kuleId)
       return
     }
     if (this.kuleMenu.acik) {
-      this.yuvaSec(secili ?? 0)
+      this.menuyuKapat()
+      this.suruklemeyiBitir()
       return
     }
+    // Yolun uzak yanındaki çime dokunmak "buraya kule kur" demek.
+    if (this.kurmaNoktasi()) return
     // Buraya gelen dokunuş ya atış ya kamera çevirme; hangisi olduğu
     // parmak kalkınca belli oluyor.
     this.surukleAcik = true
@@ -521,11 +527,55 @@ export class GameScene extends UcBoyutSahne {
   }
 
   /** Menü satırının karşılığı. */
-  private menuEylemi(eylem: MenuEylem, yuva: number): void {
+  private menuEylemi(eylem: MenuEylem): void {
     if (eylem === 'yukselt') this.kuleYukselt()
     else if (eylem === 'yik') this.kuleYik()
-    else if (eylem === 'hedef') this.hedeflemeDegistir(yuva)
-    else this.kuleAl(Number(eylem.slice(4)))
+    else if (eylem === 'hedef') this.hedeflemeDegistir()
+    else this.kuleKur(Number(eylem.slice(4)))
+  }
+
+  private get seciliKule(): Kule | null {
+    const id = this.kuleAlani.seciliId
+    return id === null ? null : this.oyun.kuleBul(id)
+  }
+
+  /**
+   * Zemine dokunuş kule kurma noktası mı?
+   *
+   * Yalnız yolun uzak yanındaki çim şeridi sayılıyor: yakın tarafa kurulan
+   * kule kamerayla saha arasına giriyor. Nokta doluysa ya da tavan dolduysa
+   * oyuncuya söyleniyor.
+   */
+  private kurmaNoktasi(): boolean {
+    const zemin = new THREE.Vector3()
+    if (!this.isinlayici.ray.intersectPlane(this.zeminDuzlemi, zemin)) return false
+    if (zemin.x < KULE_YANAL_MIN || zemin.x > KULE_YANAL_MAX) return false
+    if (!this.oyun.kuleKurulabilirMi(zemin.z)) {
+      sesler.yanlis()
+      this.bildir(this.oyun.kuleler.length >= MAX_KULE ? 'Kule sayısı doldu' : 'Buraya kule sığmaz')
+      this.suruklemeyiBitir()
+      return true
+    }
+    this.noktaSec({ x: zemin.z, yanal: zemin.x })
+    return true
+  }
+
+  /** Boş noktayı seçer ve oraya kurulum menüsünü açar. */
+  private noktaSec(nokta: { x: number; yanal: number }): void {
+    this.kurulacakNokta = nokta
+    this.kuleAlani.sec(null, this.oyun.kuleler)
+    this.kuleAlani.noktaIsaretle(nokta)
+    this.kuleMenu.kapat()
+    this.kuleMenu.ac(this.kuleAlani.menuKonumu(null, nokta), this.menuDurumu())
+    sesler.tik()
+    this.suruklemeyiBitir()
+  }
+
+  private menuyuKapat(): void {
+    this.kuleMenu.kapat()
+    this.kurulacakNokta = null
+    this.kuleAlani.noktaIsaretle(null)
+    this.kuleAlani.sec(null, this.oyun.kuleler)
   }
 
   /** ☰ düğmesi: dükkânı açar/kapatır. Açılınca oyun durur, kapanınca sürer. */
@@ -535,8 +585,7 @@ export class GameScene extends UcBoyutSahne {
       this.dukkaniKapat()
       return
     }
-    this.kuleMenu.kapat()
-    this.kuleAlani.sec(null, this.oyun.kuleler)
+    this.menuyuKapat()
     this.dukkan.ac()
     // Alışveriş yaparken canavarlar yürümesin; süre de dursun.
     this.dukkanDuraklatti = this.oyun.calisiyor
@@ -570,8 +619,10 @@ export class GameScene extends UcBoyutSahne {
     }))
   }
 
-  private hedeflemeDegistir(yuva: number): void {
-    const sira = this.oyun.hedeflemeDegistir(yuva)
+  private hedeflemeDegistir(): void {
+    const kule = this.seciliKule
+    if (!kule) return
+    const sira = this.oyun.hedeflemeDegistir(kule.id)
     sesler.tik()
     this.bildir(`${HEDEFLEME_KURALLARI[sira].simge} ${HEDEFLEME_KURALLARI[sira].ad}`)
   }
@@ -579,20 +630,22 @@ export class GameScene extends UcBoyutSahne {
   /** Menünün içeriği ve yeri; açık değilse iş yapılmaz. */
   private menuyuTazele(): void {
     this.kuleMenu.guncelle(this.kamera)
-    const yuva = this.kuleAlani.seciliYuva
-    if (!this.kuleMenu.acik || yuva === null) return
-    this.kuleMenu.tazele(this.menuDurumu(yuva))
+    if (!this.kuleMenu.acik) return
+    this.kuleMenu.tazele(this.menuDurumu())
   }
 
-  private menuDurumu(yuva: number): MenuDurum {
-    const kule = this.oyun.kuleler[yuva]
+  private menuDurumu(): MenuDurum {
+    const kule = this.seciliKule
     const kural = HEDEFLEME_KURALLARI[kule?.hedefleme ?? 0]
     return {
-      yuva,
+      baslik: kule
+        ? `${KULE_TIPLERI[kule.tip].ad.replace(' Kulesi', '')} · Lv${kule.seviye}`
+        : 'Kule kur',
       kule,
+      kurulabilir: kule !== null || (this.kurulacakNokta !== null && this.oyun.kuleKurulabilirMi(this.kurulacakNokta.x)),
       altin: this.oyun.altin,
-      yikimBedeli: this.oyun.kuleYikimBedeli(yuva),
-      yukseltmeFiyati: kule ? this.oyun.kuleFiyati(yuva, kule.tip) : null,
+      yikimBedeli: kule ? this.oyun.kuleYikimBedeli(kule.id) : null,
+      yukseltmeFiyati: kule ? this.oyun.kuleFiyati(kule.id) : null,
       hedeflemeAdi: kural.ad,
       hedeflemeSimgesi: kural.simge,
     }
@@ -605,57 +658,66 @@ export class GameScene extends UcBoyutSahne {
     sesler.kaydir()
   }
 
-  // --- Kule paneli ---
+  // --- Kuleler ---
 
-  private yuvaSec(yuva: number): void {
-    const yeni = this.kuleAlani.seciliYuva === yuva ? null : yuva
-    this.kuleAlani.sec(yeni, this.oyun.kuleler)
-    sesler.tik()
-    if (yeni === null) {
-      this.kuleMenu.kapat()
-    this.dukkaniKapat()
+  /** Sahnede kuleye dokunuldu: seçer ve menüsünü açar; ikinci dokunuş kapatır. */
+  kuleSec(id: number): void {
+    if (this.kuleAlani.seciliId === id && this.kuleMenu.acik) {
+      this.menuyuKapat()
+      sesler.tik()
       return
     }
-    this.kuleMenu.ac(this.kuleAlani.menuKonumu(yeni, this.oyun.kuleler[yeni]), this.menuDurumu(yeni))
+    this.kurulacakNokta = null
+    this.kuleAlani.noktaIsaretle(null)
+    this.kuleAlani.sec(id, this.oyun.kuleler)
+    this.kuleMenu.kapat()
+    this.kuleMenu.ac(this.kuleAlani.menuKonumu(this.oyun.kuleBul(id)), this.menuDurumu())
+    sesler.tik()
+    this.suruklemeyiBitir()
   }
 
-  private kuleAl(tip: number): void {
-    const yuva = this.kuleAlani.seciliYuva
-    if (yuva === null) return
-    if (!this.oyun.kuleAl(yuva, tip)) {
+  /** Seçili boş noktaya kule kurar. */
+  private kuleKur(tip: number): void {
+    const nokta = this.kurulacakNokta
+    if (!nokta) return
+    const kule = this.oyun.kuleKur(nokta.x, tip, nokta.yanal)
+    if (!kule) {
       sesler.yanlis()
       return
     }
     sesler.dogru()
-    this.kuleAlani.sec(yuva, this.oyun.kuleler)
-    this.kuleMenu.ac(this.kuleAlani.menuKonumu(yuva, this.oyun.kuleler[yuva]), this.menuDurumu(yuva))
+    this.kurulacakNokta = null
+    this.kuleAlani.noktaIsaretle(null)
+    this.kuleAlani.tazele(this.oyun.kuleler)
+    this.kuleAlani.sec(kule.id, this.oyun.kuleler)
+    this.kuleMenu.kapat()
+    this.kuleMenu.ac(this.kuleAlani.menuKonumu(kule), this.menuDurumu())
     this.bildir(`${KULE_TIPLERI[tip].ad} kuruldu`)
   }
 
   private kuleYukselt(): void {
-    const yuva = this.kuleAlani.seciliYuva
-    if (yuva === null) return
-    if (!this.oyun.kuleYukselt(yuva)) {
+    const kule = this.seciliKule
+    if (!kule || !this.oyun.kuleYukselt(kule.id)) {
       sesler.yanlis()
       return
     }
-    sesler.birlesme(this.oyun.kuleler[yuva]?.seviye ?? 2)
-    this.kuleAlani.sec(yuva, this.oyun.kuleler)
-    this.kuleMenu.ac(this.kuleAlani.menuKonumu(yuva, this.oyun.kuleler[yuva]), this.menuDurumu(yuva))
-    this.bildir(`Kule Lv${this.oyun.kuleler[yuva]?.seviye} oldu`)
+    sesler.birlesme(kule.seviye)
+    this.kuleAlani.tazele(this.oyun.kuleler)
+    this.kuleAlani.sec(kule.id, this.oyun.kuleler)
+    this.bildir(`Kule Lv${kule.seviye} oldu`)
   }
 
   private kuleYik(): void {
-    const yuva = this.kuleAlani.seciliYuva
-    if (yuva === null) return
-    const bedel = this.oyun.kuleYikimBedeli(yuva) ?? 0
-    if (!this.oyun.kuleYik(yuva)) {
+    const kule = this.seciliKule
+    if (!kule) return
+    const bedel = this.oyun.kuleYikimBedeli(kule.id) ?? 0
+    if (!this.oyun.kuleYik(kule.id)) {
       sesler.yanlis()
       return
     }
     sesler.kaydir()
-    this.kuleAlani.sec(yuva, this.oyun.kuleler)
-    this.kuleMenu.ac(this.kuleAlani.menuKonumu(yuva, null), this.menuDurumu(yuva))
+    this.kuleAlani.tazele(this.oyun.kuleler)
+    this.menuyuKapat()
     this.bildir(`Kule yıkıldı · +${bedel} altın`)
   }
 

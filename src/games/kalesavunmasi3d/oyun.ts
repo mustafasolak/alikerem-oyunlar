@@ -5,7 +5,6 @@ import {
   ELEMENT_ADI,
   ELEMENT_SIMGE,
   KULE_TIPLERI,
-  KULE_YUVALARI,
   VARSAYILAN_ZORLUK,
   YUKSELTMELER,
   ZORLUKLAR,
@@ -24,11 +23,8 @@ const katlanir = (ozet: string, ic: string): string =>
  * aynı seçimi yapar.
  */
 const kulePaneli = katlanir(
-  `${KULE_YUVALARI.length} yuva`,
-  `<div class="toolbar">${KULE_YUVALARI.map(
-    (_, i) => `<button class="btn" type="button" data-yuva="${i}">${i + 1} · boş</button>`,
-  ).join('')}</div>
-   <div class="toolbar">${KULE_TIPLERI.map(
+  `${KULE_TIPLERI.length} kule tipi`,
+  `<div class="toolbar">${KULE_TIPLERI.map(
      (k, i) =>
        `<button class="btn" type="button" data-kule="${i}" title="${k.ozet}">${k.ad.replace(' Kulesi', '')} · <b>${k.fiyat[0]}</b></button>`,
    ).join('')}
@@ -58,7 +54,7 @@ export default tanim({
   ozet: 'Aynı kale, bu kez üç boyutlu bir sahada.',
   aciklama: 'Yoldan gelen canavarları mızrakla vur, kule kur, kaleyi ayakta tut.',
   ipucu:
-    '<b>Nereye dokunursan mızrak oraya gider</b> · <b>sürükle</b> kamerayı çevirir · <kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · <kbd>E</kbd> element · <kbd>C</kbd> kamera açısı · <kbd>M</kbd> ya da sağ üstteki <b>☰</b> dükkân (açıkken oyun durur) · <b>Yuvaya dokun</b>, sonra alttaki panelden kule kur ya da yükselt · <b>uçan canavara mızrak değmez, yalnız kuleler vurur</b>',
+    '<b>Nereye dokunursan mızrak oraya gider</b> · <b>sürükle</b> kamerayı çevirir · <kbd>Boşluk</kbd> saldır · <kbd>↑</kbd><kbd>↓</kbd> nişan · <kbd>P</kbd> duraklat · <kbd>E</kbd> element · <kbd>C</kbd> kamera açısı · <kbd>M</kbd> ya da sağ üstteki <b>☰</b> dükkân (açıkken oyun durur) · <b>Yol kenarındaki çime dokun</b>, açılan menüden kule kur; kuleye dokununca yükselt/yık · <b>uçan canavara mızrak değmez, yalnız kuleler vurur</b>',
   emoji: '🏯',
   kategori: 'arcade',
   etiketler: ['Arcade', '3B', 'Savunma'],

@@ -19,8 +19,11 @@ import type { Kule } from '../../kalesavunmasi/systems/KaleSavunmasi.ts'
 export type MenuEylem = `kule${number}` | 'yukselt' | 'hedef' | 'yik'
 
 export interface MenuDurum {
-  yuva: number
+  /** Başlık: kule adı ya da "Kule kur". */
+  baslik: string
   kule: Kule | null
+  /** Boş noktada: buraya kule kurulabilir mi? */
+  kurulabilir: boolean
   altin: number
   /** Kule varsa yıkım bedeli. */
   yikimBedeli: number | null
@@ -94,7 +97,7 @@ export class KuleMenu3D {
 
   /** Durum değiştiyse tuvali yeniden çizer (altın değişince fiyatlar sönebilir). */
   tazele(durum: MenuDurum): void {
-    const imza = `${durum.yuva}|${durum.kule?.tip ?? -1}.${durum.kule?.seviye ?? 0}|${durum.altin}|${durum.hedeflemeAdi}|${durum.yukseltmeFiyati}|${durum.yikimBedeli}`
+    const imza = `${durum.baslik}|${durum.kurulabilir}|${durum.kule?.tip ?? -1}.${durum.kule?.seviye ?? 0}|${durum.altin}|${durum.hedeflemeAdi}|${durum.yukseltmeFiyati}|${durum.yikimBedeli}`
     if (imza === this.durumImzasi) return
     this.durumImzasi = imza
     this.satirlar = durum.kule ? this.doluSatirlar(durum) : this.bosSatirlar(durum)
@@ -139,7 +142,7 @@ export class KuleMenu3D {
       simge: simgeler[i] ?? '🏰',
       ad: tip.ad.replace(' Kulesi', ''),
       deger: String(tip.fiyat[0]),
-      acik: durum.altin >= tip.fiyat[0],
+      acik: durum.kurulabilir && durum.altin >= tip.fiyat[0],
       altin: true,
     }))
   }
@@ -181,10 +184,7 @@ export class KuleMenu3D {
     ctx.font = `bold 40px ${FONT_FAMILY}`
     ctx.textBaseline = 'middle'
     ctx.textAlign = 'left'
-    const baslik = durum.kule
-      ? `${KULE_TIPLERI[durum.kule.tip].ad.replace(' Kulesi', '')} · Lv${durum.kule.seviye}`
-      : `Yuva ${durum.yuva + 1}`
-    ctx.fillText(baslik, 30, baslikBoy / 2 + 6)
+    ctx.fillText(durum.baslik, 30, baslikBoy / 2 + 6)
 
     ctx.textAlign = 'right'
     ctx.fillStyle = '#fbbf24'

@@ -83,6 +83,10 @@ modüllerden gelir (hiçbiri Phaser'a bağlı değil).
 boyutlu sürümle paylaşır, yalnız çizimi başkadır. Eksen eşlemesi
 `config/sahne3d.ts` başında yazılıdır (sim x → z, sim y → y).
 
+Kuleler mantıkta **serbest konumlu** durur (`kule.x` yol boyunca, `kule.yanal`
+yalnız sahne için). İki boyutlu sürüm eski altı yuvayı konuma çevirerek
+kullanmayı sürdürüyor, üç boyutlu sürümde oyuncu çime dokunduğu yere kuruyor.
+
 Sim isteğe bağlı **şerit** taşır: `new KaleSavunmasi(random, dunya, zorluk,
 seritAdet)`. Şerit yalnız sıra numarasıdır, dünyadaki yeri sahne bilir. İki
 boyutlu sürüm tek şeritle (varsayılan) çalışır, üç boyutlu sürüm üç şeritle;

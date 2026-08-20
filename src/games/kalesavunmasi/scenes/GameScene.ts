@@ -45,7 +45,7 @@ import {
   oldurulenEkle,
   sonrakiDunyayaKalan,
 } from '../systems/Ilerleme.ts'
-import { KaleSavunmasi, type Isabet } from '../systems/KaleSavunmasi.ts'
+import { KaleSavunmasi, type Isabet, type Kule } from '../systems/KaleSavunmasi.ts'
 import { ArkaPlan } from './ArkaPlan.ts'
 import { CanavarGorunumu } from './CanavarGorunumu.ts'
 import { KaleGorunumu } from './KaleGorunumu.ts'
@@ -106,7 +106,7 @@ export class GameScene extends TemelSahne {
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.nisanla(p))
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       // Kule yuvasına/dükkâna gelen dokunuş mızrak atmasın.
-      if (this.kuleAlani.dokun(p.worldX, p.worldY, this.oyun.kuleler, this.oyun.altin, this.yikimBedeli(p))) return
+      if (this.kuleAlani.dokun(p.worldX, p.worldY, this.yuvalar(), this.oyun.altin, this.yikimBedeli(p))) return
       this.nisanla(p)
       this.at()
     })
@@ -226,7 +226,7 @@ export class GameScene extends TemelSahne {
     this.kale.sifirla()
     this.kale.canGoster(this.oyun.maxKaleCani, this.oyun.maxKaleCani)
     this.kuleAlani.sifirla()
-    this.kuleAlani.tazele(this.oyun.kuleler, this.oyun.altin)
+    this.kuleAlani.tazele(this.yuvalar(), this.oyun.altin)
     this.bildirim.setAlpha(0)
 
     setChip('wave', 'Hazır')
@@ -243,7 +243,7 @@ export class GameScene extends TemelSahne {
   update(_time: number, delta: number): void {
     // Arka plan ve dükkânlar duraklamada da canlı: beklerken alışveriş yapılabilir.
     this.arkaPlan.guncelle(delta)
-    this.kuleAlani.tazele(this.oyun.kuleler, this.oyun.altin)
+    this.kuleAlani.tazele(this.yuvalar(), this.oyun.altin)
     this.malzemeleriTazele()
     this.gostergeleriTazele()
     if (!this.oyun.calisiyor) return
@@ -518,8 +518,23 @@ export class GameScene extends TemelSahne {
     ])
   }
 
+  /**
+   * Yuva köprüsü.
+   *
+   * Mantık kuleyi artık serbest konumla tutuyor; iki boyutlu sahne ise altı
+   * sabit yuvayla çalışıyor. Burada yuva sırası konuma çevriliyor, böylece
+   * ekran düzeni değişmeden serbest yerleştirme üç boyutlu sürümde kullanılıyor.
+   */
+  private yuvalar(): (Kule | null)[] {
+    return KULE_YUVALARI.map((x) => this.oyun.kuleler.find((k) => k.x === x) ?? null)
+  }
+
+  private yuvaKulesi(yuva: number): Kule | null {
+    return this.oyun.kuleler.find((k) => k.x === KULE_YUVALARI[yuva]) ?? null
+  }
+
   private kuleAl(yuva: number, tip: number): void {
-    if (this.oyun.kuleAl(yuva, tip)) {
+    if (this.oyun.kuleKur(KULE_YUVALARI[yuva], tip)) {
       sesler.dogru()
       this.bildir(`${KULE_TIPLERI[tip].ad} kuruldu`)
       return
@@ -529,16 +544,17 @@ export class GameScene extends TemelSahne {
 
   /** Dokunulan yuvanın yıkım bedeli; menüde "Yık · +X" diye yazılıyor. */
   private yikimBedeli(p: Phaser.Input.Pointer): number {
-    for (let yuva = 0; yuva < this.oyun.kuleler.length; yuva++) {
+    for (let yuva = 0; yuva < KULE_YUVALARI.length; yuva++) {
       if (Math.abs(p.worldX - KULE_YUVALARI[yuva]) > KULE_YUVA_DOKUNMA) continue
-      return this.oyun.kuleYikimBedeli(yuva) ?? 0
+      return this.oyun.kuleYikimBedeli(this.yuvaKulesi(yuva)?.id ?? -1) ?? 0
     }
     return 0
   }
 
   private kuleYik(yuva: number): void {
-    const bedel = this.oyun.kuleYikimBedeli(yuva) ?? 0
-    if (!this.oyun.kuleYik(yuva)) {
+    const kule = this.yuvaKulesi(yuva)
+    const bedel = this.oyun.kuleYikimBedeli(kule?.id ?? -1) ?? 0
+    if (!kule || !this.oyun.kuleYik(kule.id)) {
       sesler.yanlis()
       return
     }
@@ -547,12 +563,13 @@ export class GameScene extends TemelSahne {
   }
 
   private kuleYukselt(yuva: number): void {
-    if (!this.oyun.kuleYukselt(yuva)) {
+    const kule = this.yuvaKulesi(yuva)
+    if (!kule || !this.oyun.kuleYukselt(kule.id)) {
       sesler.yanlis()
       return
     }
-    sesler.birlesme(this.oyun.kuleler[yuva]?.seviye ?? 2)
-    this.bildir(`Kule Lv${this.oyun.kuleler[yuva]?.seviye} oldu`)
+    sesler.birlesme(kule.seviye)
+    this.bildir(`Kule Lv${kule.seviye} oldu`)
   }
 
   // --- Olaylar ---

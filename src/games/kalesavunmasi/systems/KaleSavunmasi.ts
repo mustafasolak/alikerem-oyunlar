@@ -59,7 +59,10 @@ import {
   KULE_MAX_SEVIYE,
   KULE_TIPLERI,
   KULE_YIKIM_ORANI,
-  KULE_YUVALARI,
+  KULE_ARA_MESAFE,
+  KULE_MAX_X,
+  KULE_MIN_X,
+  MAX_KULE,
   MAX_BIRIKIM_MS,
   MIZRAK_CIKIS_X,
   MIZRAK_CIKIS_Y,
@@ -144,10 +147,17 @@ export interface Atis {
   serit: number
 }
 
-/** Yuvaya kurulmuş kule. */
+/** Sahaya kurulmuş kule. */
 export interface Kule {
-  /** KULE_YUVALARI dizisindeki sıra. */
-  yuva: number
+  /** Kalıcı kimlik; menüler ve sahne kuleyi bununla tutuyor. */
+  id: number
+  /** Yol boyunca yeri (sim x). Menzil buna göre ölçülür. */
+  x: number
+  /**
+   * Yolun kenarından ne kadar açıkta durduğu.
+   * Mantık kullanmaz — sahne kulenin nereye kurulduğunu hatırlasın diye burada.
+   */
+  yanal: number
   /** KULE_TIPLERI dizisindeki sıra. */
   tip: number
   seviye: number
@@ -242,8 +252,8 @@ export class KaleSavunmasi {
 
   readonly canavarlar: Canavar[] = []
   readonly atislar: Atis[] = []
-  /** Yuva başına kule; boş yuva null. */
-  readonly kuleler: (Kule | null)[] = KULE_YUVALARI.map(() => null)
+  /** Sahadaki kuleler; sıra kurulma sırasıdır. */
+  readonly kuleler: Kule[] = []
 
   /** Testlerde kestirilebilir olsun diye üreteç dışarıdan verilebilir. */
   private readonly random: Uretec
@@ -346,7 +356,7 @@ export class KaleSavunmasi {
     this.otomatik = false
     this.canavarlar.length = 0
     this.atislar.length = 0
-    this.kuleler.fill(null)
+    this.kuleler.length = 0
     this.sonrakiId = 1
     this.kalanDogus = 0
     this.dogusBirikim = 0
@@ -520,17 +530,32 @@ export class KaleSavunmasi {
 
   // --- Kuleler ---
 
-  /** Yuvadaki kulenin bir sonraki basamağının fiyatı; sıra dolduysa null. */
-  kuleFiyati(yuva: number, tip: number): number | null {
-    const kule = this.kuleler[yuva]
-    if (!kule) return KULE_TIPLERI[tip].fiyat[0]
-    if (kule.tip !== tip || kule.seviye >= KULE_MAX_SEVIYE) return null
+  /** Kimliğe göre kule. */
+  kuleBul(id: number): Kule | null {
+    return this.kuleler.find((k) => k.id === id) ?? null
+  }
+
+  /** Kulenin bir sonraki basamağının fiyatı; tavana geldiyse null. */
+  kuleFiyati(id: number): number | null {
+    const kule = this.kuleBul(id)
+    if (!kule || kule.seviye >= KULE_MAX_SEVIYE) return null
     return KULE_TIPLERI[kule.tip].fiyat[kule.seviye] ?? null
   }
 
-  /** Yuvadaki kuleyi bir seviye yükseltir. */
-  kuleYukselt(yuva: number): boolean {
-    const kule = this.kuleler[yuva]
+  /**
+   * Verilen noktaya kule kurulabilir mi?
+   * Sahaya sığmalı, başka kuleye çok yakın olmamalı ve tavan dolmamalı.
+   */
+  kuleKurulabilirMi(x: number): boolean {
+    if (this.asama === 'bitti') return false
+    if (x < KULE_MIN_X || x > KULE_MAX_X) return false
+    if (this.kuleler.length >= MAX_KULE) return false
+    return this.kuleler.every((k) => Math.abs(k.x - x) >= KULE_ARA_MESAFE)
+  }
+
+  /** Kuleyi bir seviye yükseltir. */
+  kuleYukselt(id: number): boolean {
+    const kule = this.kuleBul(id)
     if (!kule || this.asama === 'bitti') return false
     if (kule.seviye >= KULE_MAX_SEVIYE) return false
     const fiyat = KULE_TIPLERI[kule.tip].fiyat[kule.seviye]
@@ -544,9 +569,9 @@ export class KaleSavunmasi {
     return true
   }
 
-  /** Yuvadaki kuleyi yıkarsa kaç altın döner; yuva boşsa null. */
-  kuleYikimBedeli(yuva: number): number | null {
-    const kule = this.kuleler[yuva]
+  /** Kuleyi yıkarsa kaç altın döner; kule yoksa null. */
+  kuleYikimBedeli(id: number): number | null {
+    const kule = this.kuleBul(id)
     if (!kule) return null
     return Math.floor(kule.yatirim * KULE_YIKIM_ORANI)
   }
@@ -555,36 +580,41 @@ export class KaleSavunmasi {
    * Kuleyi yıkar, yatırılanın bir kısmını geri verir ve yuvayı boşaltır.
    * Böylece yanlış yere kurulan kule yerine başka tip kurulabiliyor.
    */
-  kuleYik(yuva: number): boolean {
+  kuleYik(id: number): boolean {
     if (this.asama === 'bitti') return false
-    const bedel = this.kuleYikimBedeli(yuva)
+    const bedel = this.kuleYikimBedeli(id)
     if (bedel === null) return false
 
     this.altin += bedel
-    this.kuleler[yuva] = null
+    const sira = this.kuleler.findIndex((k) => k.id === id)
+    if (sira >= 0) this.kuleler.splice(sira, 1)
     return true
   }
 
-  /** Boş yuvaya kule kurar; para yetmezse ya da yuva doluysa false döner. */
-  kuleAl(yuva: number, tip: number): boolean {
-    if (this.asama === 'bitti') return false
-    if (yuva < 0 || yuva >= this.kuleler.length) return false
-    if (this.kuleler[yuva]) return false
+  /**
+   * Verilen noktaya kule kurar; kurulan kuleyi döner, olmazsa null.
+   * `yanal` yalnız sahne için taşınır, mantık ona bakmaz.
+   */
+  kuleKur(x: number, tip: number, yanal = 0): Kule | null {
+    if (!this.kuleKurulabilirMi(x)) return null
     const fiyat = KULE_TIPLERI[tip]?.fiyat[0]
-    if (fiyat === undefined || this.altin < fiyat) return false
+    if (fiyat === undefined || this.altin < fiyat) return null
 
     this.altin -= fiyat
-    // İlk atış hemen gelsin, oyuncu aldığını görsün.
-    this.kuleler[yuva] = {
-      yuva,
+    const kule: Kule = {
+      id: this.sonrakiId++,
+      x,
+      yanal,
       tip,
       seviye: 1,
+      // İlk atış hemen gelsin, oyuncu aldığını görsün.
       atisBirikim: KULE_TIPLERI[tip].aralikMs[0],
       yatirim: fiyat,
       hedefleme: 0,
       sersem: 0,
     }
-    return true
+    this.kuleler.push(kule)
+    return kule
   }
 
   /**
@@ -684,7 +714,6 @@ export class KaleSavunmasi {
   /** Kuleler menzillerindeki en öndeki canavara ok atar. */
   private kuleIlerlet(dt: number, sonuc: AdimSonucu): void {
     for (const kule of this.kuleler) {
-      if (!kule) continue
       const bilgi = KULE_TIPLERI[kule.tip]
       const basamak = kule.seviye - 1
       // Şef şoku: sersem kule ne nişan alır ne ateş eder.
@@ -695,7 +724,7 @@ export class KaleSavunmasi {
       kule.atisBirikim = Math.min(kule.atisBirikim + dt, bilgi.aralikMs[basamak])
       if (kule.atisBirikim < bilgi.aralikMs[basamak]) continue
 
-      const kuleX = KULE_YUVALARI[kule.yuva]
+      const kuleX = kule.x
       // Hava savar kule menzilinde uçan varsa önce onu alır.
       const hedef = this.hedefSec(kuleX, bilgi.menzil[basamak], kule.hedefleme, bilgi.ucusCarpani > 1)
       if (!hedef) continue
@@ -737,8 +766,8 @@ export class KaleSavunmasi {
   }
 
   /** Kulenin hedefleme kuralını bir sonrakine geçirir; yeni sırayı döner. */
-  hedeflemeDegistir(yuva: number): number {
-    const kule = this.kuleler[yuva]
+  hedeflemeDegistir(id: number): number {
+    const kule = this.kuleBul(id)
     if (!kule) return 0
     kule.hedefleme = (kule.hedefleme + 1) % HEDEFLEME_KURALLARI.length
     return kule.hedefleme
@@ -1007,8 +1036,7 @@ export class KaleSavunmasi {
   /** Şef şoku: menzildeki kuleler bir süre ateş edemez. */
   private sokDalgasi(x: number, sonuc: AdimSonucu): void {
     for (const kule of this.kuleler) {
-      if (!kule) continue
-      if (Math.abs(KULE_YUVALARI[kule.yuva] - x) > SOK_MENZIL) continue
+      if (Math.abs(kule.x - x) > SOK_MENZIL) continue
       kule.sersem = SOK_SURE_MS
     }
     sonuc.soklar.push({ x, yaricap: SOK_MENZIL })

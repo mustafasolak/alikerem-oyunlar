@@ -727,8 +727,24 @@ export const KULE_YIKIM_ORANI = 0.5
 /** Yuvaya dokunma sayılan yatay uzaklık. */
 export const KULE_YUVA_DOKUNMA = 40
 
-/** Kule yuvalarının x konumları — kalenin sağında, yolun arkasındaki çimde. */
+/**
+ * Kule yuvalarının x konumları — kalenin sağında, yolun arkasındaki çimde.
+ * İki boyutlu sürüm bu sabit noktaları kullanıyor; üç boyutlu sürümde kule
+ * yola bakan çimin herhangi bir yerine kurulabiliyor.
+ */
 export const KULE_YUVALARI = [162, 278, 394, 510, 626, 742]
+
+/**
+ * Serbest yerleştirme sınırları.
+ *
+ * Kule kalenin dibine ya da doğuş noktasının ötesine kurulamaz; iki kule
+ * birbirine bu mesafeden yakın olamaz (yoksa aynı noktaya kule yığılır) ve
+ * sahada en çok bu kadar kule durabilir — hem denge hem çizim maliyeti için.
+ */
+export const KULE_MIN_X = KALE_GENISLIK + 46
+export const KULE_MAX_X = GAME_WIDTH - 30
+export const KULE_ARA_MESAFE = 72
+export const MAX_KULE = 8
 /** Kulelerin oturduğu hat. */
 export const KULE_TABAN_Y = 342
 /** Yuva tabanındaki taş platform. */
