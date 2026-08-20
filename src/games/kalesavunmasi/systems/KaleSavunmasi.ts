@@ -104,6 +104,14 @@ export interface Canavar {
   yanmaTik: number
   /** Buz: kalan yavaşlama süresi (ms). */
   yavaslikKalan: number
+  /**
+   * Kaçıncı şeritte yürüyor (0 tabanlı).
+   *
+   * Mantık şeridi yalnız "hangi mızrak kime değer" sorusunda kullanıyor;
+   * şeridin dünyada nereye denk geldiğini sahne biliyor. Tek şeritli oyunda
+   * (iki boyutlu sürüm) hep 0.
+   */
+  serit: number
   /** Şef kalkanı; hasar önce buradan düşer. Şef olmayanlarda hep 0. */
   kalkan: number
   /** Şefin azami kalkanı. */
@@ -132,6 +140,8 @@ export interface Atis {
   zirhDelici: boolean
   /** Vurduğunu yavaşlatır mı? */
   yavaslatir: boolean
+  /** Hangi şeritte uçuyor; yalnız o şeritteki canavara değer. */
+  serit: number
 }
 
 /** Yuvaya kurulmuş kule. */
@@ -218,6 +228,10 @@ export class KaleSavunmasi {
   duraklatildi = false
   /** Nişan açısı (derece; 0 = sağa yatay, eksi = yukarı). */
   aci = ACI_BASLANGIC
+  /** Yoldaki şerit sayısı. */
+  readonly seritAdet: number
+  /** Mızrakçının nişan aldığı şerit. */
+  serit = 0
 
   /** Yükseltme kimliği → alınan seviye. */
   readonly yukseltmeler = new Map<string, number>()
@@ -240,10 +254,20 @@ export class KaleSavunmasi {
   private beklemeBirikim = ATIS_BEKLEME_MS
   private simBirikim = 0
 
-  constructor(random: Uretec = Math.random, dunyaSira = 0, zorlukSira = VARSAYILAN_ZORLUK) {
+  /**
+   * @param seritAdet Yolda kaç şerit var. 1 verilirse oyun tek sıra hâlinde
+   *   akar — iki boyutlu sürüm böyle çalışıyor ve davranışı hiç değişmiyor.
+   */
+  constructor(
+    random: Uretec = Math.random,
+    dunyaSira = 0,
+    zorlukSira = VARSAYILAN_ZORLUK,
+    seritAdet = 1,
+  ) {
     this.random = random
     this.dunyaSira = dunyaSira
     this.zorlukSira = zorlukSira
+    this.seritAdet = Math.max(1, Math.floor(seritAdet))
     this.kaleCani = 0
     this.reset()
   }
@@ -316,6 +340,7 @@ export class KaleSavunmasi {
     this.asama = 'hazir'
     this.duraklatildi = false
     this.aci = ACI_BASLANGIC
+    this.serit = Math.floor(this.seritAdet / 2)
     this.yukseltmeler.clear()
     this.element = 'normal'
     this.otomatik = false
@@ -380,6 +405,11 @@ export class KaleSavunmasi {
 
   // --- Nişan ---
 
+  /** Nişan şeridini seçer; aralık dışındaki değer kırpılır. */
+  seritSec(serit: number): void {
+    this.serit = Math.max(0, Math.min(this.seritAdet - 1, Math.round(serit)))
+  }
+
   aciAyarla(aci: number): void {
     this.aci = Math.min(ACI_MAX, Math.max(ACI_MIN, aci))
   }
@@ -419,6 +449,7 @@ export class KaleSavunmasi {
       alan: 0,
       zirhDelici: false,
       yavaslatir: false,
+      serit: this.serit,
     })
     return true
   }
@@ -645,6 +676,7 @@ export class KaleSavunmasi {
     if (!hedef) return
 
     const bilgi = this.tipler[hedef.tip]
+    this.seritSec(hedef.serit)
     this.aciAyarla(this.hedefAcisi(hedef.x, canavarAyakY(bilgi) - bilgi.boy / 2))
     this.at()
   }
@@ -735,6 +767,8 @@ export class KaleSavunmasi {
       alan: tipBilgi.alan,
       zirhDelici: tipBilgi.zirhDelici,
       yavaslatir: tipBilgi.yavaslatir,
+      // Ok hedefin şeridine gider; kule bütün şeritleri tarayabiliyor.
+      serit: hedef.serit,
     })
   }
 
@@ -780,6 +814,7 @@ export class KaleSavunmasi {
       altin: Math.round(bilgi.altin * odul * this.zorluk.altinCarpani),
       puan: Math.round(bilgi.puan * odul * this.zorluk.puanCarpani),
       durum: 'yuruyor',
+      serit: Math.min(this.seritAdet - 1, Math.floor(this.random() * this.seritAdet)),
       // Faz rastgele başlasın; hepsi aynı anda aynı bacağı atmasın.
       faz: this.random(),
       vurusBirikim: 0,
@@ -855,6 +890,8 @@ export class KaleSavunmasi {
       const bilgi = this.tipler[c.tip]
       // Uçana mızrak değmez; yalnız kule oku vurur.
       if (bilgi.ucar && m.tur === 'mizrak') continue
+      // Başka şeritte yürüyene değmez.
+      if (m.serit !== c.serit) continue
       if (Math.abs(m.x - c.x) > bilgi.en / 2 + MIZRAK_TEMAS) continue
 
       const ayak = canavarAyakY(bilgi)

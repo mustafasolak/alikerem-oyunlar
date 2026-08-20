@@ -28,6 +28,7 @@ import {
   ELEMENT_RENGI,
   ELEMENT_SIMGE,
   GENIS_EKRAN_ESIGI,
+  VARSAYILAN_ZORLUK,
   KULE_TIPLERI,
   OVERLAY_GECIKME_MS,
   YUKSELTMELER,
@@ -53,8 +54,10 @@ import {
   SAPMA_SINIRI,
   SURUKLE_EGIM_HIZI,
   SURUKLE_ESIGI,
+  SERIT_ADET,
   SURUKLE_SAPMA_HIZI,
   ZEMIN_NISAN_PAYI,
+  seritX,
   kaliteSec,
   type KameraAyari,
   yukseklik,
@@ -77,7 +80,8 @@ const KRITIK_OLCEK = 1.5
 const KAMERA_ANAHTARI = 'kalesavunmasi3d:kamera'
 
 export class GameScene extends UcBoyutSahne {
-  private readonly oyun = new KaleSavunmasi()
+  // Üç şeritli yol: mantık şeridi taşıyor, dünyadaki yeri sahne veriyor.
+  private readonly oyun = new KaleSavunmasi(Math.random, 0, VARSAYILAN_ZORLUK, SERIT_ADET)
   private dunya!: Dunya3D
   private kale!: Kale3D
   private kuleAlani!: Kuleler3D
@@ -101,8 +105,8 @@ export class GameScene extends UcBoyutSahne {
   private atislar!: Atislar3D
 
   private readonly isinlayici = new THREE.Raycaster()
-  /** Nişan ışınının kesiştiği düzlemler: yolun ortası (x=0) ve yer (y=0). */
-  private readonly yolDuzlemi = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0)
+  /** Nişan ışınının kesiştiği düzlemler: seçili şeridin dikeyi ve yer (y=0). */
+  private readonly seritDuzlemi = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0)
   private readonly zeminDuzlemi = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
 
   /** Seçili kamera açısı ve geçişin gittiği yer. */
@@ -239,7 +243,7 @@ export class GameScene extends UcBoyutSahne {
     const sonuc = this.oyun.ilerlet(delta)
 
     this.isabetleriIsle(sonuc.isabetler)
-    for (const saplanan of sonuc.saplananlar) this.atislar.saplanan(saplanan.x, saplanan.aci)
+    for (const saplanan of sonuc.saplananlar) this.atislar.saplanan(saplanan.x, saplanan.aci, seritX(this.oyun.serit))
     for (const zincir of sonuc.zincirler) {
       this.efektler.zincir(
         new THREE.Vector3(0, yukseklik(zincir.y1), zincir.x1),
@@ -392,21 +396,41 @@ export class GameScene extends UcBoyutSahne {
 
   // --- Girdi ---
 
-  /** İşaretçinin nişan düzlemine düştüğü nokta (dünya koordinatı). */
-  private nisanNoktasi(x: number, y: number): THREE.Vector3 | null {
-    this.isinlayici.setFromCamera(new THREE.Vector2(x, y), this.kamera)
-    const duzlem = this.kameraAyari.nisan === 'zemin' ? this.zeminDuzlemi : this.yolDuzlemi
-    const nokta = new THREE.Vector3()
-    return this.isinlayici.ray.intersectPlane(duzlem, nokta) ? nokta : null
-  }
-
+  /**
+   * Nişan: önce hangi şeride bakıldığı, sonra o şerit içinde yükseklik.
+   *
+   * Şerit her zaman yer düzleminden okunuyor (dokunulan noktanın yanal yeri).
+   * Yandan bakan kameralarda yükseklik için bir kez daha ışın atılıyor, bu kez
+   * seçilen şeridin dikey düzlemiyle: böylece canavarın gövdesine nişan
+   * alınabiliyor. Tepeden bakarken yükseklik belirsiz, orada yere nişan alınır.
+   */
   private nisanla(x: number, y: number): void {
     if (this.bitti || this.yaziyor) return
-    const nokta = this.nisanNoktasi(x, y)
-    if (!nokta) return
-    // Tepeden bakarken dokunulan noktanın yüksekliği yok: yere nişan alınır.
-    const simY = this.kameraAyari.nisan === 'zemin' ? ZEMIN_Y - ZEMIN_NISAN_PAYI : ZEMIN_Y - nokta.y
-    this.oyun.nisanlaNokta(nokta.z, simY)
+    this.isinlayici.setFromCamera(new THREE.Vector2(x, y), this.kamera)
+    const zemin = new THREE.Vector3()
+    if (!this.isinlayici.ray.intersectPlane(this.zeminDuzlemi, zemin)) return
+
+    const serit = this.seritBul(zemin.x)
+    this.oyun.seritSec(serit)
+
+    if (this.kameraAyari.nisan === 'zemin') {
+      this.oyun.nisanlaNokta(zemin.z, ZEMIN_Y - ZEMIN_NISAN_PAYI)
+      return
+    }
+    // Seçilen şeridin dikey düzlemi: x = şeridin yanal yeri.
+    this.seritDuzlemi.constant = -seritX(serit)
+    const nokta = new THREE.Vector3()
+    if (!this.isinlayici.ray.intersectPlane(this.seritDuzlemi, nokta)) return
+    this.oyun.nisanlaNokta(nokta.z, ZEMIN_Y - nokta.y)
+  }
+
+  /** Yanal konuma en yakın şerit. */
+  private seritBul(x: number): number {
+    let enIyi = 0
+    for (let serit = 1; serit < SERIT_ADET; serit++) {
+      if (Math.abs(x - seritX(serit)) < Math.abs(x - seritX(enIyi))) enIyi = serit
+    }
+    return enIyi
   }
 
   /**
@@ -822,7 +846,7 @@ export class GameScene extends UcBoyutSahne {
 
   private gostergeleriTazele(): void {
     this.nisaniCiz()
-    this.kale.nisanla(this.oyun.aci)
+    this.kale.nisanla(this.oyun.aci, seritX(this.oyun.serit))
     this.kale.canGoster(this.oyun.kaleCani, this.oyun.maxKaleCani)
     this.atislar.kamerayaBak(this.kamera.quaternion)
     setChip('castle', this.oyun.kaleCani)
@@ -899,9 +923,10 @@ export class GameScene extends UcBoyutSahne {
 
   /** Nişan izi yalnız açı değişince yeniden çizilir. */
   private nisaniCiz(): void {
-    if (this.oyun.aci === this.cizilenAci) return
-    this.cizilenAci = this.oyun.aci
-    this.atislar.nisaniCiz(this.oyun.nisanYolu())
+    const imza = this.oyun.aci + this.oyun.serit * 1000
+    if (imza === this.cizilenAci) return
+    this.cizilenAci = imza
+    this.atislar.nisaniCiz(this.oyun.nisanYolu(), seritX(this.oyun.serit))
   }
 
   private bildir(metin: string): void {

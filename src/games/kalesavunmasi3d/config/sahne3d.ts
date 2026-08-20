@@ -19,8 +19,27 @@ export const yukseklik = (simY: number): number => ZEMIN_Y - simY
 
 // --- Saha ---
 
-/** Toprak yolun yarı genişliği; canavarlar bu bandın içinde yürür. */
-export const YOL_YARI_EN = 92
+/**
+ * Toprak yolun yarı genişliği; canavarlar bu bandın içinde yürür.
+ * Üç şerit sığacak kadar geniş.
+ */
+export const YOL_YARI_EN = 150
+
+/**
+ * Yoldaki şerit sayısı ve şeritler arası açıklık.
+ *
+ * Mantık şeridi yalnız sıra numarası olarak biliyor; dünyada nereye denk
+ * geldiğini burası söylüyor. Mızrak tek şeride gider, kuleler bütün şeritleri
+ * tarar — yani şerit seçimi oyuncunun asıl kararı hâline geliyor.
+ */
+export const SERIT_ADET = 3
+export const SERIT_ARALIK = 88
+
+/** Şeridin yoldaki yanal yeri. */
+export const seritX = (serit: number): number => (serit - (SERIT_ADET - 1) / 2) * SERIT_ARALIK
+
+/** Aynı şeritteki canavarlar birbirinin içine girmesin diye küçük kayma. */
+export const SERIT_KAYMA = 15
 /** Yol kenarındaki taş bordür. */
 export const BORDUR_EN = 10
 export const BORDUR_BOY = 5
@@ -45,7 +64,7 @@ export const DEKOR_ON = DOGUS_X + 340
  * Uçsuz bucaksız bir sur değil, yolu kapatan bir kapı yapısı: kamera yandan
  * baktığı için geniş duvarın yakın ucu bütün ekranı kaplıyordu.
  */
-export const KALE_YARI_EN = 150
+export const KALE_YARI_EN = 205
 /** Duvarın kalınlığı: z ekseninde nereden nereye. */
 export const KALE_Z1 = -30
 export const KALE_Z2 = 112
@@ -53,7 +72,7 @@ export const MAZGAL_EN = 34
 export const MAZGAL_BOY = 22
 export const MAZGAL_ARALIK = 58
 /** Yolun karşısına gelen kapı. */
-export const KAPI_EN = 96
+export const KAPI_EN = 150
 export const KAPI_BOY = 130
 /** Duvarın iki ucundaki burçlar. */
 export const BURC_R = 38
@@ -156,7 +175,7 @@ export const KAMERALAR: KameraAyari[] = [
     ad: 'Yandan',
     yon: { x: -0.88, y: 0.34, z: -0.12 },
     hedef: { x: 60, y: 80, z: GAME_WIDTH / 2 + 10 },
-    cerceve: { x1: -110, x2: 200, y1: 0, y2: 230, z1: 40, z2: 800 },
+    cerceve: { x1: -180, x2: 260, y1: 0, y2: 230, z1: 40, z2: 800 },
     pay: 1.04,
     nisan: 'yol',
   },
@@ -166,7 +185,7 @@ export const KAMERALAR: KameraAyari[] = [
     ad: 'Yakın plan',
     yon: { x: -0.82, y: 0.3, z: -0.24 },
     hedef: { x: 20, y: 70, z: 340 },
-    cerceve: { x1: -100, x2: 190, y1: 0, y2: 230, z1: 60, z2: 620 },
+    cerceve: { x1: -170, x2: 250, y1: 0, y2: 230, z1: 60, z2: 620 },
     pay: 1.02,
     nisan: 'yol',
   },
@@ -181,7 +200,7 @@ export const KAMERALAR: KameraAyari[] = [
     ad: 'Sur üstü',
     yon: { x: 0, y: 1, z: 0 },
     hedef: { x: 0, y: 0, z: 337 },
-    cerceve: { x1: -110, x2: 200, y1: 0, y2: 200, z1: 100, z2: 600 },
+    cerceve: { x1: -180, x2: 260, y1: 0, y2: 200, z1: 100, z2: 600 },
     pay: 1,
     sabitKonum: { x: 0, y: 480, z: 60 },
     fov: 52,
@@ -192,7 +211,7 @@ export const KAMERALAR: KameraAyari[] = [
     ad: 'Kuş bakışı',
     yon: { x: -0.26, y: 0.94, z: -0.04 },
     hedef: { x: 20, y: 30, z: 440 },
-    cerceve: { x1: -130, x2: 220, y1: 0, y2: 110, z1: 10, z2: 870 },
+    cerceve: { x1: -190, x2: 280, y1: 0, y2: 110, z1: 10, z2: 870 },
     pay: 1.02,
     nisan: 'zemin',
   },

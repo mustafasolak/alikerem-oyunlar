@@ -80,8 +80,13 @@ ve ölçü değişimini o kurar; HUD, skor tablosu, ses ve süre sayacı ortak
 modüllerden gelir (hiçbiri Phaser'a bağlı değil).
 
 Örnek: `games/kalesavunmasi3d` — oyun mantığını (`systems/KaleSavunmasi.ts`) iki
-boyutlu sürümle paylaşır, yalnız çizimi başkadır. Sim tek eksenlidir; eksen
-eşlemesi `config/sahne3d.ts` başında yazılıdır (sim x → z, sim y → y).
+boyutlu sürümle paylaşır, yalnız çizimi başkadır. Eksen eşlemesi
+`config/sahne3d.ts` başında yazılıdır (sim x → z, sim y → y).
+
+Sim isteğe bağlı **şerit** taşır: `new KaleSavunmasi(random, dunya, zorluk,
+seritAdet)`. Şerit yalnız sıra numarasıdır, dünyadaki yeri sahne bilir. İki
+boyutlu sürüm tek şeritle (varsayılan) çalışır, üç boyutlu sürüm üç şeritle;
+böylece aynı mantık iki farklı oynanış sunar.
 
 ### Dış bağlantılı oyun
 Başka bir adreste çalışan oyun için `oyun.ts` içinde `sahne` ve `tuval` yerine

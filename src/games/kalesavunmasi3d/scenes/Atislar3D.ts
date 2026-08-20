@@ -10,12 +10,14 @@ import * as THREE from 'three'
 
 import {
   COLORS,
+  DOGUS_X,
+  DURAK_X,
   ELEMENT_RENGI,
   KULE_TIPLERI,
   NISAN_NOKTA_ARALIK,
 } from '../../kalesavunmasi/config/constants.ts'
 import type { Atis } from '../../kalesavunmasi/systems/KaleSavunmasi.ts'
-import { yukseklik } from '../config/sahne3d.ts'
+import { SERIT_ARALIK, seritX, yukseklik } from '../config/sahne3d.ts'
 import type { Efektler3D } from './Efektler3D.ts'
 import { KULE_YANAL } from './Kuleler3D.ts'
 import { birak, koni, kure, malzeme, silindir } from './yapi.ts'
@@ -30,8 +32,10 @@ const IZ_SAYDAM = 0.34
 
 interface AtisGorunum {
   kok: THREE.Group
-  /** Doğduğu andaki yanal yer. */
+  /** Doğduğu andaki yanal yer (kule yanı); uçtukça şeridine kayar. */
   yanal: number
+  /** Gideceği şeridin yanal yeri. */
+  hedefYanal: number
   basX: number
 }
 
@@ -64,6 +68,8 @@ export class Atislar3D {
   private readonly gorunumler = new Map<number, AtisGorunum>()
   private readonly nisanCizgisi: THREE.Points
   private readonly hedefHalkasi: THREE.Mesh
+  /** Nişan alınan şeridi yolda gösteren şeffaf bant. */
+  private readonly seritBandi: THREE.Mesh
 
   constructor(sahne: THREE.Scene, efektler: Efektler3D) {
     this.sahne = sahne
@@ -77,7 +83,14 @@ export class Atislar3D {
       new THREE.TorusGeometry(10, 1.8, 6, 18),
       malzeme(COLORS.NISAN, { saydam: 0.9, isik: COLORS.NISAN }),
     )
-    sahne.add(this.nisanCizgisi, this.hedefHalkasi)
+    // Mızrak tek şeride gidiyor; hangi şerit olduğu yolda görünsün.
+    this.seritBandi = new THREE.Mesh(
+      new THREE.PlaneGeometry(SERIT_ARALIK * 0.9, DOGUS_X - DURAK_X),
+      malzeme(COLORS.NISAN, { saydam: 0.12 }),
+    )
+    this.seritBandi.rotation.x = -Math.PI / 2
+    this.seritBandi.position.set(0, 1.2, (DOGUS_X + DURAK_X) / 2)
+    sahne.add(this.nisanCizgisi, this.hedefHalkasi, this.seritBandi)
   }
 
   /** Mantıktaki atış listesini sahnedeki nesnelerle eşler. */
@@ -92,7 +105,8 @@ export class Atislar3D {
         this.gorunumler.set(atis.id, gorunum)
       }
       const yol = Math.abs(atis.x - gorunum.basX)
-      const yanal = gorunum.yanal * Math.max(0, 1 - yol / OK_YANAL_YOL)
+      const oran = Math.max(0, 1 - yol / OK_YANAL_YOL)
+      const yanal = gorunum.hedefYanal + (gorunum.yanal - gorunum.hedefYanal) * oran
       gorunum.kok.position.set(yanal, yukseklik(atis.y), atis.x)
       // Cisim uçtuğu yöne bakar: yerel +z, x ekseni etrafında açı kadar dönüyor.
       gorunum.kok.rotation.x = Math.atan2(atis.vy, atis.vx)
@@ -107,28 +121,29 @@ export class Atislar3D {
   }
 
   /** Yere saplanan mızrak: efekt listesine devredilir, kendi kendine solar. */
-  saplanan(x: number, aci: number): void {
+  saplanan(x: number, aci: number, yanal = 0): void {
     const kok = mizrakYap(COLORS.MIZRAK_UC)
-    kok.position.set(0, SAPLANAN_Y, x)
+    kok.position.set(yanal, SAPLANAN_Y, x)
     kok.rotation.x = aci
     this.efektler.saplanan(kok)
   }
 
   /** Nişan izi: kesik noktalar ve düşeceği yerde halka. */
-  nisaniCiz(yol: { x: number; y: number }[]): void {
+  nisaniCiz(yol: { x: number; y: number }[], yanal = 0): void {
     const [bas, son] = yol
     const uzunluk = Math.hypot(son.x - bas.x, son.y - bas.y)
     const adet = Math.max(2, Math.floor(uzunluk / NISAN_NOKTA_ARALIK))
     const dizi = new Float32Array(adet * 3)
     for (let i = 0; i < adet; i++) {
       const oran = i / (adet - 1)
-      dizi[i * 3] = 0
+      dizi[i * 3] = yanal
       dizi[i * 3 + 1] = yukseklik(bas.y + (son.y - bas.y) * oran)
       dizi[i * 3 + 2] = bas.x + (son.x - bas.x) * oran
     }
     this.nisanCizgisi.geometry.setAttribute('position', new THREE.BufferAttribute(dizi, 3))
     this.nisanCizgisi.geometry.computeBoundingSphere()
-    this.hedefHalkasi.position.set(0, yukseklik(son.y), son.x)
+    this.hedefHalkasi.position.set(yanal, yukseklik(son.y), son.x)
+    this.seritBandi.position.x = yanal
   }
 
   /** Hedef halkası hep kameraya dönük dursun. */
@@ -152,7 +167,8 @@ export class Atislar3D {
       kok.add(iz(atis.kritik ? 0xfde047 : renk, 3.4))
       // Kritik atış uçarken de belli olsun.
       if (atis.kritik) kok.add(kure(7, malzeme(0xfde047, { saydam: 0.5, isik: 0xfde047 }), 8))
-      return { kok, yanal: 0, basX: atis.x }
+      const serit = seritX(atis.serit)
+      return { kok, yanal: serit, hedefYanal: serit, basX: atis.x }
     }
 
     const kok = new THREE.Group()
@@ -173,6 +189,7 @@ export class Atislar3D {
       uc.position.z = 14
       kok.add(sap, uc, iz(0xe2e8f0, 2.2))
     }
-    return { kok, yanal: KULE_YANAL, basX: atis.x }
+    // Ok kulenin yanından çıkıp hedefin şeridine süzülüyor.
+    return { kok, yanal: KULE_YANAL, hedefYanal: seritX(atis.serit), basX: atis.x }
   }
 }

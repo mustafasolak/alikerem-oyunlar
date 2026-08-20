@@ -12,18 +12,18 @@
 
 import * as THREE from 'three'
 
-import { DURAK_X, type CanavarTipi } from '../../kalesavunmasi/config/constants.ts'
+import type { CanavarTipi } from '../../kalesavunmasi/config/constants.ts'
 import type { Canavar } from '../../kalesavunmasi/systems/KaleSavunmasi.ts'
 import {
   BAR_BOY,
   BAR_EN,
   BAR_PAY,
-  CANAVAR_YAYILMA,
   GOLGE_ORANI,
   GOVDE_DERINLIK_ORANI,
   OLUM_MS,
   PARLAMA_MS,
-  YAYILMA_MESAFE,
+  SERIT_KAYMA,
+  seritX,
 } from '../config/sahne3d.ts'
 import { bicimSec, bicimUygula } from './CanavarBicimleri.ts'
 import { acik, birak, duz, golgeVer, koyu, kure, kutu, malzeme } from './yapi.ts'
@@ -71,8 +71,9 @@ export class Canavar3D {
     this.bilgi = bilgi
     const { en, boy, renk } = bilgi
     const derinlik = en * GOVDE_DERINLIK_ORANI
-    // Aynı id hep aynı şeride düşsün: canavar kare kare sağa sola zıplamasın.
-    this.yanal = (((canavar.id * 37) % 100) / 50 - 1) * CANAVAR_YAYILMA
+    // Şerit mantıktan geliyor; buradaki kayma yalnız aynı şeritte yürüyenler
+    // üst üste binmesin diye. Aynı id hep aynı kaymayı alır.
+    this.yanal = (((canavar.id * 37) % 100) / 50 - 1) * SERIT_KAYMA
 
     const govdeMalzeme = this.malzemeKur(renk)
     const koyuMalzeme = this.malzemeKur(koyu(renk, 0.35))
@@ -263,11 +264,9 @@ export class Canavar3D {
   // --- Yardımcılar ---
 
   private yerlestir(canavar: Canavar): void {
-    // Kaleye yaklaşırken yanal kayma kapanır: kapıya doğru huni.
-    const acilim = Math.max(0, Math.min(1, (canavar.x - DURAK_X) / YAYILMA_MESAFE))
     const ucus = this.bilgi.ucar ? Math.sin(this.salinim / 260) * UCUS_SALINIM : 0
     const y = this.bilgi.yukseklik + ucus
-    this.kok.position.set(this.yanal * acilim, y, canavar.x)
+    this.kok.position.set(seritX(canavar.serit) + this.yanal, y, canavar.x)
     // Gölge kökün çocuğu: yerel konumu, kök ne kadar yükselirse o kadar aşağı.
     this.golge.position.y = 0.8 - y
     const kucul = Math.max(0.45, 1 - y / 260)

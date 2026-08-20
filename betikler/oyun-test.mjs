@@ -667,14 +667,14 @@ function tohumlu(tohum) {
   const koy = (x, can) => {
     oyun.canavarlar.push({
       id: 900 + Math.round(x), tip, x, can, maxCan: can, altin: 0, puan: 0,
-      durum: 'yuruyor', faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
+      durum: 'yuruyor', serit: 0, faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
     })
   }
   const vur = (element, hasar = 1) => {
     oyun.atislar.push({
       id: 1, x: oyun.canavarlar[0].x, y: ZEMIN_Y - 10, vx: 0, vy: 1,
       hasar, tur: 'mizrak', element,
-      kritik: false, alan: 0, zirhDelici: false, yavaslatir: false,
+      kritik: false, alan: 0, zirhDelici: false, yavaslatir: false, serit: 0,
     })
     oyun.ilerlet(SIM_ADIM_MS)
   }
@@ -715,7 +715,7 @@ function tohumlu(tohum) {
   const sonuc2 = (() => {
     oyun.atislar.push({
       id: 5, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 1, tur: 'mizrak', element: 'simsek',
-      kritik: false, alan: 0, zirhDelici: false, yavaslatir: false,
+      kritik: false, alan: 0, zirhDelici: false, yavaslatir: false, serit: 0,
     })
     return oyun.ilerlet(SIM_ADIM_MS)
   })()
@@ -774,7 +774,7 @@ function tohumlu(tohum) {
     for (const c of liste) {
       oyun.canavarlar.push({
         id: c.id, tip: c.tip, x: c.x, can: c.can, maxCan: c.can, altin: 0, puan: 0,
-        durum: 'yuruyor', faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
+        durum: 'yuruyor', serit: 0, faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
       })
     }
     oyun.kuleler[0].hedefleme = kural
@@ -816,7 +816,7 @@ function tohumlu(tohum) {
     const can = 200
     oyun.canavarlar.push({
       id: 950, tip: sefTip, x, can, maxCan: can, altin: 0, puan: 0,
-      durum: 'yuruyor', faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
+      durum: 'yuruyor', serit: 0, faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
       kalkan: Math.round(can * SEF_KALKAN_ORANI), maxKalkan: Math.round(can * SEF_KALKAN_ORANI), isabetsizSure: 0,
     })
     return oyun.canavarlar.at(-1)
@@ -824,7 +824,7 @@ function tohumlu(tohum) {
   const vur = (hedef, hasar) => {
     oyun.atislar.push({
       id: 60, x: hedef.x, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar, tur: 'mizrak', element: 'normal',
-      kritik: false, alan: 0, zirhDelici: true, yavaslatir: false,
+      kritik: false, alan: 0, zirhDelici: true, yavaslatir: false, serit: 0,
     })
     return oyun.ilerlet(SIM_ADIM_MS)
   }
@@ -858,7 +858,7 @@ function tohumlu(tohum) {
   const sivilTip = oyun.tipler.findIndex((t) => !t.patron && !t.ucar)
   oyun.canavarlar.push({
     id: 951, tip: sivilTip, x: 400, can: 10, maxCan: 40, altin: 0, puan: 0,
-    durum: 'yuruyor', faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
+    durum: 'yuruyor', serit: 0, faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
     kalkan: 0, maxKalkan: 0, isabetsizSure: 99999,
   })
   for (let i = 0; i < 60; i++) oyun.ilerlet(SIM_ADIM_MS)
@@ -975,7 +975,7 @@ function tohumlu(tohum) {
   const koy = (tip, x, id) => {
     oyun.canavarlar.push({
       id, tip, x, can: 100000, maxCan: 100000, altin: 0, puan: 0,
-      durum: 'yuruyor', faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
+      durum: 'yuruyor', serit: 0, faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
       kalkan: 0, maxKalkan: 0, isabetsizSure: 0,
     })
     return oyun.canavarlar.at(-1)
@@ -1011,6 +1011,71 @@ function tohumlu(tohum) {
   const hasar = atisHasari(zipkinTip)
   esit('uçan hedef seçildi', hasar, KULE_TIPLERI[zipkinTip].hasar[0] * KULE_TIPLERI[zipkinTip].ucusCarpani)
   kontrol('yerdeki daha yakındı', Math.abs(yakinYer.x - KULE_YUVALARI[0]) < Math.abs(uzakUcan.x - KULE_YUVALARI[0]))
+}
+
+// --- Kale Savunması: çok şeritli yol ---
+{
+  // Varsayılan tek şerit: iki boyutlu sürümün davranışı değişmiyor
+  const tek = new KaleSavunmasi(tohumlu(51), 0, 1)
+  esit('varsayılan tek şerit', tek.seritAdet, 1)
+  esit('nişan şeridi ortada', tek.serit, 0)
+  tek.seritSec(5)
+  esit('tek şeritte şerit değişmez', tek.serit, 0)
+
+  const oyun = new KaleSavunmasi(tohumlu(52), 0, 1, 3)
+  esit('üç şerit kuruldu', oyun.seritAdet, 3)
+  esit('nişan ortadaki şeritte başlar', oyun.serit, 1)
+  oyun.seritSec(-4)
+  esit('şerit alt sınırda kırpılır', oyun.serit, 0)
+  oyun.seritSec(9)
+  esit('şerit üst sınırda kırpılır', oyun.serit, 2)
+
+  // Doğan canavarlar şeritlere dağılıyor
+  oyun.basla()
+  for (let i = 0; i < 900 && oyun.canavarlar.length < 8; i++) oyun.ilerlet(SIM_ADIM_MS)
+  const seritler = new Set(oyun.canavarlar.map((c) => c.serit))
+  kontrol('canavarlar birden çok şeride dağıldı', seritler.size > 1, `${seritler.size} şerit`)
+  kontrol('şeritler geçerli aralıkta', [...seritler].every((s) => s >= 0 && s < 3))
+
+  // Mızrak yalnız kendi şeridindekine değer
+  const tip = oyun.tipler.findIndex((t) => !t.patron && !t.ucar)
+  const koy = (serit, id) => {
+    oyun.canavarlar.push({
+      id, tip, x: 400, can: 500, maxCan: 500, altin: 0, puan: 0,
+      durum: 'yuruyor', serit, faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
+      kalkan: 0, maxKalkan: 0, isabetsizSure: 0,
+    })
+    return oyun.canavarlar.at(-1)
+  }
+  const mizrakAt = (serit) => {
+    oyun.atislar.push({
+      id: 500 + serit, x: 400, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 9, tur: 'mizrak', element: 'normal',
+      kritik: false, alan: 0, zirhDelici: false, yavaslatir: false, serit,
+    })
+    return oyun.ilerlet(SIM_ADIM_MS)
+  }
+
+  oyun.canavarlar.length = 0
+  oyun.atislar.length = 0
+  const solda = koy(0, 941)
+  mizrakAt(2)
+  esit('başka şeritteki canavara değmedi', solda.can, 500)
+  mizrakAt(0)
+  kontrol('kendi şeridindekine değdi', solda.can < 500, `can ${solda.can}`)
+
+  // Kule oku hedefin şeridine gidiyor
+  oyun.canavarlar.length = 0
+  oyun.atislar.length = 0
+  oyun.altin = 1000000
+  oyun.kuleler.fill(null)
+  oyun.kuleAl(0, 0)
+  const uzaktaki = koy(2, 942)
+  uzaktaki.x = KULE_YUVALARI[0] + 50
+  oyun.kuleler[0].atisBirikim = KULE_TIPLERI[0].aralikMs[0]
+  oyun.ilerlet(SIM_ADIM_MS)
+  esit('ok hedefin şeridine çıktı', oyun.atislar[0]?.serit, 2)
+  for (let i = 0; i < 30; i++) oyun.ilerlet(SIM_ADIM_MS)
+  kontrol('ok başka şeritteki hedefi vurdu', uzaktaki.can < 500, `can ${uzaktaki.can}`)
 }
 
 // --- Kale Savunması: kule tipleri ---
@@ -1060,7 +1125,7 @@ function tohumlu(tohum) {
   const tip = oyun.tipler.findIndex((t) => !t.patron && !t.ucar && t.zirh === 0)
   const koy = (x) => oyun.canavarlar.push({
     id: 700 + Math.round(x), tip, x, can: 500, maxCan: 500, altin: 0, puan: 0,
-    durum: 'yuruyor', faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
+    durum: 'yuruyor', serit: 0, faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
   })
   oyun.canavarlar.length = 0
   koy(400)
@@ -1072,7 +1137,7 @@ function tohumlu(tohum) {
   const sonuc = (() => {
     oyun.atislar.push({
       id: 1, x: 400, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 10, tur: 'ok',
-      element: 'normal', kritik: false, alan: KULE_TIPLERI[1].alan, zirhDelici: false, yavaslatir: false,
+      element: 'normal', kritik: false, alan: KULE_TIPLERI[1].alan, zirhDelici: false, yavaslatir: false, serit: 0,
     })
     return oyun.ilerlet(SIM_ADIM_MS)
   })()
@@ -1092,12 +1157,12 @@ function tohumlu(tohum) {
   oyun.canavarlar.length = 0
   oyun.canavarlar.push({
     id: 701, tip: zirhliTip, x: 400, can: 500, maxCan: 500, altin: 0, puan: 0,
-    durum: 'yuruyor', faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
+    durum: 'yuruyor', serit: 0, faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
   })
   oyun.atislar.push({
     id: 2, x: 400, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: zirh + 5, tur: 'ok',
-    element: 'normal', kritik: false, alan: 0, zirhDelici: true, yavaslatir: true,
-  })
+    element: 'normal', kritik: false, alan: 0, zirhDelici: true, yavaslatir: true, serit: 0,
+    })
   oyun.ilerlet(SIM_ADIM_MS)
   esit('zırh delici tam hasar geçirdi', 500 - oyun.canavarlar[0].can, zirh + 5)
   kontrol('büyücü yavaşlattı', oyun.canavarlar[0].yavaslikKalan > 0)
@@ -1219,12 +1284,12 @@ function tohumlu(tohum) {
   oyun.canavarlar.length = 0
   oyun.canavarlar.push({
     id: 702, tip, x: 400, can: 500, maxCan: 500, altin: 0, puan: 0,
-    durum: 'yuruyor', faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
+    durum: 'yuruyor', serit: 0, faz: 0, vurusBirikim: 0, yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
   })
   oyun.atislar.push({
     id: 3, x: 400, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 7, tur: 'mizrak',
-    element: 'normal', kritik: true, alan: 0, zirhDelici: false, yavaslatir: false,
-  })
+    element: 'normal', kritik: true, alan: 0, zirhDelici: false, yavaslatir: false, serit: 0,
+    })
   const isabetler = oyun.ilerlet(SIM_ADIM_MS).isabetler
   esit('isabet hasarı bildiriyor', isabetler[0].hasar, 7)
   esit('isabet kritiği bildiriyor', isabetler[0].kritik, true)
@@ -1398,7 +1463,7 @@ function tohumlu(tohum) {
     oyun.canavarlar.length = 0
     oyun.canavarlar.push({
       id: 999, tip, x: 300, can, maxCan: can, altin: 0, puan: 0,
-      durum: 'yuruyor', faz: 0, vurusBirikim: 0,
+      durum: 'yuruyor', serit: 0, faz: 0, vurusBirikim: 0,
       yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
     })
   }
@@ -1408,13 +1473,15 @@ function tohumlu(tohum) {
   oyun.aciAyarla(0)
   const oncekiCan = oyun.canavarlar[0].can
   // Mızrağı doğrudan canavarın üstüne koyup bir adım ilerlet
-  oyun.atislar.push({ id: 1, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: testHasari, tur: 'mizrak', element: 'normal', kritik: false, alan: 0, zirhDelici: false, yavaslatir: false })
+  oyun.atislar.push({ id: 1, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: testHasari, tur: 'mizrak', element: 'normal', kritik: false, alan: 0, zirhDelici: false, yavaslatir: false, serit: 0,
+    })
   oyun.ilerlet(SIM_ADIM_MS)
   esit('zırh hasarı azaltıyor', oncekiCan - oyun.canavarlar[0].can, 3)
 
   // Zırhtan zayıf vuruş bile 1 hasar geçirir
   koy(zirhliTip, 100)
-  oyun.atislar.push({ id: 2, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 1, tur: 'ok', element: 'normal', kritik: false, alan: 0, zirhDelici: false, yavaslatir: false })
+  oyun.atislar.push({ id: 2, x: 300, y: ZEMIN_Y - 10, vx: 0, vy: 1, hasar: 1, tur: 'ok', element: 'normal', kritik: false, alan: 0, zirhDelici: false, yavaslatir: false, serit: 0,
+    })
   oyun.ilerlet(SIM_ADIM_MS)
   esit('zayıf vuruş en az 1 hasar geçirir', 100 - oyun.canavarlar[0].can, 1)
 }
@@ -1431,18 +1498,20 @@ function tohumlu(tohum) {
     oyun.atislar.length = 0
     oyun.canavarlar.push({
       id: 998, tip: ucanTip, x: 300, can: 50, maxCan: 50, altin: 0, puan: 0,
-      durum: 'yuruyor', faz: 0, vurusBirikim: 0,
+      durum: 'yuruyor', serit: 0, faz: 0, vurusBirikim: 0,
       yanmaKalan: 0, yanmaTik: 0, yavaslikKalan: 0,
     })
   }
 
   koyUcan()
-  oyun.atislar.push({ id: 1, x: 300, y: ucanY, vx: 0, vy: 1, hasar: 5, tur: 'mizrak', element: 'normal', kritik: false, alan: 0, zirhDelici: false, yavaslatir: false })
+  oyun.atislar.push({ id: 1, x: 300, y: ucanY, vx: 0, vy: 1, hasar: 5, tur: 'mizrak', element: 'normal', kritik: false, alan: 0, zirhDelici: false, yavaslatir: false, serit: 0,
+    })
   oyun.ilerlet(SIM_ADIM_MS)
   esit('mızrak uçana değmiyor', oyun.canavarlar[0].can, 50)
 
   koyUcan()
-  oyun.atislar.push({ id: 2, x: 300, y: ucanY, vx: 0, vy: 1, hasar: 5, tur: 'ok', element: 'normal', kritik: false, alan: 0, zirhDelici: false, yavaslatir: false })
+  oyun.atislar.push({ id: 2, x: 300, y: ucanY, vx: 0, vy: 1, hasar: 5, tur: 'ok', element: 'normal', kritik: false, alan: 0, zirhDelici: false, yavaslatir: false, serit: 0,
+    })
   oyun.ilerlet(SIM_ADIM_MS)
   esit('kule oku uçanı vuruyor', oyun.canavarlar[0].can, 45)
 }

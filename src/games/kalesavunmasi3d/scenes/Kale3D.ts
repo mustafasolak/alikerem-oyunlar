@@ -145,9 +145,14 @@ export class Kale3D {
     if (gercekGolge) golgeVer(this.kok, true, true)
   }
 
-  /** Nişan açısını (derece) uygular. */
-  nisanla(aci: number): void {
+  /**
+   * Nişan açısını (derece) ve nişan alınan şeridin yanal yerini uygular.
+   * Mızrakçı gövdesiyle hangi şeride baktığını gösteriyor.
+   */
+  nisanla(aci: number, yanal = 0): void {
     this.aci = aci
+    // Şerit uzaklığı kabaca yolun ortası; küçük açı yeter, abartınca kol kopuk duruyor.
+    this.onKol.rotation.y = -Math.atan2(yanal, 320)
     this.kolaAciVer()
   }
 
